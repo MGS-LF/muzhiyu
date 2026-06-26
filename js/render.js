@@ -55,6 +55,18 @@ export function render(game, gameTime) {
     return;
   }
 
+  // 造句模式：独立渲染
+  if (game.compose) {
+    drawCompose(ctx, game.compose, gameTime);
+    return;
+  }
+
+  // 听雨自由对话：独立渲染
+  if (game.converse) {
+    drawConverse(ctx, game.converse, gameTime);
+    return;
+  }
+
   ctx.clearRect(0, 0, W, H);
 
   ctx.fillStyle = scene.bgColor;
@@ -74,6 +86,9 @@ export function render(game, gameTime) {
   else if (scene.id === 'stadium') drawStadium(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'data_center') drawDataCenter(ctx, W2S, scene, gameTime, game);
 
+  // 章节门禁的可视化（屏障/光柱）
+  drawGates(ctx, W2S, scene, game, gameTime);
+
   drawInteractHints(ctx, W2S, scene, player, game.collected, gameTime);
 
   // 敌人（在玩家之下，大地图上显示位置）
@@ -81,6 +96,9 @@ export function render(game, gameTime) {
 
   // 掉落物
   drawItems(ctx, W2S, scene, gameTime, game.collected);
+
+  // 失语者支线 NPC
+  drawCureNPCs(ctx, W2S, scene, game, gameTime);
 
   // 要石
   drawKeystones(ctx, W2S, scene, game.activatedKeystones, gameTime);
@@ -95,6 +113,9 @@ export function render(game, gameTime) {
   // 目标指引箭头
   drawObjectiveArrow(ctx, W2S, game, gameTime);
 
+  // 氛围层（尘埃 / 雾气 / 色彩分级）
+  drawAtmosphere(ctx, scene, gameTime, camera);
+
   drawLighting(ctx, player, camera, scene.id);
 
   // 受伤红屏（只有真正受伤时）
@@ -107,10 +128,174 @@ export function render(game, gameTime) {
   if (hints.length) drawHints(ctx, hints);
 
   if (tutorial) drawTutorial(ctx, gameTime, tutorial);
+
+  // 等待 LLM 的提示
+  if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
+
+  // 结局卡（对话结束后，game_complete 时覆盖显示）
+  if (game.flags && game.flags.game_complete && !dialogState) {
+    drawEnding(ctx, game.ending, gameTime, game.endingEpilogue);
+  }
 }
 
 // ============================================================
-// 敌人
+// 结局卡
+// ============================================================
+function drawEnding(ctx, ending, gameTime, epilogue) {
+  const cfgs = {
+    fire: { title: '火 种', col: '255,210,120', sub: '语言的火种被重新点亮。只要还有一个人记得怎么说话，世界就还没有真的失语。' },
+    silence: { title: '沉 默', col: '170,180,185', sub: '你完成了旅程，却没能在对的时候，留下一句话。世界停在一片灰白的安静里。' },
+    burnout: { title: '燃 尽', col: '110,210,130', sub: '最后一个会说完整句子的人安静了。绿雾温柔地覆盖城市——再没有谁，会因一句诗而难受。' },
+  };
+  const c = cfgs[ending] || cfgs.silence;
+  const subText = (epilogue && epilogue.trim()) ? epilogue.trim() : c.sub;
+  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  ctx.fillRect(0, 0, W, H);
+  // 标题光晕
+  const pulse = 0.7 + Math.sin(gameTime * 0.002) * 0.3;
+  ctx.save();
+  ctx.shadowColor = `rgba(${c.col},${pulse})`;
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = `rgba(${c.col},0.95)`;
+  ctx.font = 'bold 56px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(c.title, W / 2, H / 2 - 50);
+  ctx.restore();
+  // 副标题（换行）
+  ctx.fillStyle = 'rgba(225,218,205,0.9)';
+  ctx.font = '15px serif';
+  const maxW = 560;
+  let line = '', y = H / 2 + 10;
+  for (const ch of subText) {
+    if (ctx.measureText(line + ch).width > maxW) { ctx.fillText(line, W / 2, y); line = ch; y += 26; }
+    else line += ch;
+  }
+  ctx.fillText(line, W / 2, y);
+  // 结语
+  ctx.fillStyle = 'rgba(180,170,150,0.7)';
+  ctx.font = '12px serif';
+  ctx.fillText('—— 刻 痕 ·  遗 忘 的 文 字 ——', W / 2, y + 50);
+  const blink = 0.4 + Math.sin(gameTime * 0.004) * 0.4;
+  ctx.fillStyle = `rgba(${c.col},${blink})`;
+  ctx.font = '12px serif';
+  ctx.fillText('刷新页面，可换一种走法重新开始', W / 2, y + 76);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ============================================================
+// 等待 LLM 的提示（覆盖在大地图上）
+// ============================================================
+function drawThinking(ctx, gameTime, text) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, H - 60, W, 60);
+  const dots = '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
+  ctx.fillStyle = 'rgba(220,225,235,0.85)';
+  ctx.font = '15px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText((text || '聆听这个世界') + dots, W / 2, H - 30);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
+
+// ============================================================
+// 听雨自由对话（结局）
+// ============================================================
+function wrapText(ctx, text, maxW) {
+  const lines = [];
+  let line = '';
+  for (const ch of text) {
+    if (ch === '\n') { lines.push(line); line = ''; continue; }
+    if (ctx.measureText(line + ch).width > maxW) { lines.push(line); line = ch; }
+    else line += ch;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawConverse(ctx, c, gameTime) {
+  // 背景：深渊蓝黑 + 缓动光晕
+  ctx.fillStyle = '#05060d';
+  ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(W / 2, H * 0.36, 40, W / 2, H * 0.36, 460);
+  g.addColorStop(0, 'rgba(70,110,190,0.22)');
+  g.addColorStop(1, 'rgba(5,6,13,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 漂浮微尘
+  for (let i = 0; i < 40; i++) {
+    const x = (i * 137.5 + gameTime * 0.012 * (1 + (i % 3))) % W;
+    const y = (i * 89.3 + gameTime * 0.006 * (1 + (i % 2))) % H;
+    ctx.fillStyle = `rgba(150,185,255,${0.05 + (i % 5) * 0.02})`;
+    ctx.fillRect(x, y, 1.5, 1.5);
+  }
+
+  // 听雨投影（淡蓝、信号不稳的少女轮廓）
+  const cx = W / 2, cy = H * 0.34;
+  const flick = 0.6 + Math.sin(gameTime * 0.013) * 0.18 + (Math.random() - 0.5) * 0.06;
+  ctx.save();
+  ctx.globalAlpha = flick;
+  ctx.shadowColor = 'rgba(120,170,255,0.8)';
+  ctx.shadowBlur = 26;
+  ctx.strokeStyle = 'rgba(170,205,255,0.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy - 26, 16, 0, Math.PI * 2); ctx.stroke(); // 头
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy + 70); ctx.lineTo(cx - 12, cy - 8);
+  ctx.lineTo(cx + 12, cy - 8); ctx.lineTo(cx + 22, cy + 70);
+  ctx.stroke(); // 肩与裙摆
+  // 扫描线
+  ctx.globalAlpha = flick * 0.5;
+  for (let y = cy - 44; y < cy + 72; y += 5) {
+    ctx.strokeStyle = 'rgba(150,190,255,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - 26, y); ctx.lineTo(cx + 26, y); ctx.stroke();
+  }
+  ctx.restore();
+
+  // 名牌
+  ctx.fillStyle = 'rgba(180,210,255,0.9)';
+  ctx.font = 'bold 18px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('听 雨', cx, cy + 92);
+
+  // 听雨当前台词
+  ctx.font = '20px serif';
+  const lines = wrapText(ctx, c.tingyuText || '……', 760);
+  ctx.fillStyle = 'rgba(225,235,250,0.96)';
+  let ty = H * 0.56;
+  for (const ln of lines) { ctx.fillText(ln, W / 2, ty); ty += 32; }
+
+  // 玩家上一句（淡）
+  if (c.playerLast) {
+    ctx.font = '14px serif';
+    ctx.fillStyle = 'rgba(150,160,175,0.6)';
+    ctx.fillText('你：' + c.playerLast, W / 2, ty + 18);
+  }
+
+  // 底部状态
+  ctx.font = '13px serif';
+  if (c.status === 'waiting') {
+    const dots = '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
+    ctx.fillStyle = 'rgba(160,195,255,0.8)';
+    ctx.fillText('听雨正在凝视你' + dots, W / 2, H - 96);
+  } else if (c.status === 'ending') {
+    const blink = 0.4 + Math.sin(gameTime * 0.005) * 0.4;
+    ctx.fillStyle = `rgba(255,225,150,${blink})`;
+    ctx.fillText('（按 E 继续）', W / 2, H - 96);
+  } else {
+    ctx.fillStyle = 'rgba(150,165,185,0.7)';
+    ctx.fillText(c.hint || '用你自己的话回答她。', W / 2, H - 96);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
 // ============================================================
 function drawEnemies(ctx, W2S, enemies, gameTime, game) {
   for (const e of enemies) {
@@ -240,94 +425,125 @@ function drawParticles(ctx, W2S, particles) {
 }
 
 // ============================================================
-// 目标指引箭头
+// 章节门禁可视化：未解锁→能量屏障+锁；已解锁→金色光柱+去向
 // ============================================================
-function drawObjectiveArrow(ctx, W2S, game, gameTime) {
-  if (!game.objective || game.objective.done) return;
-  // 找到目标点：优先根据当前任务筛选
-  let target = null;
-  let minD = Infinity;
-  const all = game.scene.interactables || [];
+function drawGates(ctx, W2S, scene, game, gameTime) {
+  for (const it of scene.interactables) {
+    if (it.type !== 'scene_change' || !it.gate) continue;
+    const g = it.gate;
+    const charsOk = game.meetsGate(g).ok;
+    const puzzleDone = !g.puzzle || game.solvedPuzzles.has(g.puzzle);
+    const locked = !charsOk || !puzzleDone;
+    // 字已集齐但谜题未解：进入交互范围会触发造句
+    const readyToCompose = charsOk && !puzzleDone;
+    const s = W2S(it.x, it.y);
+    if (s.y < -160 || s.y > H + 160) continue;
+    const pulse = 0.5 + Math.sin(gameTime * 0.004) * 0.3;
 
-  // 根据当前目标决定优先指向哪类 interactable
-  const obj = game.objective.text;
-  let preferred = null;
-  if (obj.includes('书远') && obj.includes('居民区')) preferred = 'shuyuan_alley';
-  else if (obj.includes('居民区') || obj.includes('跟随')) preferred = 'to_alley';
-  else if (obj.includes('鹜天气形')) preferred = null;
-  else if (obj.includes('体育馆') || obj.includes('屏幕') || obj.includes('岳星然冥')) preferred = 'to_stadium';
-  else if (obj.includes('数据中心') || obj.includes('石桥')) preferred = 'to_datacenter';
-  else if (obj.includes('江堤') || obj.includes('书远')) preferred = 'to_riverside';
-  else if (obj.includes('冷冻') && obj.includes('离开')) preferred = 'exit_door';
-  else if (obj.includes('推门')) preferred = 'exit_door';
-  else if (obj.includes('街道') || obj.includes('关雎')) preferred = null;
-  else if (obj.includes('全文完')) return;
-
-  // 如果有明确目标，优先指向它
-  if (preferred) {
-    for (const it of all) {
-      if (it.id === preferred || (it.type === 'scene_change' && it.target === 'riverside')) {
-        const d = Math.hypot(it.x - game.player.x, it.y - game.player.y);
-        target = it; minD = d;
-        break;
+    if (locked) {
+      // 红绿交织的能量屏障
+      const bw = 150, bh = 90;
+      const flow = (gameTime * 0.05) % 18;
+      // 雾团
+      const grad = ctx.createRadialGradient(s.x, s.y - 10, 6, s.x, s.y - 10, 90);
+      grad.addColorStop(0, `rgba(90,210,110,${0.22 + pulse * 0.12})`);
+      grad.addColorStop(0.6, `rgba(70,150,120,${0.12})`);
+      grad.addColorStop(1, 'rgba(40,60,60,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y - 10, 90, 60, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 竖向能量线
+      ctx.strokeStyle = `rgba(150,255,170,${0.35 + pulse * 0.25})`;
+      ctx.lineWidth = 1.5;
+      for (let x = -bw / 2; x <= bw / 2; x += 18) {
+        ctx.beginPath();
+        for (let y = -bh / 2; y <= bh / 2; y += 6) {
+          const wob = Math.sin((y + flow * 6 + x) * 0.12 + gameTime * 0.005) * 4;
+          const px = s.x + x + wob, py = s.y - 10 + y;
+          if (y === -bh / 2) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
       }
+      // 锁图标
+      ctx.fillStyle = `rgba(255,90,90,${0.7 + pulse * 0.3})`;
+      ctx.shadowColor = 'rgba(255,80,80,0.8)';
+      ctx.shadowBlur = 8;
+      const lx = s.x, ly = s.y - 46;
+      ctx.fillRect(lx - 7, ly, 14, 11);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = `rgba(255,120,120,${0.8})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(lx, ly, 5, Math.PI, 0);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(40,10,10,0.9)';
+      ctx.fillRect(lx - 1.2, ly + 3, 2.4, 5);
+      // 文字
+      ctx.fillStyle = `rgba(255,150,150,${0.7 + pulse * 0.3})`;
+      ctx.font = 'bold 11px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(readyToCompose ? 'E 复原诗句，破除封锁' : '此路被污染封锁', s.x, s.y - 56);
+      ctx.textAlign = 'left';
+    } else {
+      // 解锁：金色光柱 + 去向
+      const grad = ctx.createLinearGradient(0, s.y - 70, 0, s.y + 24);
+      grad.addColorStop(0, 'rgba(255,225,150,0)');
+      grad.addColorStop(0.5, `rgba(255,225,150,${pulse * 0.3})`);
+      grad.addColorStop(1, 'rgba(255,225,150,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(s.x - 44, s.y - 70, 88, 94);
+      ctx.fillStyle = `rgba(255,225,150,${pulse * 0.22})`;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, 34, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,230,160,${0.7 + pulse * 0.3})`;
+      ctx.font = 'bold 13px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('→ ' + (it.label || '前进'), s.x, s.y - 24);
+      ctx.textAlign = 'left';
     }
   }
+}
 
-  // 否则指向最近的前进类 interactable（排除返回类）
-  if (!target) {
-    for (const it of all) {
-      // 排除返回类出口
-      if (it.id === 'back_door') continue;
-      if (it.id === 'back_street') continue;
-      if (it.id === 'subway_exit') continue;
-      if (it.id === 'back_riverside') continue;
-      if (it.id === 'back_alley') continue;
-      if (it.id === 'back_stadium') continue;
-      if (it.id === 'house_a_exit') continue;
-      if (it.id === 'house_b_exit') continue;
-      if (it.type === 'pod') continue;
-      const d = Math.hypot(it.x - game.player.x, it.y - game.player.y);
-      if (d < minD) { minD = d; target = it; }
-    }
-  }
-  if (!target) return;
-  // 距离玩家 < 80 时不画箭头（已经在交互范围内）
-  if (minD < 80) return;
-  const s = W2S(target.x, target.y);
-  // 屏幕中心
+
+function drawObjectiveArrow(ctx, W2S, game, gameTime) {
+  const obj = game.objective;
+  if (!obj || obj.done || !obj.target) return;
+  const tx = obj.target.x, ty = obj.target.y;
+  const dist = Math.hypot(tx - game.player.x, ty - game.player.y);
+  if (dist < 70) return; // 已在目标附近，无需箭头
+  const s = W2S(tx, ty);
   const cx = W / 2, cy = H / 2;
-  // 箭头位置：屏幕中心 + 距边缘 80 像素
   const dx = s.x - cx, dy = s.y - cy;
   const d = Math.hypot(dx, dy) || 1;
   const nx = dx / d, ny = dy / d;
-  const margin = 90;
-  const ax = cx + nx * margin;
-  const ay = cy + ny * margin;
-  // 闪烁
+  const margin = 92;
+  const ax = cx + nx * margin, ay = cy + ny * margin;
   const pulse = 0.6 + Math.sin(gameTime * 0.006) * 0.4;
-  // 三角形箭头
   const angle = Math.atan2(ny, nx);
   ctx.save();
   ctx.translate(ax, ay);
   ctx.rotate(angle);
-  ctx.fillStyle = `rgba(255,220,120,${pulse})`;
-  ctx.shadowColor = `rgba(255,220,120,${pulse * 0.8})`;
-  ctx.shadowBlur = 10;
+  // 箭羽形箭头
+  ctx.fillStyle = `rgba(255,228,150,${pulse})`;
+  ctx.shadowColor = `rgba(255,228,150,${pulse * 0.8})`;
+  ctx.shadowBlur = 12;
   ctx.beginPath();
-  ctx.moveTo(14, 0);
-  ctx.lineTo(-6, -8);
-  ctx.lineTo(-6, 8);
+  ctx.moveTo(16, 0);
+  ctx.lineTo(-8, -10);
+  ctx.lineTo(-2, 0);
+  ctx.lineTo(-8, 10);
   ctx.closePath();
   ctx.fill();
   ctx.shadowBlur = 0;
-  // 距离文字
-  ctx.fillStyle = `rgba(255,220,120,${pulse})`;
+  // 距离
+  ctx.rotate(-angle);
+  ctx.fillStyle = `rgba(255,228,150,${pulse})`;
   ctx.font = 'bold 11px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.rotate(-angle);
-  ctx.fillText(`${Math.floor(minD)}`, 0, -16);
+  ctx.fillText(`${Math.floor(dist)}`, 0, -17);
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
   ctx.restore();
@@ -412,20 +628,35 @@ export function drawBattle(ctx, battle, gameTime) {
   ctx.font = '10px serif';
   ctx.fillText(`${battle.enemy.hp} / ${battle.enemy.maxHp}`, enemyCX, enemyCY + 95);
 
+  // 清醒值（调查累积，满了可宽恕）
+  if (battle.clarityMax) {
+    const cw = 120, cyc = enemyCY + 103;
+    ctx.fillStyle = 'rgba(40,40,20,0.8)';
+    ctx.fillRect(enemyCX - cw/2, cyc, cw, 6);
+    ctx.fillStyle = 'rgba(255,210,140,0.95)';
+    ctx.fillRect(enemyCX - cw/2, cyc, cw * (battle.clarity / battle.clarityMax), 6);
+    ctx.strokeStyle = 'rgba(255,210,140,0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(enemyCX - cw/2, cyc, cw, 6);
+    ctx.fillStyle = battle.clarity >= battle.clarityMax ? 'rgba(255,225,150,0.95)' : 'rgba(200,190,160,0.7)';
+    ctx.font = '9px serif';
+    ctx.fillText(battle.clarity >= battle.clarityMax ? '清醒：可宽恕' : `清醒 ${battle.clarity}/${battle.clarityMax}`, enemyCX, cyc + 14);
+  }
+
   // 敌人文字气泡
   if (battle.enemyText && battle.enemyTextTimer > 0) {
     ctx.font = '13px serif';
     const tw = ctx.measureText(battle.enemyText).width + 30;
     ctx.fillStyle = 'rgba(20,20,30,0.9)';
-    roundRect(ctx, enemyCX - tw/2, enemyCY + 110, tw, 26, 4);
+    roundRect(ctx, enemyCX - tw/2, enemyCY + 124, tw, 26, 4);
     ctx.fill();
     ctx.strokeStyle = 'rgba(80,220,100,0.5)';
     ctx.lineWidth = 1;
-    roundRect(ctx, enemyCX - tw/2, enemyCY + 110, tw, 26, 4);
+    roundRect(ctx, enemyCX - tw/2, enemyCY + 124, tw, 26, 4);
     ctx.stroke();
     ctx.fillStyle = 'rgba(120,255,140,0.9)';
     ctx.textBaseline = 'middle';
-    ctx.fillText(battle.enemyText, enemyCX, enemyCY + 123);
+    ctx.fillText(battle.enemyText, enemyCX, enemyCY + 137);
     ctx.textBaseline = 'alphabetic';
   }
 
@@ -592,6 +823,9 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.font = '11px serif';
     ctx.textAlign = 'center';
     ctx.fillText('← → 选择    E / 空格 确认', W/2, H - 20);
+    ctx.fillStyle = 'rgba(150,150,160,0.5)';
+    ctx.font = '10px serif';
+    ctx.fillText('调查＝看清它残存的"人"，集满清醒可宽恕（不沾血也能脱战）', W/2, H - 6);
     ctx.textAlign = 'left';
   } else if (battle.phase === 'enemyTurn') {
     ctx.fillStyle = 'rgba(255,100,100,0.8)';
@@ -628,6 +862,15 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.fillStyle = `rgba(200,200,200,${a * 0.8})`;
       ctx.font = '14px serif';
       ctx.fillText('你的语言被吞噬了……', W/2, H/2 + 20);
+    } else if (battle.result === 'spare') {
+      ctx.fillStyle = `rgba(255,210,150,${a})`;
+      ctx.font = 'bold 32px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('你宽恕了它', W/2, H/2 - 20);
+      ctx.fillStyle = `rgba(200,200,200,${a * 0.8})`;
+      ctx.font = '14px serif';
+      ctx.fillText('绿光褪成暖色，它想起了自己曾是个会说话的人。', W/2, H/2 + 20);
     }
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
@@ -698,6 +941,126 @@ function drawHeart(ctx, x, y, r) {
   ctx.bezierCurveTo(x + r, y - r, x + r, y - r * 0.3, x, y + r);
   ctx.closePath();
   ctx.fill();
+}
+
+// ============================================================
+// 造句界面（复原诗句）
+// ============================================================
+function drawCompose(ctx, c, gameTime) {
+  // 背景：深色 + 流动绿/蓝噪点
+  ctx.fillStyle = '#07090d';
+  ctx.fillRect(0, 0, W, H);
+  const bg = ctx.createRadialGradient(W / 2, H / 2, 60, W / 2, H / 2, W * 0.6);
+  bg.addColorStop(0, 'rgba(30,40,30,0.5)');
+  bg.addColorStop(1, 'rgba(5,6,9,0)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  // 漂浮烂梗噪点
+  for (let i = 0; i < 22; i++) {
+    const x = (i * 137 + gameTime * 0.02 * ((i % 2) ? 1 : -1)) % (W + 80) - 40;
+    const y = (i * 263 % H);
+    ctx.fillStyle = `rgba(90,200,110,${0.05 + 0.05 * Math.abs(Math.sin(gameTime * 0.002 + i))})`;
+    ctx.font = '12px serif';
+    ctx.fillText(['YYDS', '绝绝子', '6', '栓Q', 'emo'][i % 5], x, y);
+  }
+
+  // 标题
+  ctx.fillStyle = 'rgba(255,224,150,0.95)';
+  ctx.font = 'bold 22px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(c.def.title, W / 2, 90);
+  ctx.fillStyle = 'rgba(200,190,175,0.75)';
+  ctx.font = '13px serif';
+  ctx.fillText(c.def.intro, W / 2, 122);
+
+  // 诗句（把已填的字嵌回空格；未填显示 ＿）
+  const shakeX = c.shake > 0 ? Math.sin(gameTime * 0.08) * 6 : 0;
+  let bc = 0;
+  const winGlow = c.status === 'win';
+  ctx.font = 'bold 30px serif';
+  let ly = H / 2 - 40;
+  for (const lineStr of c.def.lines) {
+    // 先算整行宽度以居中
+    let disp = '';
+    const blankFlags = [];
+    for (const ch of lineStr) {
+      if (ch === '_') { const s = c.slots[bc]; disp += s ? s.char : '＿'; blankFlags.push({ i: disp.length - 1, filled: !!s }); bc++; }
+      else disp += ch;
+    }
+    const tw = ctx.measureText(disp).width;
+    let x = W / 2 - tw / 2 + shakeX;
+    // 逐字绘制，空格位高亮
+    let bi = 0;
+    for (let k = 0; k < disp.length; k++) {
+      const ch = disp[k];
+      const isBlank = blankFlags[bi] && blankFlags[bi].i === k;
+      const cw = ctx.measureText(ch).width;
+      if (isBlank) {
+        const filled = blankFlags[bi].filled;
+        ctx.fillStyle = filled
+          ? (winGlow ? 'rgba(255,235,150,1)' : 'rgba(255,225,140,1)')
+          : 'rgba(120,200,130,0.7)';
+        if (filled && winGlow) { ctx.shadowColor = 'rgba(255,220,140,0.9)'; ctx.shadowBlur = 14; }
+        ctx.fillText(ch, x + cw / 2, ly);
+        ctx.shadowBlur = 0;
+        bi++;
+      } else {
+        ctx.fillStyle = 'rgba(220,210,190,0.9)';
+        ctx.fillText(ch, x + cw / 2, ly);
+      }
+      x += cw;
+    }
+    ly += 48;
+  }
+
+  // 字盘
+  const poolY = H - 150;
+  ctx.font = 'bold 13px serif';
+  ctx.fillStyle = 'rgba(200,190,175,0.7)';
+  ctx.fillText('字　盘', W / 2, poolY - 28);
+  const tileW = 46, gap = 10;
+  const totalW = c.pool.length * (tileW + gap) - gap;
+  let tx = W / 2 - totalW / 2;
+  for (let i = 0; i < c.pool.length; i++) {
+    const used = c.used[i];
+    const sel = i === c.sel && c.status === 'input';
+    const isDecoy = !c.def.answer.includes(c.pool[i]);
+    const ty = poolY - tileW / 2;
+    ctx.globalAlpha = used ? 0.25 : 1;
+    ctx.fillStyle = sel ? 'rgba(50,38,18,0.95)' : 'rgba(18,16,12,0.9)';
+    roundRect(ctx, tx, ty, tileW, tileW, 6);
+    ctx.fill();
+    ctx.strokeStyle = sel ? 'rgba(255,214,124,1)' : (isDecoy ? 'rgba(90,180,110,0.5)' : 'rgba(150,130,90,0.6)');
+    ctx.lineWidth = sel ? 2.5 : 1.2;
+    roundRect(ctx, tx, ty, tileW, tileW, 6);
+    ctx.stroke();
+    ctx.fillStyle = sel ? 'rgba(255,236,170,1)' : 'rgba(220,210,190,0.92)';
+    ctx.font = (c.pool[i].length > 1) ? 'bold 13px serif' : 'bold 22px serif';
+    ctx.fillText(c.pool[i], tx + tileW / 2, poolY);
+    ctx.globalAlpha = 1;
+    tx += tileW + gap;
+  }
+
+  // 提示 / 结果
+  ctx.font = '13px serif';
+  if (c.status === 'win') {
+    ctx.fillStyle = `rgba(255,224,150,${Math.min(1, c.timer / 400)})`;
+    ctx.font = 'bold 26px serif';
+    ctx.fillText('诗句复原', W / 2, H - 70);
+    ctx.font = '13px serif';
+    ctx.fillStyle = 'rgba(220,210,190,0.85)';
+    ctx.fillText(c.def.solveText || '', W / 2, H - 42);
+  } else if (c.status === 'wrong') {
+    ctx.fillStyle = 'rgba(230,90,90,0.95)';
+    ctx.font = 'bold 18px serif';
+    ctx.fillText('不对……烂梗的噪声更响了（理性 -8）', W / 2, H - 60);
+  } else {
+    ctx.fillStyle = 'rgba(180,180,190,0.7)';
+    ctx.fillText('← → 选字　·　E 填入/确认　·　Backspace 撤销　·　Q 退开', W / 2, H - 40);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
 
 // ============================================================
@@ -1302,30 +1665,6 @@ function drawStreet(ctx, W2S, scene, gameTime, game) {
 
   // 路灯
   drawStreetLamps(ctx, W2S, gameTime);
-
-  // 南端出口光柱标记
-  const exitS = W2S(1200, 1750);
-  if (exitS.y > -100 && exitS.y < H + 100) {
-    const pulse = 0.5 + Math.sin(gameTime * 0.004) * 0.3;
-    // 光柱
-    const grad = ctx.createLinearGradient(0, exitS.y - 60, 0, exitS.y + 20);
-    grad.addColorStop(0, `rgba(255,220,140,0)`);
-    grad.addColorStop(0.5, `rgba(255,220,140,${pulse * 0.25})`);
-    grad.addColorStop(1, `rgba(255,220,140,0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(exitS.x - 40, exitS.y - 60, 80, 80);
-    // 地面光圈
-    ctx.fillStyle = `rgba(255,220,140,${pulse * 0.2})`;
-    ctx.beginPath();
-    ctx.ellipse(exitS.x, exitS.y, 30, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // 文字
-    ctx.fillStyle = `rgba(255,220,140,${0.6 + pulse * 0.3})`;
-    ctx.font = 'bold 12px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('→ 江堤', exitS.x, exitS.y - 20);
-    ctx.textAlign = 'left';
-  }
 }
 
 function drawAbandonedCar(ctx, W2S, car, gameTime) {
@@ -2141,23 +2480,6 @@ function drawStadium(ctx, W2S, scene, gameTime, game) {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(s.x, s.y, p.w, p.h);
   }
-
-  // 出口光柱
-  const exitS = W2S(1000, 1950);
-  if (exitS.y > -100 && exitS.y < H + 100) {
-    const pulse = 0.5 + Math.sin(gameTime * 0.004) * 0.3;
-    const grad = ctx.createLinearGradient(0, exitS.y - 60, 0, exitS.y + 20);
-    grad.addColorStop(0, `rgba(255,220,140,0)`);
-    grad.addColorStop(0.5, `rgba(255,220,140,${pulse * 0.25})`);
-    grad.addColorStop(1, `rgba(255,220,140,0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(exitS.x - 40, exitS.y - 60, 80, 80);
-    ctx.fillStyle = `rgba(255,220,140,${0.6 + pulse * 0.3})`;
-    ctx.font = 'bold 12px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('→ 数据中心', exitS.x, exitS.y - 20);
-    ctx.textAlign = 'left';
-  }
 }
 
 // ============================================================
@@ -2379,6 +2701,48 @@ function drawItems(ctx, W2S, scene, gameTime, collected) {
 }
 
 // ============================================================
+// 失语者支线 NPC
+// ============================================================
+function drawCureNPCs(ctx, W2S, scene, game, gameTime) {
+  for (const it of scene.interactables) {
+    if (it.type !== 'cure') continue;
+    const s = W2S(it.x, it.y);
+    if (s.x < -60 || s.x > W + 60 || s.y < -60 || s.y > H + 60) continue;
+    const cured = game.completedQuests && game.completedQuests.has(it.id);
+    if (cured) {
+      // 被唤醒：站起来的暖色人影 + 音符
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 6, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(205,178,138,0.95)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y - 2, 6, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(232,205,165,1)';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y - 12, 5, 0, Math.PI * 2);
+      ctx.fill();
+      const pulse = 0.4 + Math.sin(gameTime * 0.004 + it.x) * 0.3;
+      ctx.fillStyle = `rgba(255,220,150,${pulse})`;
+      ctx.font = '11px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('♪', s.x, s.y - 24);
+      ctx.textAlign = 'left';
+    } else {
+      const bob = Math.sin(gameTime * 0.002 + it.x) * 1.2;
+      drawLostPerson(ctx, s.x, s.y + bob, 0);
+      const pulse = 0.5 + Math.sin(gameTime * 0.005) * 0.4;
+      ctx.fillStyle = `rgba(255,220,140,${pulse})`;
+      ctx.font = 'bold 14px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('?', s.x, s.y - 20);
+      ctx.textAlign = 'left';
+    }
+  }
+}
+
+// ============================================================
 // 互动提示
 // ============================================================
 function drawInteractHints(ctx, W2S, scene, player, collected, gameTime) {
@@ -2414,23 +2778,79 @@ function drawInteractHints(ctx, W2S, scene, player, collected, gameTime) {
 }
 
 // ============================================================
-// 光照
+// 氛围层：色彩分级 + 边缘雾气 + 飘浮尘埃
+// ============================================================
+function drawAtmosphere(ctx, scene, gameTime, camera) {
+  const cfg = scene.atmosphere;
+  if (!cfg) return;
+  // 色彩分级（极淡，统一画面色温、提高对比）
+  if (cfg.tint) {
+    ctx.fillStyle = cfg.tint;
+    ctx.fillRect(0, 0, W, H);
+  }
+  const c = (cfg.motes && cfg.motes.color) || '180,180,190';
+  // 边缘雾气
+  if (cfg.fog) {
+    const f = cfg.fog;
+    const top = ctx.createLinearGradient(0, 0, 0, H * 0.34);
+    top.addColorStop(0, `rgba(${c},${0.10 * f})`);
+    top.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = top;
+    ctx.fillRect(0, 0, W, H * 0.34);
+    const bot = ctx.createLinearGradient(0, H * 0.68, 0, H);
+    bot.addColorStop(0, `rgba(${c},0)`);
+    bot.addColorStop(1, `rgba(${c},${0.12 * f})`);
+    ctx.fillStyle = bot;
+    ctx.fillRect(0, H * 0.68, W, H * 0.32);
+  }
+  // 飘浮尘埃 / 灰烬 / 水汽
+  if (cfg.motes) {
+    const m = cfg.motes;
+    const speed = m.speed || 0.3;
+    for (let i = 0; i < m.n; i++) {
+      const hx = (i * 73 % 100) / 100;
+      const hy = (i * 149 % 100) / 100;
+      const phase = gameTime * 0.001 * speed + i;
+      let x = hx * (W + 100) - 50 + Math.sin(phase) * 25 - camera.x * 0.03;
+      let y = (hy * (H + 100) + gameTime * 0.012 * speed) % (H + 100) - 50;
+      x = ((x % (W + 100)) + (W + 100)) % (W + 100) - 50;
+      const twk = 0.35 + Math.abs(Math.sin(phase * 1.7)) * 0.65;
+      const sz = m.size * (0.5 + (i % 4) * 0.2);
+      ctx.fillStyle = `rgba(${m.color},${0.14 * twk})`;
+      ctx.beginPath();
+      ctx.arc(x, y, sz, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// ============================================================
+// 光照（更明亮：柔和暗角 + 玩家暖光叠加）
 // ============================================================
 function drawLighting(ctx, player, camera, sceneId) {
-  let r = 220;
-  let dark = 0.7;
-  if (sceneId === 'freeze_center') { r = 280; dark = 0.6; }
-  else if (sceneId === 'subway') { r = 180; dark = 0.85; }
-  else if (sceneId === 'stadium') { r = 200; dark = 0.8; }
-  else if (sceneId === 'data_center') { r = 160; dark = 0.9; }
-  else if (sceneId === 'house_a' || sceneId === 'house_b') { r = 240; dark = 0.65; }
+  let r = 320, dark = 0.5, warm = 0.10;
+  if (sceneId === 'freeze_center') { r = 380; dark = 0.42; warm = 0.06; }
+  else if (sceneId === 'subway') { r = 250; dark = 0.66; warm = 0.10; }
+  else if (sceneId === 'stadium') { r = 300; dark = 0.6; warm = 0.07; }
+  else if (sceneId === 'data_center') { r = 240; dark = 0.72; warm = 0.05; }
+  else if (sceneId === 'house_a' || sceneId === 'house_b') { r = 340; dark = 0.45; warm = 0.12; }
   const s = camera.worldToScreen(player.x, player.y);
-  const grad = ctx.createRadialGradient(s.x, s.y, r * 0.3, s.x, s.y, r);
+  // 柔和暗角
+  const grad = ctx.createRadialGradient(s.x, s.y, r * 0.45, s.x, s.y, r * 1.5);
   grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(0.7, `rgba(0,0,0,${dark * 0.4})`);
+  grad.addColorStop(0.75, `rgba(0,0,0,${dark * 0.4})`);
   grad.addColorStop(1, `rgba(0,0,0,${dark})`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
+  // 玩家周围暖光（叠加增亮，增强层次与电影感）
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const warmGrad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 0.7);
+  warmGrad.addColorStop(0, `rgba(255,226,172,${warm})`);
+  warmGrad.addColorStop(1, 'rgba(255,226,172,0)');
+  ctx.fillStyle = warmGrad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
 }
 
 // ============================================================
@@ -2462,30 +2882,69 @@ function drawHUD(ctx, player, game, objective) {
   ctx.fillText(`${Math.floor(player.san)}/${player.maxSan}`, sx + sanW - 36, sy + sanH/2);
   ctx.textBaseline = 'alphabetic';
 
-  const chars = player.collectedChars || [];
+  // 章节碎片进度面板（直接回答"还要做什么"）
+  const prog = game.objective && game.objective.progress;
+  const ammo = (player.collectedChars || []).length;
   const poemY = sy + sanH + 14;
-  ctx.fillStyle = 'rgba(20,15,10,0.7)';
-  const poemW = 220;
-  roundRect(ctx, sx, poemY, poemW, 22, 3);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(180,140,80,0.5)';
-  ctx.lineWidth = 1;
-  roundRect(ctx, sx, poemY, poemW, 22, 3);
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(255,210,120,0.9)';
-  ctx.font = 'bold 10px serif';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('诗', sx + 5, poemY + 11);
-
-  if (chars.length === 0) {
-    ctx.fillStyle = 'rgba(180,180,180,0.5)';
+  if (prog) {
+    const panelW = 250, panelH = 40;
+    ctx.fillStyle = 'rgba(22,17,10,0.78)';
+    roundRect(ctx, sx, poemY, panelW, panelH, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,160,90,0.55)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx, poemY, panelW, panelH, 4);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(200,160,90,0.4)';
+    ctx.fillRect(sx, poemY, panelW, 2);
+    // 标题
+    ctx.fillStyle = 'rgba(255,215,130,0.92)';
+    ctx.font = 'bold 10px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('碎片 · ' + prog.title, sx + 8, poemY + 12);
+    // 字格
+    let cxp = sx + 10;
+    const cy2 = poemY + 28;
+    for (const { c, have } of prog.chars) {
+      ctx.fillStyle = have ? 'rgba(70,55,25,0.9)' : 'rgba(40,40,44,0.8)';
+      roundRect(ctx, cxp, cy2 - 9, 18, 18, 3);
+      ctx.fill();
+      ctx.strokeStyle = have ? 'rgba(255,215,130,0.9)' : 'rgba(110,110,120,0.6)';
+      ctx.lineWidth = 1;
+      roundRect(ctx, cxp, cy2 - 9, 18, 18, 3);
+      ctx.stroke();
+      ctx.fillStyle = have ? 'rgba(255,232,150,1)' : 'rgba(120,120,128,0.7)';
+      ctx.font = 'bold 12px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(c, cxp + 9, cy2);
+      if (have) {
+        ctx.fillStyle = 'rgba(120,220,140,1)';
+        ctx.font = 'bold 9px serif';
+        ctx.fillText('✓', cxp + 15, cy2 - 6);
+      }
+      cxp += 24;
+    }
+    // 弹药计数
+    ctx.fillStyle = 'rgba(200,200,210,0.8)';
     ctx.font = '10px serif';
-    ctx.fillText('未收集', sx + 22, poemY + 11);
+    ctx.textAlign = 'right';
+    ctx.fillText('诗词弹药 ×' + ammo, sx + panelW - 8, poemY + 12);
   } else {
-    ctx.fillStyle = 'rgba(255,230,140,0.95)';
-    ctx.font = 'bold 12px serif';
-    ctx.fillText(chars.join('  '), sx + 22, poemY + 11);
+    // 无章节目标时仅显示弹药数
+    const panelW = 250;
+    ctx.fillStyle = 'rgba(22,17,10,0.7)';
+    roundRect(ctx, sx, poemY, panelW, 22, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(180,140,80,0.5)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx, poemY, panelW, 22, 3);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,210,120,0.9)';
+    ctx.font = 'bold 10px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('诗词弹药 ×' + ammo, sx + 8, poemY + 11);
   }
   ctx.textBaseline = 'alphabetic';
 
@@ -2533,28 +2992,51 @@ function drawHUD(ctx, player, game, objective) {
 
   ctx.fillStyle = 'rgba(200,200,200,0.7)';
   ctx.font = '9px serif';
-  ctx.fillText(`位置 ${Math.floor(player.x)}, ${Math.floor(player.y)}`, mx + 10, my + 32);
+  const saved = game.karma ? game.karma.saved : 0;
+  ctx.fillText(saved > 0 ? `已唤醒失语者 ${saved}` : '尚未唤醒失语者', mx + 10, my + 32);
 
   ctx.fillStyle = player.hasClothes ? 'rgba(120,200,140,0.9)' : 'rgba(220,120,120,0.9)';
   ctx.fillText(player.hasClothes ? '已穿装备' : '未穿装备', mx + 10, my + 46);
   ctx.textAlign = 'left';
+
+  // 语言之火：隐性倾向指示（暖=守护/慈悲，冷绿=武力侵蚀）。不显示数值，避免剧透分支。
+  if (game.karma) {
+    const warm = game.karma.mercy + game.karma.saved;
+    const cold = game.karma.violence;
+    const fl = Math.max(0.25, Math.min(1, 0.45 + (warm - cold) * 0.12));
+    const fx = mx + 168, fy = my + 26;
+    const fcol = cold > warm + 1 ? '120,210,130' : '255,185,95';
+    ctx.save();
+    ctx.shadowColor = `rgba(${fcol},${fl})`;
+    ctx.shadowBlur = 9 * fl;
+    ctx.fillStyle = `rgba(${fcol},${0.5 + fl * 0.5})`;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy - 9);
+    ctx.quadraticCurveTo(fx + 6, fy - 1, fx + 3, fy + 5);
+    ctx.quadraticCurveTo(fx, fy + 8, fx - 3, fy + 5);
+    ctx.quadraticCurveTo(fx - 6, fy - 1, fx, fy - 9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 // ============================================================
 // 对话
 // ============================================================
 function drawDialog(ctx, d, gameTime) {
+  const curT = d.lines[d.idx].t;
   d.charTimer += 16;
-  if (!d.done && d.charTimer > 25) {
+  if (!d.done && curT !== undefined && d.charTimer > 25) {
     d.charTimer = 0;
     d.charIdx++;
-    if (d.charIdx >= d.lines[d.idx].t.length) {
-      d.charIdx = d.lines[d.idx].t.length;
+    if (d.charIdx >= curT.length) {
+      d.charIdx = curT.length;
       d.done = true;
     }
   }
   const line = d.lines[d.idx];
-  const text = line.t.substring(0, d.charIdx);
+  const text = (line.t !== undefined) ? line.t.substring(0, d.charIdx) : '';
 
   const boxX = 80, boxY = H - 170, boxW = W - 160, boxH = 130;
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -2597,6 +3079,12 @@ function drawDialog(ctx, d, gameTime) {
   const maxW = boxW - 110;
   let line_text = '';
   for (const c of text) {
+    if (c === '\n') {
+      ctx.fillText(line_text, boxX + 90, y);
+      line_text = '';
+      y += 22;
+      continue;
+    }
     const test = line_text + c;
     if (ctx.measureText(test).width > maxW) {
       ctx.fillText(line_text, boxX + 90, y);
@@ -2608,14 +3096,57 @@ function drawDialog(ctx, d, gameTime) {
   }
   ctx.fillText(line_text, boxX + 90, y);
 
-  if (d.done) {
+  if (d.choosing && line.choice) {
+    drawChoices(ctx, d, boxX, boxY, boxW, gameTime);
+  } else if (d.done) {
     const a = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
     ctx.fillStyle = `rgba(255,210,120,${a})`;
     ctx.font = '11px serif';
     ctx.textAlign = 'right';
-    ctx.fillText('▼ E / 空格 继续', boxX + boxW - 20, boxY + boxH - 14);
+    const hint = line.choice ? '▼ E 做出选择' : '▼ E / 空格 继续';
+    ctx.fillText(hint, boxX + boxW - 20, boxY + boxH - 14);
     ctx.textAlign = 'left';
   }
+}
+
+// 选项菜单（浮在对话框上方）
+function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
+  const opts = d.lines[d.idx].choice;
+  const ow = 460, oh = 30, gap = 6;
+  const totalH = opts.length * (oh + gap);
+  const ox = boxX + boxW - ow - 16;
+  const oy = boxY - totalH - 8;
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < opts.length; i++) {
+    const sel = i === d.choiceIndex;
+    const ry = oy + i * (oh + gap);
+    ctx.fillStyle = sel ? 'rgba(45,33,16,0.96)' : 'rgba(15,12,8,0.9)';
+    roundRect(ctx, ox, ry, ow, oh, 5);
+    ctx.fill();
+    ctx.strokeStyle = sel ? 'rgba(255,212,124,0.95)' : 'rgba(120,100,70,0.6)';
+    ctx.lineWidth = sel ? 2 : 1;
+    roundRect(ctx, ox, ry, ow, oh, 5);
+    ctx.stroke();
+    if (sel) {
+      ctx.fillStyle = 'rgba(255,212,124,0.95)';
+      ctx.beginPath();
+      ctx.moveTo(ox + 11, ry + oh / 2);
+      ctx.lineTo(ox + 17, ry + oh / 2 - 4);
+      ctx.lineTo(ox + 17, ry + oh / 2 + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = sel ? 'rgba(255,236,172,1)' : 'rgba(200,190,175,0.8)';
+    ctx.font = sel ? 'bold 14px serif' : '14px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(opts[i].label, ox + 28, ry + oh / 2);
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = `rgba(255,212,124,${0.5 + Math.sin(gameTime * 0.005) * 0.3})`;
+  ctx.font = '11px serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('↑ ↓ 选择 · E 确认', boxX + boxW - 16, oy - 8);
+  ctx.textAlign = 'left';
 }
 
 // ============================================================

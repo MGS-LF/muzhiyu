@@ -26,8 +26,22 @@ export class Battle {
     this.fadeAlpha = 1;
 
     // 菜单
-    this.menuIndex = 0; // 0=战斗 1=诗词 2=道具 3=宽恕
-    this.menuItems = ['战 斗', '诗 词', '道 具', '宽 恕'];
+    this.menuIndex = 0; // 0=战斗 1=调查 2=诗词 3=宽恕
+    this.menuItems = ['战 斗', '调 查', '诗 词', '宽 恕'];
+
+    // 清醒值（调查累积；满了才能宽恕）
+    this.isBoss = !!enemy.boss;
+    this.clarity = 0;
+    this.clarityMax = this.isBoss ? 4 : 3;
+    this.attacked = false;
+    this.acts = enemy.acts || [
+      '你凑近看它。绿光里浮着半张人脸，像谁褪色的旧照片。',
+      '你轻声念了半句诗。它的复读卡顿了一下，像在努力想起什么。',
+      '你问：「你原本，也会好好说话的吧？」它的嘴角颤了颤。',
+      '它发出一声很轻的、不像烂梗的音节——几乎是一个「谢」字。',
+    ];
+    // 弹幕难度
+    this.diff = this.isBoss ? 2 : (this.enemy.maxHp >= 60 ? 1.4 : 1);
 
     // 红心（玩家在弹幕框里的位置）
     this.heart = { x: 0, y: 0, r: 6 };
@@ -37,7 +51,7 @@ export class Battle {
     // 弹幕
     this.bullets = [];
     this.bulletTimer = 0;
-    this.enemyTurnDuration = 5000; // 敌人回合 5 秒
+    this.enemyTurnDuration = enemy.boss ? 7000 : 5000; // 敌人回合时长
 
     // 战斗条（攻击时）
     this.attackBar = null;
@@ -118,19 +132,31 @@ export class Battle {
 
   // 菜单选择
   updateMenu() {
+    const n = this.menuItems.length;
     if (input.wasPressed('arrowleft') || input.wasPressed('a')) {
-      this.menuIndex = (this.menuIndex - 1 + 4) % 4;
+      this.menuIndex = (this.menuIndex - 1 + n) % n;
     }
     if (input.wasPressed('arrowright') || input.wasPressed('d')) {
-      this.menuIndex = (this.menuIndex + 1) % 4;
+      this.menuIndex = (this.menuIndex + 1) % n;
     }
     if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
       input.wasPressed(' '); // 消费
-      if (this.menuIndex === 0) this.startAttack();
-      else if (this.menuIndex === 1) this.startPoem();
-      else if (this.menuIndex === 2) this.useItem();
-      else if (this.menuIndex === 3) this.trySpare();
+      const label = this.menuItems[this.menuIndex];
+      if (label === '战 斗') this.startAttack();
+      else if (label === '调 查') this.startAct();
+      else if (label === '诗 词') this.startPoem();
+      else if (label === '宽 恕') this.trySpare();
     }
+  }
+
+  // 调查：看清梗鬼里残存的"人"，累积清醒值
+  startAct() {
+    const idx = Math.min(this.clarity, this.acts.length - 1);
+    this.setEnemyText(this.acts[idx]);
+    this.clarity = Math.min(this.clarityMax, this.clarity + 1);
+    this.lastDamage = null;
+    this.phase = 'attack_resolve';
+    this.timer = 0;
   }
 
   // 攻击：移动条瞄准
@@ -158,6 +184,7 @@ export class Battle {
     const accuracy = 1 - Math.abs(this.attackBar.pos - 0.5) * 2; // 0~1
     const damage = Math.floor(8 + accuracy * 22); // 8~30
     this.enemy.hp -= damage;
+    this.attacked = true; // 动用了武力
     this.attackBar.hit = true;
     this.lastDamage = damage;
     // 粒子
@@ -241,10 +268,18 @@ export class Battle {
 
   // 宽恕
   trySpare() {
-    // 梗鬼无法宽恕（它们是腐烂语言，只能消灭）
-    this.setEnemyText('梗鬼听不懂「宽恕」。它只会「YYDS」。');
-    this.phase = 'attack_resolve';
-    this.timer = 0;
+    if (this.clarity >= this.clarityMax) {
+      this.result = 'spare';
+      this.setEnemyText('它安静下来，绿光褪成一缕暖色……「谢……谢你。」');
+      this.phase = 'result';
+      this.timer = 0;
+    } else {
+      const left = this.clarityMax - this.clarity;
+      this.setEnemyText(`它还听不进去。再「调查」${left}次，让它想起自己是谁。`);
+      this.lastDamage = null;
+      this.phase = 'attack_resolve';
+      this.timer = 0;
+    }
   }
 
   // 敌人回合：弹幕躲避
@@ -280,7 +315,7 @@ export class Battle {
 
     // 生成弹幕
     this.bulletTimer += dt;
-    if (this.bulletTimer > 400) {
+    if (this.bulletTimer > (this.isBoss ? 300 : 420)) {
       this.bulletTimer = 0;
       this.spawnBulletWave();
     }
@@ -333,30 +368,46 @@ export class Battle {
   }
 
   spawnBulletWave() {
-    const words = ['YYDS', '绝绝子', '蚌', '啊对', '6', '栓Q', '泰裤辣'];
-    const word = words[Math.floor(Math.random() * words.length)];
-    const pattern = Math.floor(Math.random() * 3);
-    if (pattern === 0) {
-      // 从左侧射出
-      this.bullets.push({
-        x: -BOX_W/2 - 10, y: (Math.random() - 0.5) * BOX_H * 0.6,
-        vx: 3, vy: 0, r: 8, text: word, life: 4000
-      });
-    } else if (pattern === 1) {
-      // 从上方落下
-      this.bullets.push({
-        x: (Math.random() - 0.5) * BOX_W * 0.6, y: -BOX_H/2 - 10,
-        vx: 0, vy: 3, r: 8, text: word, life: 4000
-      });
+    const words = ['YYDS', '绝绝子', '蚌', '啊对', '6', '栓Q', '泰裤辣', 'emo'];
+    const word = () => words[Math.floor(Math.random() * words.length)];
+    const d = this.diff;
+    const sp = 0.9 + d * 0.35;        // 速度系数
+    const r = 8;
+    const pick = Math.floor(Math.random() * (this.isBoss ? 5 : 4));
+
+    if (pick === 0) {
+      // 左侧扫射（难度越高越多发）
+      const count = 1 + Math.floor(d);
+      for (let i = 0; i < count; i++) {
+        this.bullets.push({ x: -BOX_W/2 - 10, y: (Math.random() - 0.5) * BOX_H * 0.7, vx: 3 * sp, vy: 0, r, text: word(), life: 4000 });
+      }
+    } else if (pick === 1) {
+      // 顶部落雨
+      const count = 1 + Math.floor(d);
+      for (let i = 0; i < count; i++) {
+        this.bullets.push({ x: (Math.random() - 0.5) * BOX_W * 0.7, y: -BOX_H/2 - 10, vx: 0, vy: 3 * sp, r, text: word(), life: 4000 });
+      }
+    } else if (pick === 2) {
+      // 锁定红心的瞄准弹
+      const sx = (Math.random() - 0.5) * BOX_W, sy = -BOX_H/2 - 10;
+      const ax = this.heart.x - sx, ay = this.heart.y - sy;
+      const m = Math.hypot(ax, ay) || 1;
+      this.bullets.push({ x: sx, y: sy, vx: (ax / m) * 3 * sp, vy: (ay / m) * 3 * sp, r, text: word(), life: 4000 });
+    } else if (pick === 3) {
+      // 中心螺旋爆发
+      const k = 6 + Math.floor(d * 2);
+      const base = Math.random() * Math.PI * 2;
+      for (let i = 0; i < k; i++) {
+        const a = base + (i / k) * Math.PI * 2;
+        this.bullets.push({ x: 0, y: 0, vx: Math.cos(a) * 2.2 * sp, vy: Math.sin(a) * 2.2 * sp, r: 7, text: '6', life: 3500 });
+      }
     } else {
-      // 追踪
-      const dx = this.heart.x, dy = this.heart.y;
-      const d = Math.hypot(dx, dy) || 1;
-      this.bullets.push({
-        x: -BOX_W/2 - 10, y: -BOX_H/2 - 10,
-        vx: (dx / d) * 2.5, vy: (dy / d) * 2.5,
-        r: 8, text: word, life: 4000
-      });
+      // Boss：带缺口的横墙
+      const gap = (Math.random() - 0.5) * BOX_W * 0.5;
+      for (let gx = -BOX_W/2; gx < BOX_W/2; gx += 26) {
+        if (Math.abs(gx - gap) < 28) continue;
+        this.bullets.push({ x: gx, y: -BOX_H/2 - 10, vx: 0, vy: 2.6 * sp, r: 7, text: '卡', life: 4200 });
+      }
     }
   }
 

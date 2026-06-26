@@ -1,0 +1,14 @@
+{
+  "llm": {
+    "baseUrl": "https://api.deepseek.com",
+    "apiKey": "在此填入 DeepSeek 的 API Key（sk-...）",
+    "model": "deepseek-chat"
+  },
+  "tts": {
+    "baseUrl": "https://token-plan-cn.xiaomimimo.com/v1",
+    "apiKey": "在此填入小米 MiMo TTS 的 API Key（tp-...）",
+    "model": "mimo-v2.5-tts",
+    "defaultVoice": "Chloe",
+    "sampleRate": 24000
+  }
+}
