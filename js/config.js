@@ -14,5 +14,5 @@ export const COLORS = {
   concrete: '#4a4a4a',
 };
 
-export const W = 960;
-export const H = 640;
+export const W = 1200;
+export const H = 760;
