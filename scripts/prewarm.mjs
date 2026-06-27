@@ -35,11 +35,11 @@ function extractLines() {
 }
 
 async function warm(line) {
-  const { voice, style } = speakerStyle(line.s);
+  const { voice, style, model } = speakerStyle(line.s);
   const r = await fetch(BASE + '/api/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: line.t, voice, style }),
+    body: JSON.stringify({ text: line.t, voice, style, model }),
   });
   if (!r.ok) throw new Error('http ' + r.status);
   const cache = r.headers.get('X-Cache') || '?';

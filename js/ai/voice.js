@@ -47,7 +47,7 @@ class VoicePlayer {
   }
 
   // 念一句。onEnded 在自然播完时触发（被抢断/失败不触发）。
-  speak(text, { voice, style } = {}, onEnded) {
+  speak(text, { voice, style, model } = {}, onEnded) {
     if (!AI.tts || !text || !text.trim()) { return; }
     this.stop();                 // 先掐掉上一句
     const myToken = ++this.token;
@@ -65,7 +65,7 @@ class VoicePlayer {
     fetch(AI.apiBase + '/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice, style }),
+      body: JSON.stringify({ text, voice, style, model }),
       signal: this.abort.signal,
     }).then(async (resp) => {
       if (!resp.ok || !resp.body) throw new Error('tts http ' + resp.status);

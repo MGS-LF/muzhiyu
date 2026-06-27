@@ -1162,8 +1162,8 @@ export class Game {
   // 为一条文本节点配音；播完自然推进（仅纯文本节点；文本+选项节点播完进入选择）
   _speakLine(dref, idx, node) {
     if (!AI.tts || !node || node.t === undefined) return;
-    const { voice: v, style } = speakerStyle(node.s);
-    voice.speak(node.t, { voice: v, style }, () => this._handleVoiceEnd(dref, idx));
+    const { voice: v, style, model } = speakerStyle(node.s);
+    voice.speak(node.t, { voice: v, style, model }, () => this._handleVoiceEnd(dref, idx));
   }
 
   _handleVoiceEnd(dref, idx) {
