@@ -277,7 +277,8 @@ async function handleTTS(req, res) {
 // ---------- 静态文件 ----------
 async function handleStatic(req, res, pathname) {
   let rel = decodeURIComponent(pathname);
-  if (rel === '/' || rel === '') rel = '/index.html';
+  // 根路径默认进序幕；intro 末尾会跳到 ?from=intro
+  if (rel === '/' || rel === '') rel = '/intro_3d.html';
   // 防目录穿越
   const safe = path.normalize(rel).replace(/^(\.\.[\/\\])+/, '');
   const full = path.join(ROOT, safe);

@@ -35,6 +35,41 @@
     pointer-events: none;
     letter-spacing: 1px;
   }
+
+  /* 序幕引导页：根入口是 intro_3d.html；当玩家直接打开 index.html 时，
+     给个简短的"是否播放序幕"对话框，避免任何一方的体验损失。 */
+  #gate {
+    position: fixed; inset: 0;
+    background: #050407;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 1000;
+    color: rgba(255,200,90,0.85);
+    font-family: 'Songti SC','SimSun','Noto Serif SC',serif;
+    letter-spacing: 0.2em;
+    transition: opacity 0.6s;
+  }
+  #gate.hidden { opacity: 0; pointer-events: none; }
+  #gate h1 {
+    font-size: clamp(28px, 4vw, 44px);
+    margin-bottom: 28px;
+    text-shadow: 0 0 30px rgba(255,180,80,0.5);
+    letter-spacing: 0.4em; text-indent: 0.4em;
+  }
+  #gate .btns { display: flex; gap: 18px; }
+  #gate button {
+    background: transparent;
+    border: 1px solid rgba(255,200,90,0.5);
+    color: rgba(255,200,90,0.9);
+    padding: 10px 24px;
+    font: inherit; letter-spacing: 0.25em;
+    cursor: pointer;
+    transition: background 0.25s, color 0.25s, border-color 0.25s;
+  }
+  #gate button:hover {
+    background: rgba(255,200,90,0.12);
+    color: #fff; border-color: rgba(255,200,90,0.9);
+  }
 </style>
 </head>
 <body>
@@ -42,6 +77,25 @@
   <canvas id="c" width="1200" height="760"></canvas>
   <div id="hint">WASD 移动 · Shift 奔跑 · Space 冲刺 · E 交互</div>
 </div>
+<div id="gate">
+  <h1>刻 痕</h1>
+  <div class="btns">
+    <button id="btnIntro">播放序幕</button>
+    <button id="btnSkip">直接开始</button>
+  </div>
+</div>
+<script>
+  // 直接打开 index.html（绕过 intro_3d.html）时给个简易门。
+  // intro_3d.html 末尾跳转会带 ?from=intro，主流程不再弹此门。
+  (function () {
+    const fromIntro = new URLSearchParams(location.search).get('from') === 'intro';
+    const gate = document.getElementById('gate');
+    if (fromIntro) { gate.remove(); return; }
+    const go = (to) => { gate.classList.add('hidden'); setTimeout(() => location.replace(to), 600); };
+    document.getElementById('btnIntro').onclick = () => go('intro_3d.html?from=gate');
+    document.getElementById('btnSkip').onclick  = () => gate.remove();
+  })();
+</script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
