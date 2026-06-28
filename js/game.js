@@ -1,6 +1,6 @@
 // 游戏主类
 import { W, H } from './config.js';
-import { input } from './input.js';
+import { input, bindCanvas } from './input.js';
 import { Player } from './player.js';
 import { scenes } from './scenes.js';
 import { Camera, render } from './render.js';
@@ -9,6 +9,8 @@ import { voice } from './ai/voice.js';
 import { speakerStyle } from './ai/speakers.js';
 import { AI } from './ai/config.js';
 import { generateBranch, buildBranchDialog, tingyuReply } from './ai/director.js';
+import { SideScrollLevel } from './sidescroll.js';
+import { Level3D } from './level3d.js';
 
 const DIALOGS = {
   wake: [
@@ -357,6 +359,10 @@ export class Game {
     this.battle = null; // 战斗实例（非 null 时处于战斗界面）
     this.defeatedEnemies = new Set(); // 已击败的敌人 id
     this.visitedScenes = new Set(); // 已首次进入的场景（用于一次性引导提示）
+    // 自定义刻字记录（要石/残碑），持久化到 localStorage
+    this.engravings = this._loadEngravings();
+    this.stompHintShown = false; // 踩踏提示已展示
+    this._stompWindow = 0; // 踩踏判定窗口（冲刺时打开）
     this.flags = {
       wake_done: false,
       door_opened: false,
@@ -403,11 +409,15 @@ export class Game {
       ],
       tip: '左上角是当前目标，金色箭头指向下一步。靠近发光物按 E，靠近绿色梗鬼会进入战斗。',
     };
+    // 模式：江堤横版 / 维度裂隙3D
+    this.sidescroll = null;
+    this.level3d = null;
     this.gameTime = 0;
     this.lastTime = 0;
   }
 
   start() {
+    bindCanvas(this.canvas);
     this.loadScene('freeze_center');
     this.camera.snap(this.player.x, this.player.y, this.scene.width, this.scene.height);
     this.lastTime = performance.now();
@@ -430,7 +440,15 @@ export class Game {
     if (this.scene.enemies) {
       this.scene.enemies = this.scene.enemies.filter(e => !this.defeatedEnemies.has(e.id));
       for (const e of this.scene.enemies) {
-        e.floating = Math.random() * 10;
+        e.floating = 0;
+        e.walkPhase = Math.random() * 6;      // 地面行走动画相位
+        e.dir = Math.random() < 0.5 ? -1 : 1; // 巡逻方向
+        e.vx = e.dir * 0.5;                    // 水平速度
+        e.vy = 0;                              // 垂直速度（地面行走）
+        e.onGround = true;
+        e.homeX = e.x;                         // 巡逻原点
+        e.range = 80;                          // 巡逻半径
+        e.stompCD = 0;                         // 踩踏冷却
       }
     }
     console.log('[场景] 加载:', sceneId, '生成点', spawn);
@@ -440,6 +458,69 @@ export class Game {
       this.visitedScenes.add(sceneId);
       const intro = SCENE_INTROS[sceneId];
       if (intro) this.showHint(intro);
+    }
+    // 江堤横版模式：进入 riverside 时启动
+    if (this.scene.mode === 'sidescroll') {
+      this.sidescroll = new SideScrollLevel(this);
+    }
+  }
+
+  // ============================================
+  // 江堤横版 / 维度裂隙3D 模式管理
+  // ============================================
+  exitSidescroll() {
+    const sc = this.sidescroll;
+    // 读取横版结果意图：'forward'(居民区) / 'back'(返回街道) / 'dead'
+    const intent = sc.getIntent ? sc.getIntent() : (this.player.san <= 0 ? 'dead' : 'forward');
+    this.sidescroll = null;
+    if (intent === 'dead' || this.player.san <= 0) {
+      // 死亡：回最近要石（街道）
+      this.player.san = this.player.maxSan;
+      this.loadScene('street_01', { x: 980, y: 1600 });
+      this.showHint('你在要石的微光中醒来……');
+    } else if (intent === 'back') {
+      // 老人旁的返回传送点：回到街道（保留进度）
+      this.flags.met_shuyuan = true;
+      this.loadScene('street_01', { x: 980, y: 1600 });
+      this.showHint('你借书远的提灯回到了街道。江堤的入口随时可再进。');
+      this.objective = { text: '探索街道，或返回江堤', done: false };
+    } else {
+      // 通关：前往居民区
+      this.flags.met_shuyuan = true;
+      const t = sc.getExitTarget();
+      this.loadScene(t.target, t.spawn);
+      this.objective = { text: '探索废墟居民区', done: false };
+      this.showHint('穿过江堤，前方是废墟居民区。');
+    }
+  }
+
+  enterLevel3D() {
+    if (this.flags.portal3d_done) {
+      this.showHint('维度裂隙已经稳定，不再需要进入。');
+      return;
+    }
+    this.startDialog([
+      { s: '系统', t: '隧道深处的绿光裂开了一道缝——那是维度坍缩留下的裂隙。' },
+      { s: '顾言', t: '里面……是另一个形状的世界？空间在那里重新有了厚度。' },
+      { s: '系统', t: '（进入维度裂隙3D关卡：WASD+鼠标视角，左键射击，搜集物资击败怪物，找到出口回到地铁站）' },
+    ], '维度裂隙', () => {
+      this.level3d = new Level3D(this);
+    });
+  }
+
+  exitLevel3D() {
+    const lv = this.level3d;
+    const dead = lv.isDead();
+    const hp = lv.hp;
+    lv.dispose();
+    this.level3d = null;
+    if (dead) {
+      this.player.san = Math.floor(this.player.maxSan * 0.5);
+      this.showHint('你从裂隙中爬了回来，理性严重受损。');
+    } else {
+      this.player.san = Math.min(this.player.maxSan, Math.max(this.player.san, hp + 20));
+      this.flags.portal3d_done = true;
+      this.showHint('你穿过维度裂隙，带着补给回到了地铁站。理性恢复。');
     }
   }
 
@@ -581,7 +662,12 @@ export class Game {
     this.lastTime = now;
     this.gameTime += dt;
     this.update(dt);
-    render(this, this.gameTime);
+    // 3D 关卡用独立 WebGL 渲染器，不走 Canvas 2D render()
+    if (this.level3d) {
+      this.level3d.render();
+    } else {
+      render(this, this.gameTime);
+    }
     requestAnimationFrame(t => this.loop(t));
   }
 
@@ -639,6 +725,12 @@ export class Game {
       return;
     }
 
+    // 刻字模式（要石 / 残碑）
+    if (this.engraveState) {
+      this.updateEngraving(dt);
+      return;
+    }
+
     // 战斗模式
     if (this.battle) {
       this.battle.update(dt);
@@ -648,8 +740,41 @@ export class Game {
       return;
     }
 
+    // 维度裂隙 3D 关卡（独立 WebGL 渲染，此处仅 update）
+    if (this.level3d) {
+      this.level3d.update(dt, input);
+      if (this.level3d.isDone()) {
+        this.exitLevel3D();
+      }
+      return;
+    }
+    // 江堤横版关卡
+    if (this.sidescroll) {
+      this.sidescroll.update(dt, input);
+      if (this.sidescroll.isDone()) {
+        this.exitSidescroll();
+      }
+      return;
+    }
+
     // 玩家移动
     this.player.update(dt, input, this);
+
+    // 踩踏窗口：空格冲刺时打开短暂窗口，用于俯视角踩踏地面梗鬼
+    if (input.wasPressed(' ') && performance.now() - this.combat.lastDash > 600) {
+      this.combat.lastDash = performance.now();
+      this._stompWindow = 260;
+      // 冲刺位移
+      const mv = input.moveVec();
+      if (mv.x !== 0 || mv.y !== 0) {
+        const len = Math.hypot(mv.x, mv.y) || 1;
+        const dx = (mv.x / len) * 36, dy = (mv.y / len) * 36;
+        if (!this.scene.collides(this.player.x + dx, this.player.y, this.player.r)) this.player.x += dx;
+        if (!this.scene.collides(this.player.x, this.player.y + dy, this.player.r)) this.player.y += dy;
+      }
+      this.player.invulnerable = 300;
+    }
+    if (this._stompWindow > 0) this._stompWindow -= dt;
 
     // 无敌时间衰减
     if (this.player.invulnerable > 0) {
@@ -862,9 +987,11 @@ export class Game {
   }
 
   finishGame() {
+    // AI 降级路径：跳过刻字汇总评价
     this.flags.met_tingyu = true;
     this.ending = this.resolveEnding();
     this.flags.game_complete = true;
+    this.flags.engraving_summary = null; // 标记：降级，无评价
   }
 
   checkAutoTriggers() {
@@ -878,24 +1005,184 @@ export class Game {
         return;
       }
     }
-    // 遭遇敌人：靠近后进入战斗
-    if (this.scene.enemies && !this.battle) {
-      for (const e of this.scene.enemies) {
-        if (this.defeatedEnemies.has(e.id)) continue;
-        const d = Math.hypot(e.x - this.player.x, e.y - this.player.y);
-        if (d < 50) {
-          // 第一次遭遇：先播剧情对话，对话结束后进战斗
-          if (this.scene.id === 'street_01' && e.id === 'geng_1' && !this.flags.first_geng_intro_done) {
-            this.flags.first_geng_intro_done = true;
-            this.startDialog(DIALOGS.first_geng_intro, '梗鬼', () => {
-              this.startBattle(e);
-            });
-            return;
-          }
-          this.startBattle(e);
+    // 梗鬼地面行走 + 踩踏判定
+    if (this.scene.enemies && !this.battle && !this.dialogState) {
+      this.updateEnemies(dt);
+    }
+  }
+
+  // ============================================
+  // 梗鬼地面行走（超级玛丽式：巡逻 + 重力 + 踩踏）
+  // ============================================
+  updateEnemies(dt) {
+    const p = this.player;
+    for (const e of this.scene.enemies) {
+      if (this.defeatedEnemies.has(e.id)) continue;
+      // 地面行走巡逻
+      e.walkPhase += dt * 0.01;
+      e.x += e.vx * (dt / 16);
+      // 巡逻边界转向
+      if (e.x > e.homeX + e.range) { e.dir = -1; e.vx = e.dir * 0.5; }
+      else if (e.x < e.homeX - e.range) { e.dir = 1; e.vx = e.dir * 0.5; }
+      if (e.stompCD > 0) e.stompCD -= dt;
+
+      // 踩踏判定：玩家从上方落下且接近
+      const dx = Math.abs(e.x - p.x);
+      const dy = p.y - e.y; // 玩家在敌人上方时为负
+      const falling = p.walkCycle !== undefined && this._playerFalling;
+      if (dx < 22 && dy > -28 && dy < 4 && this._playerFalling && e.stompCD <= 0) {
+        // 踩中！弹起 + 击败
+        this._stompEnemy(e);
+        continue;
+      }
+
+      // 接触伤害 / 进入战斗（侧向接触）
+      const d = Math.hypot(e.x - p.x, e.y - p.y);
+      if (d < 40 && !this._playerFalling) {
+        // 第一次遭遇剧情
+        if (this.scene.id === 'street_01' && e.id === 'geng_1' && !this.flags.first_geng_intro_done) {
+          this.flags.first_geng_intro_done = true;
+          this.startDialog(DIALOGS.first_geng_intro, '梗鬼', () => {
+            this.startBattle(e);
+          });
           return;
         }
+        this.startBattle(e);
+        return;
       }
+    }
+  }
+
+  // 玩家是否处于下落状态（用于踩踏判定）
+  get _playerFalling() {
+    // 俯视角无垂直速度，用"刚按下空格后短暂窗口"模拟踩踏
+    // 空格冲刺时也算（向下扑），便于俯视角踩踏
+    return this._stompWindow > 0;
+  }
+
+  _stompEnemy(e) {
+    this.defeatedEnemies.add(e.id);
+    e.stompCD = 9999;
+    // 弹起效果（视觉粒子）
+    this.combat.particles.push({
+      x: e.x, y: e.y, vx: 0, vy: -2, life: 400, color: '180,255,180', size: 3,
+    });
+    this.player.san = Math.min(this.player.maxSan, this.player.san + 4);
+    if (!this.stompHintShown) {
+      this.stompHintShown = true;
+      this.showHint('踩中梗鬼！（空格冲刺可踩踏地面行走的梗鬼）');
+    } else {
+      this.showHint('踩中！理性 +4');
+    }
+  }
+
+  // ============================================
+  // 刻字系统（要石 / 残碑 · 预设 + 自定义 · localStorage 持久化）
+  // ============================================
+  _loadEngravings() {
+    try {
+      const raw = localStorage.getItem('keheng_engravings');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return [];
+  }
+  _saveEngravings() {
+    try { localStorage.setItem('keheng_engravings', JSON.stringify(this.engravings)); } catch (e) {}
+  }
+  _addEngraving(rec) {
+    this.engravings.push(rec);
+    this._saveEngravings();
+  }
+
+  // 启动刻字模式：type='keystone'|'stele'
+  startEngraving(target, type) {
+    const presets = type === 'keystone'
+      ? ['活着', '记得', '归来', '不语', '此心', '故人', '归途', '在此']
+      : ['关关', '雎鸠', '窈窕', '好逑', '落霞', '正气', '听雨', '书远'];
+    this.engraveState = {
+      target, type, presets,
+      sel: 0,
+      mode: 'select', // 'select' | 'input'
+      input: '',
+    };
+  }
+  updateEngraving(dt) {
+    const e = this.engraveState;
+    if (!e) return;
+    if (e.mode === 'select') {
+      const n = e.presets.length + 1; // 末项为"自定义输入"
+      if (input.wasPressed('arrowup') || input.wasPressed('w') || input.wasPressed('arrowleft') || input.wasPressed('a'))
+        e.sel = (e.sel - 1 + n) % n;
+      if (input.wasPressed('arrowdown') || input.wasPressed('s') || input.wasPressed('arrowright') || input.wasPressed('d'))
+        e.sel = (e.sel + 1) % n;
+      if (input.wasPressed('e') || input.wasPressed('enter')) {
+        if (e.sel < e.presets.length) {
+          this._commitEngraving(e.presets[e.sel]);
+        } else {
+          e.mode = 'input'; e.input = '';
+          setTimeout(() => { if (this._engraveInput) this._engraveInput.focus(); }, 30);
+        }
+      }
+      if (input.wasPressed('escape') || input.wasPressed('q')) {
+        this.engraveState = null;
+        this.showHint('你收回了刻刀。');
+      }
+    } else {
+      // input 模式由 DOM 输入框处理（在 render 时创建）
+      if (input.wasPressed('escape')) {
+        e.mode = 'select'; e.input = '';
+        if (this._engraveInput && this._engraveInput.parentNode) { this._engraveInput.parentNode.removeChild(this._engraveInput); this._engraveInput = null; }
+      }
+    }
+    this.updateParticles(dt);
+  }
+  _commitEngraving(text) {
+    const t = (text || '').trim().slice(0, 12);
+    if (!t) { this.showHint('没有刻下任何字。'); this.engraveState = null; return; }
+    const e = this.engraveState;
+    const rec = {
+      text: t,
+      type: e.type,
+      targetId: e.target.id,
+      scene: this.scene.id,
+      time: Date.now(),
+      custom: !e.presets.includes(t),
+    };
+    this._addEngraving(rec);
+    if (e.type === 'keystone') this.activatedKeystones.add(e.target.id);
+    this.activatedKeystones.add(e.target.id);
+    // 记录刻字内容到目标对象，供渲染显示
+    e.target.engraved = t;
+    this.engraveState = null;
+    this.startDialog([
+      { s: '系统', t: `顾言用刻刀刻下「${t}」。` },
+      { s: '系统', t: '金色的微光从刻痕里渗出，像是一个被重新点燃的坐标。' },
+      { s: '系统', t: '（已刻下并保存）' },
+    ], e.type === 'keystone' ? '要石' : '残碑');
+  }
+  _submitEngraveInput() {
+    const text = (this._engraveInput ? this._engraveInput.value : this.engraveState.input).trim();
+    if (this._engraveInput && this._engraveInput.parentNode) { this._engraveInput.parentNode.removeChild(this._engraveInput); this._engraveInput = null; }
+    this._commitEngraving(text);
+  }
+
+  // ============================================
+  // 结局：刻字汇总评价（仅 AI 可用时）
+  // ============================================
+  async summarizeEngravings() {
+    if (!this.engravings.length) return null;
+    if (!AI.llm) return null; // 降级则跳过
+    this.aiThinking = true;
+    this.aiThinkingText = '正在凝视你刻下的每一个字……';
+    try {
+      const list = this.engravings.map((e, i) => `${i + 1}. 「${e.text}」(${e.type === 'keystone' ? '要石' : '残碑'}${e.custom ? '·自定义' : ''})`).join('\n');
+      const prompt = `玩家在一款关于"语言消亡与文字守护"的游戏中，于各处要石与残碑上刻下了以下文字：\n${list}\n\n请以一位历经沧桑的叙事者口吻，对玩家刻下的这些字进行简短的汇总、分析与评价（120字以内）。可点评其用词倾向、情感内核，以及这些字在这个失语的世界里意味着什么。不要复述列表，直接给出评价。`;
+      const reply = await AI.llm.chat([{ role: 'user', content: prompt }]);
+      this.aiThinking = false;
+      return (reply || '').trim();
+    } catch (e) {
+      this.aiThinking = false;
+      return null;
     }
   }
 
@@ -959,17 +1246,16 @@ export class Game {
       }
       if (best.type === 'keystone') {
         const already = this.activatedKeystones.has(best.id);
-        const text = `「${best.text}」`;
-        if (already) {
-          this.showHint(`要石上刻着 ${text}。这里是存档点。`);
-        } else {
-          this.activatedKeystones.add(best.id);
-          this.startDialog([
-            { s: '系统', t: `顾言用刻刀在要石上刻下 ${text}。` },
-            { s: '系统', t: '金色的微光从刻痕里渗出来，像是一个被重新点燃的坐标。' },
-            { s: '系统', t: '（已激活存档点：' + best.text + '）' },
-          ], '要石');
+        const engraved = best.engraved || (already ? best.text : null);
+        if (engraved) {
+          this.showHint(`要石上刻着「${engraved}」。这里是存档点。（可重新刻字）`);
         }
+        // 启动刻字模式（已刻过也允许重刻）
+        this.startEngraving(best, 'keystone');
+        return;
+      }
+      if (best.type === 'portal3d') {
+        this.enterLevel3D();
         return;
       }
       if (best.type === 'scene_change') {
@@ -1314,7 +1600,9 @@ export class Game {
     if (c._inputEl && c._inputEl.parentNode) c._inputEl.parentNode.removeChild(c._inputEl);
     const endTag = c.endTag, epi = c.epilogue;
     this.converse = null;
+    // AI 可用路径：先结算结局，再异步获取刻字汇总评价
     this.finishGameWith(endTag, epi);
+    this._finalizeWithEngravingSummary();
   }
 
   finishGameWith(endTag, epilogue) {
@@ -1322,6 +1610,13 @@ export class Game {
     this.ending = (endTag === 'fire' || endTag === 'silence' || endTag === 'burnout') ? endTag : this.resolveEnding();
     this.endingEpilogue = epilogue || null;
     this.flags.game_complete = true;
+  }
+
+  async _finalizeWithEngravingSummary() {
+    // 仅在 AI 可用（非降级）时进行刻字汇总评价
+    if (!AI.llm) { this.flags.engraving_summary = null; return; }
+    const summary = await this.summarizeEngravings();
+    this.flags.engraving_summary = summary; // 可能 null（无刻字或失败）
   }
 
   applyEffect(effect) {

@@ -67,6 +67,15 @@ export function render(game, gameTime) {
     return;
   }
 
+  // 江堤横版关卡：独立渲染（叠加对话/提示）
+  if (game.sidescroll) {
+    game.sidescroll.render(ctx, gameTime);
+    if (dialogState) drawDialog(ctx, dialogState, gameTime);
+    if (hints.length) drawHints(ctx, hints);
+    if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
+    return;
+  }
+
   ctx.clearRect(0, 0, W, H);
 
   ctx.fillStyle = scene.bgColor;
@@ -85,6 +94,9 @@ export function render(game, gameTime) {
   else if (scene.id === 'house_a' || scene.id === 'house_b') drawHouse(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'stadium') drawStadium(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'data_center') drawDataCenter(ctx, W2S, scene, gameTime, game);
+
+  // 交互点远距离视觉标识（为仅有靠近触发圈、却无实体模型的交互点补可见物）
+  drawInteractableMarkers(ctx, W2S, scene, game, gameTime);
 
   // 章节门禁的可视化（屏障/光柱）
   drawGates(ctx, W2S, scene, game, gameTime);
@@ -132,16 +144,25 @@ export function render(game, gameTime) {
   // 等待 LLM 的提示
   if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
 
+  // 刻字模式
+  if (game.engraveState) {
+    drawEngraving(ctx, game.engraveState, gameTime, game);
+    ensureEngraveInput(game);
+  } else if (game._engraveInput && game._engraveInput.parentNode) {
+    game._engraveInput.parentNode.removeChild(game._engraveInput);
+    game._engraveInput = null;
+  }
+
   // 结局卡（对话结束后，game_complete 时覆盖显示）
-  if (game.flags && game.flags.game_complete && !dialogState) {
-    drawEnding(ctx, game.ending, gameTime, game.endingEpilogue);
+  if (game.flags && game.flags.game_complete && !dialogState && !game.engraveState) {
+    drawEnding(ctx, game.ending, gameTime, game.endingEpilogue, game);
   }
 }
 
 // ============================================================
 // 结局卡
 // ============================================================
-function drawEnding(ctx, ending, gameTime, epilogue) {
+function drawEnding(ctx, ending, gameTime, epilogue, game) {
   const cfgs = {
     fire: { title: '火 种', col: '255,210,120', sub: '语言的火种被重新点亮。只要还有一个人记得怎么说话，世界就还没有真的失语。' },
     silence: { title: '沉 默', col: '170,180,185', sub: '你完成了旅程，却没能在对的时候，留下一句话。世界停在一片灰白的安静里。' },
@@ -149,7 +170,10 @@ function drawEnding(ctx, ending, gameTime, epilogue) {
   };
   const c = cfgs[ending] || cfgs.silence;
   const subText = (epilogue && epilogue.trim()) ? epilogue.trim() : c.sub;
-  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  // 刻字汇总（仅 AI 非降级且存在时显示；降级时为 null，跳过）
+  const summary = game && game.flags ? game.flags.engraving_summary : null;
+  const engravings = game && game.engravings ? game.engravings : [];
+  ctx.fillStyle = 'rgba(0,0,0,0.82)';
   ctx.fillRect(0, 0, W, H);
   // 标题光晕
   const pulse = 0.7 + Math.sin(gameTime * 0.002) * 0.3;
@@ -160,26 +184,70 @@ function drawEnding(ctx, ending, gameTime, epilogue) {
   ctx.font = 'bold 56px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(c.title, W / 2, H / 2 - 50);
+  ctx.fillText(c.title, W / 2, 110);
   ctx.restore();
   // 副标题（换行）
   ctx.fillStyle = 'rgba(225,218,205,0.9)';
   ctx.font = '15px serif';
-  const maxW = 560;
-  let line = '', y = H / 2 + 10;
+  const maxW = 720;
+  let line = '', y = 160;
   for (const ch of subText) {
-    if (ctx.measureText(line + ch).width > maxW) { ctx.fillText(line, W / 2, y); line = ch; y += 26; }
+    if (ctx.measureText(line + ch).width > maxW) { ctx.fillText(line, W / 2, y); line = ch; y += 24; }
     else line += ch;
   }
   ctx.fillText(line, W / 2, y);
+
+  // === 刻字汇总（仅 AI 非降级时）===
+  if (summary !== null) {
+    // 标题
+    ctx.fillStyle = 'rgba(255,220,140,0.9)';
+    ctx.font = 'bold 18px serif';
+    ctx.fillText('— 你刻下的字 —', W / 2, y + 40);
+    // 刻字列表
+    ctx.fillStyle = 'rgba(220,200,160,0.85)';
+    ctx.font = '14px serif';
+    if (engravings.length) {
+      let listStr = engravings.map(e => '「' + e.text + '」').join('  ');
+      let ls = '', ly = y + 68;
+      for (const ch of listStr) {
+        if (ctx.measureText(ls + ch).width > maxW) { ctx.fillText(ls, W / 2, ly); ls = ch; ly += 22; }
+        else ls += ch;
+      }
+      ctx.fillText(ls, W / 2, ly);
+      ly += 18;
+      // AI 评价
+      if (summary) {
+        ctx.fillStyle = 'rgba(200,180,220,0.9)';
+        ctx.font = '13px serif';
+        let es = '', ey = ly;
+        for (const ch of summary) {
+          if (ctx.measureText(es + ch).width > maxW) { ctx.fillText(es, W / 2, ey); es = ch; ey += 20; }
+          else es += ch;
+        }
+        ctx.fillText(es, W / 2, ey);
+        y = ey;
+      } else {
+        y = ly;
+      }
+    } else {
+      ctx.fillStyle = 'rgba(180,170,150,0.6)';
+      ctx.font = '12px serif';
+      ctx.fillText('（这一程，你没有在任何石头上留下字。）', W / 2, y + 68);
+      y += 80;
+    }
+  } else {
+    // AI 降级：完全不显示刻字汇总评价区块
+    y += 16;
+  }
+
   // 结语
   ctx.fillStyle = 'rgba(180,170,150,0.7)';
   ctx.font = '12px serif';
-  ctx.fillText('—— 刻 痕 ·  遗 忘 的 文 字 ——', W / 2, y + 50);
+  ctx.fillText('—— 刻 痕 ·  遗 忘 的 文 字 ——', W / 2, y + 60);
   const blink = 0.4 + Math.sin(gameTime * 0.004) * 0.4;
   ctx.fillStyle = `rgba(${c.col},${blink})`;
   ctx.font = '12px serif';
-  ctx.fillText('刷新页面，可换一种走法重新开始', W / 2, y + 76);
+  ctx.fillText('刷新页面，可换一种走法重新开始', W / 2, y + 86);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
@@ -302,12 +370,13 @@ function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     // 已击败的敌人不显示
     if (game && game.defeatedEnemies && game.defeatedEnemies.has(e.id)) continue;
     const s = W2S(e.x, e.y);
-    if (!e.floating) e.floating = 0;
-    e.floating += 0.05;
-    const float = Math.sin(e.floating) * 3;
-    const sy = s.y + float;
+    // 地面行走：不再上下浮动，改为左右迈步微动
+    if (e.walkPhase === undefined) e.walkPhase = 0;
+    e.walkPhase += 0.05;
+    const stepBob = Math.abs(Math.sin(e.walkPhase)) * 2;
+    const sy = s.y - stepBob; // 脚踏地，整体微抬模拟迈步
 
-    // 提示标记：靠近会进入战斗
+    // 提示标记：靠近会进入战斗 / 可踩踏
     const d = Math.hypot(e.x - (game ? game.player.x : 0), e.y - (game ? game.player.y : 0));
     const near = d < 80;
     if (near) {
@@ -315,9 +384,15 @@ function drawEnemies(ctx, W2S, enemies, gameTime, game) {
       ctx.fillStyle = `rgba(255,80,80,${pulse})`;
       ctx.font = 'bold 11px serif';
       ctx.textAlign = 'center';
-      ctx.fillText('! 战斗', s.x, sy - 55);
+      ctx.fillText('! 战斗 / 空格踩踏', s.x, sy - 55);
       ctx.textAlign = 'left';
     }
+
+    // 脚下阴影（地面行走标志）
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y + 4, 16, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
 
     // 外发光
     ctx.shadowColor = 'rgba(80,220,100,0.8)';
@@ -375,6 +450,80 @@ function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     ctx.fillText('蚌', s.x, sy + 30);
     ctx.textAlign = 'left';
   }
+}
+
+// ============================================================
+// 刻字模式 UI
+// ============================================================
+function drawEngraving(ctx, e, gameTime, game) {
+  if (!e) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2;
+  // 面板
+  const pw = 420, ph = e.mode === 'input' ? 220 : 360;
+  ctx.fillStyle = 'rgba(20,16,10,0.95)';
+  roundRect(ctx, cx - pw / 2, cy - ph / 2, pw, ph, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(220,180,90,0.6)'; ctx.lineWidth = 1.5;
+  roundRect(ctx, cx - pw / 2, cy - ph / 2, pw, ph, 8); ctx.stroke();
+  // 标题
+  ctx.fillStyle = 'rgba(255,220,140,0.95)';
+  ctx.font = 'bold 20px serif'; ctx.textAlign = 'center';
+  ctx.fillText(e.type === 'keystone' ? '在要石上刻字' : '在残碑上刻字', cx, cy - ph / 2 + 36);
+  ctx.fillStyle = 'rgba(200,170,110,0.6)'; ctx.font = '11px serif';
+  ctx.fillText('方向键选择预设，或选择"自定义"输入。Esc 取消', cx, cy - ph / 2 + 56);
+
+  if (e.mode === 'select') {
+    const n = e.presets.length + 1;
+    ctx.font = 'bold 16px serif';
+    for (let i = 0; i < n; i++) {
+      const y = cy - ph / 2 + 90 + i * 32;
+      const sel = i === e.sel;
+      if (sel) {
+        ctx.fillStyle = 'rgba(255,220,140,0.12)';
+        ctx.fillRect(cx - pw / 2 + 20, y - 14, pw - 40, 26);
+        ctx.fillStyle = 'rgba(255,230,160,1)';
+      } else {
+        ctx.fillStyle = 'rgba(200,180,140,0.75)';
+      }
+      const label = i < e.presets.length ? '「' + e.presets[i] + '」' : '✎  自定义输入…';
+      ctx.fillText(label, cx, y);
+    }
+  }
+  // input 模式由 DOM 输入框处理，这里只画提示
+  ctx.textAlign = 'left';
+}
+
+// 为主渲染创建刻字输入框（input 模式时）
+function ensureEngraveInput(game) {
+  const e = game.engraveState;
+  if (!e || e.mode !== 'input') {
+    if (game._engraveInput && game._engraveInput.parentNode) { game._engraveInput.parentNode.removeChild(game._engraveInput); game._engraveInput = null; }
+    return;
+  }
+  if (game._engraveInput) return;
+  const wrap = document.getElementById('wrap') || document.body;
+  const el = document.createElement('input');
+  el.type = 'text'; el.maxLength = 12;
+  el.placeholder = '刻下你想留的字…（回车确认，Esc 返回）';
+  el.setAttribute('autocomplete', 'off');
+  Object.assign(el.style, {
+    position: 'absolute', left: '50%', top: '52%', transform: 'translateX(-50%)',
+    width: '360px', padding: '12px 16px', fontSize: '18px', textAlign: 'center',
+    fontFamily: "'SimSun','Songti SC',serif", color: '#fff',
+    background: 'rgba(10,10,16,0.95)', border: '1px solid rgba(220,180,90,0.6)',
+    outline: 'none', borderRadius: '4px', zIndex: '20',
+  });
+  let composing = false;
+  el.addEventListener('compositionstart', () => { composing = true; });
+  el.addEventListener('compositionend', () => { composing = false; });
+  el.addEventListener('keydown', (ev) => {
+    if (composing) return;
+    if (ev.key === 'Enter') { ev.preventDefault(); game._submitEngraveInput(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); e.mode = 'select'; }
+  });
+  wrap.appendChild(el);
+  game._engraveInput = el;
 }
 
 // ============================================================
@@ -1094,12 +1243,15 @@ function drawTileFloor(ctx, W2S, scene, base, line, step) {
     ctx.moveTo(x, 0); ctx.lineTo(x, H);
     ctx.stroke();
   }
+  // 地面污渍（固定世界坐标，人物移动时保持静止）
   for (let i = 0; i < 14; i++) {
-    const sx = ((i * 173) % (W + 200)) - 100;
-    const sy = ((i * 91) % (H + 200)) - 100;
+    const wx = (i * 173 + 23) % scene.width;
+    const wy = (i * 91 + 17) % scene.height;
+    const p = W2S(wx, wy);
+    if (p.x < -20 || p.x > W + 20 || p.y < -20 || p.y > H + 20) continue;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath();
-    ctx.arc(sx, sy, 4 + (i % 3) * 2, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 4 + (i % 3) * 2, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -1557,15 +1709,17 @@ function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.fillStyle = '#2a2622';
   ctx.fillRect(0, walkY, W, groundY - walkY);
 
-  // 路面裂缝
+  // 路面裂缝（固定世界坐标，不随摄像机滚动）
   ctx.strokeStyle = 'rgba(15,12,10,0.7)';
   ctx.lineWidth = 1;
   for (let i = 0; i < 14; i++) {
-    const baseX = (i * 173 - W2S(0,0).x * 0.3) % (W + 200) - 100;
-    const baseY = walkY + 10 + (i * 23) % (groundY - walkY - 20);
+    const wx = (i * 173 + 37) % scene.width;
+    const wy = 430 + (i * 23) % 100;
+    const p = W2S(wx, wy);
+    if (p.x < -40 || p.x > W + 40) continue;
+    let cx = p.x, cy = p.y;
     ctx.beginPath();
-    ctx.moveTo(baseX, baseY);
-    let cx = baseX, cy = baseY;
+    ctx.moveTo(cx, cy);
     for (let s = 0; s < 5; s++) {
       cx += 8 + (i + s) % 6;
       cy += 4 + (i * 3 + s) % 7;
@@ -1585,12 +1739,15 @@ function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // 杂草
+  // 杂草（固定世界坐标，人物移动时保持静止）
   ctx.strokeStyle = '#5a6a30';
   ctx.lineWidth = 1;
   for (let i = 0; i < 50; i++) {
-    const gx = (i * 41 - W2S(0,0).x) % (W + 100) - 50;
-    const gy = walkY + 4 + (i * 11) % 8;
+    const wx = (i * 41 + 17) % scene.width;
+    const wy = 424 + (i * 11) % 8;
+    const p = W2S(wx, wy);
+    if (p.x < -20 || p.x > W + 20) continue;
+    const gx = p.x, gy = p.y;
     const sway = Math.sin(gameTime * 0.002 + i) * 2;
     ctx.beginPath();
     ctx.moveTo(gx, gy);
@@ -1604,12 +1761,14 @@ function drawStreet(ctx, W2S, scene, gameTime, game) {
     ctx.strokeStyle = '#5a6a30';
   }
 
-  // 落叶
+  // 落叶（固定世界坐标）
   for (let i = 0; i < 30; i++) {
-    const lx = (i * 67 - W2S(0,0).x) % (W + 60) - 30;
-    const ly = walkY + 4 + (i * 19) % (groundY - walkY - 8);
+    const wx = (i * 67 + 29) % scene.width;
+    const wy = 424 + (i * 19) % 108;
+    const p = W2S(wx, wy);
+    if (p.x < -10 || p.x > W + 10) continue;
     ctx.save();
-    ctx.translate(lx, ly);
+    ctx.translate(p.x, p.y);
     ctx.rotate(i * 0.7);
     ctx.fillStyle = i % 3 === 0 ? 'rgba(160,140,90,0.6)' : 'rgba(180,170,140,0.5)';
     ctx.fillRect(-2, -1, 4, 2);
@@ -2050,10 +2209,13 @@ function drawRiverside(ctx, W2S, scene, gameTime, game) {
   ctx.fillStyle = '#4a4540';
   ctx.fillRect(0, railY - 8, W, 2);
 
-  // 芦苇
+  // 芦苇（固定世界坐标，人物移动时保持静止）
   for (let i = 0; i < 60; i++) {
-    const bx = (i * 47 - W2S(0,0).x * 0.3) % (W + 100) - 50;
-    const by = walkY + 10 + (i * 13) % 80;
+    const wx = (i * 47 + 13) % scene.width;
+    const wy = 810 + (i * 13) % 80;
+    const p = W2S(wx, wy);
+    if (p.x < -20 || p.x > W + 20) continue;
+    const bx = p.x, by = p.y;
     const sway = Math.sin(gameTime * 0.002 + i) * 3;
     ctx.strokeStyle = '#6a6a30';
     ctx.lineWidth = 1.2;
@@ -2071,8 +2233,11 @@ function drawRiverside(ctx, W2S, scene, gameTime, game) {
   }
 
   for (let i = 0; i < 20; i++) {
-    const bx = (i * 113) % (W + 80) - 40;
-    const by = railY - 4 + (i * 7) % 12;
+    const wx = (i * 113 + 7) % scene.width;
+    const wy = 796 + (i * 7) % 12;
+    const p = W2S(wx, wy);
+    if (p.x < -15 || p.x > W + 15) continue;
+    const bx = p.x, by = p.y;
     const sway = Math.sin(gameTime * 0.002 + i + 1) * 2;
     ctx.strokeStyle = '#5a5028';
     ctx.lineWidth = 1;
@@ -2297,13 +2462,15 @@ function drawAlley(ctx, W2S, scene, gameTime, game) {
   const groundY = W2S(0, 380).y;
   ctx.fillStyle = '#2a2218';
   ctx.fillRect(0, Math.max(0, groundY), W, H);
-  // 碎石纹理
+  // 碎石纹理（固定世界坐标，人物移动时保持静止）
   ctx.fillStyle = 'rgba(60,50,40,0.5)';
   for (let i = 0; i < 80; i++) {
-    const gx = (i * 67 - W2S(0,0).x) % (W + 60) - 30;
-    const gy = groundY + (i * 23) % (H - groundY);
+    const wx = (i * 67 + 11) % scene.width;
+    const wy = 384 + (i * 23) % (scene.height - 384);
+    const p = W2S(wx, wy);
+    if (p.x < -10 || p.x > W + 10 || p.y < -10 || p.y > H + 10) continue;
     ctx.beginPath();
-    ctx.arc(gx, gy, 2 + (i % 3), 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 2 + (i % 3), 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -2740,6 +2907,242 @@ function drawCureNPCs(ctx, W2S, scene, game, gameTime) {
       ctx.textAlign = 'left';
     }
   }
+}
+
+// ============================================================
+// 交互点远距离视觉标识
+// 为「仅有靠近后触发的交互圈、却没有实际物体模型」的交互点
+// 补上可见的实体/标识，使玩家无需靠近即可远距离识别。
+// 已有独立渲染的交互点（要石/失语者/门禁/场景内专门绘制）会跳过。
+// ============================================================
+
+// 已在各自场景函数中专门绘制了实体的交互点，不再补标识
+const INTERACTABLES_WITH_VISUAL = new Set([
+  // freeze_center：冷冻仓/终端机/储物柜/大门均由 drawFreezeCenter 绘制
+  'player_pod', 'terminal', 'locker', 'exit_door',
+  // street_01：失语者群、地铁站入口、锈死轿车、要石、失语者支线
+  'lost_people', 'subway_entrance', 'street_carwreck',
+  // riverside：书远由 drawShuyuan 绘制
+  'shuyuan',
+  // subway：出口与黑暗深处有专门的光柱/微光
+  'subway_exit', 'subway_deep',
+  // house_a：书架已绘制
+  'house_a_book',
+  // data_center：听雨蓝色光影已绘制
+  'tingyu',
+]);
+
+function markerKind(it) {
+  if (it.type === 'scene_change' || it.type === 'exit') return 'portal';
+  const k = (it.dialogKey || '') + (it.label || '');
+  if (/屏幕|内壁|screen/.test(k)) return 'screen';
+  if (/线路图|map/.test(k)) return 'map';
+  if (/书远|老人|蹲|victim|失语|人/.test(k)) return 'person';
+  if (/告示|标牌|乱涂|graffiti|poster|sign|残破|破碎|小龛/.test(k)) return 'sign';
+  return 'sign';
+}
+
+function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
+  for (const it of scene.interactables) {
+    // 已有独立渲染的类型跳过
+    if (it.type === 'keystone') continue;        // drawKeystones
+    if (it.type === 'cure') continue;            // drawCureNPCs
+    if (it.type === 'scene_change' && it.gate) continue; // drawGates
+    // 已在场景函数中专门绘制的交互点跳过
+    if (INTERACTABLES_WITH_VISUAL.has(it.id)) continue;
+
+    const s = W2S(it.x, it.y);
+    if (s.x < -120 || s.x > W + 120 || s.y < -160 || s.y > H + 120) continue;
+
+    const pulse = 0.5 + Math.sin(gameTime * 0.004 + it.x * 0.01) * 0.3;
+    const bob = Math.sin(gameTime * 0.003 + it.x) * 1.5;
+    const cx = s.x, cy = s.y;
+
+    // 地面光晕（远距离即可看到）
+    const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, 44);
+    halo.addColorStop(0, `rgba(255,220,140,${0.26 * pulse + 0.12})`);
+    halo.addColorStop(0.6, `rgba(255,200,110,${0.1 * pulse})`);
+    halo.addColorStop(1, 'rgba(255,200,110,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 44, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 地面阴影
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 4, 13, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const kind = markerKind(it);
+    if (kind === 'portal') drawPortalMarker(ctx, cx, cy + bob, it, gameTime, pulse);
+    else if (kind === 'person') drawPersonMarker(ctx, cx, cy + bob, it, gameTime, pulse);
+    else if (kind === 'screen') drawScreenMarker(ctx, cx, cy + bob, it, gameTime, pulse);
+    else if (kind === 'map') drawMapMarker(ctx, cx, cy + bob, it, gameTime, pulse);
+    else drawSignMarker(ctx, cx, cy + bob, it, gameTime, pulse);
+
+    // 标签（远距离半透明可见；靠近后 drawInteractHints 会强化为 E·标签）
+    ctx.fillStyle = `rgba(255,228,150,${0.55 + pulse * 0.2})`;
+    ctx.font = 'bold 11px serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(it.label || '◆', cx, cy - 46);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+  }
+}
+
+// 通道门（普通场景切换 / 出口）：拱门 + 门洞光 + 箭头
+function drawPortalMarker(ctx, x, y, it, gameTime, pulse) {
+  const w = 28, h = 42;
+  // 两根门柱
+  ctx.fillStyle = '#3a3a3e';
+  ctx.fillRect(x - w / 2 - 3, y - h, 6, h);
+  ctx.fillRect(x + w / 2 - 3, y - h, 6, h);
+  ctx.strokeStyle = '#1a1a1c';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - w / 2 - 3, y - h, 6, h);
+  ctx.strokeRect(x + w / 2 - 3, y - h, 6, h);
+  // 拱顶横梁
+  ctx.fillStyle = '#42424a';
+  ctx.fillRect(x - w / 2 - 3, y - h - 5, w + 6, 5);
+  ctx.strokeRect(x - w / 2 - 3, y - h - 5, w + 6, 5);
+  // 门洞透光
+  const grad = ctx.createLinearGradient(0, y - h, 0, y);
+  grad.addColorStop(0, `rgba(255,220,140,${0.5 + pulse * 0.3})`);
+  grad.addColorStop(1, `rgba(255,200,100,${0.12 + pulse * 0.1})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(x - w / 2 + 3, y - h + 3, w - 6, h - 3);
+  // 上升箭头
+  ctx.fillStyle = `rgba(255,235,160,${0.85 + pulse * 0.15})`;
+  ctx.shadowColor = `rgba(255,220,140,${pulse * 0.8})`;
+  ctx.shadowBlur = 6 * pulse;
+  ctx.beginPath();
+  ctx.moveTo(x, y - h / 2 - 8);
+  ctx.lineTo(x - 6, y - h / 2 + 1);
+  ctx.lineTo(x - 2, y - h / 2 + 1);
+  ctx.lineTo(x - 2, y - h / 2 + 8);
+  ctx.lineTo(x + 2, y - h / 2 + 8);
+  ctx.lineTo(x + 2, y - h / 2 + 1);
+  ctx.lineTo(x + 6, y - h / 2 + 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// 人物对话点：人影 + 问号
+function drawPersonMarker(ctx, x, y, it, gameTime, pulse) {
+  ctx.fillStyle = 'rgba(60,55,50,0.9)';
+  ctx.beginPath();
+  ctx.ellipse(x, y - 2, 7, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(95,82,70,0.95)';
+  ctx.beginPath();
+  ctx.arc(x, y - 14, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(40,32,28,0.7)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y - 14, 5, 0, Math.PI * 2);
+  ctx.stroke();
+  // 问号
+  ctx.fillStyle = `rgba(255,220,140,${0.7 + pulse * 0.3})`;
+  ctx.shadowColor = `rgba(255,220,140,${pulse})`;
+  ctx.shadowBlur = 8 * pulse;
+  ctx.font = 'bold 15px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?', x, y - 27);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  ctx.shadowBlur = 0;
+}
+
+// 屏幕类对话点：发光屏幕 + 噪点
+function drawScreenMarker(ctx, x, y, it, gameTime, pulse) {
+  const w = 32, h = 24;
+  // 支架
+  ctx.fillStyle = '#2a2a2e';
+  ctx.fillRect(x - 2, y - 7, 4, 7);
+  ctx.fillRect(x - 9, y - 1, 18, 3);
+  // 背板
+  ctx.fillStyle = '#1a1a20';
+  ctx.fillRect(x - w / 2, y - 7 - h, w, h);
+  ctx.strokeStyle = '#0a0a10';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - w / 2, y - 7 - h, w, h);
+  // 发光屏面
+  const scan = 0.6 + Math.sin(gameTime * 0.008) * 0.3;
+  ctx.fillStyle = `rgba(120,180,255,${scan * 0.55})`;
+  ctx.fillRect(x - w / 2 + 2, y - 7 - h + 2, w - 4, h - 4);
+  ctx.shadowColor = `rgba(120,180,255,${pulse})`;
+  ctx.shadowBlur = 10 * pulse;
+  ctx.strokeStyle = `rgba(150,200,255,${0.6 + pulse * 0.3})`;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - w / 2, y - 7 - h, w, h);
+  ctx.shadowBlur = 0;
+  // 噪点
+  ctx.fillStyle = `rgba(200,220,255,${scan * 0.7})`;
+  for (let i = 0; i < 6; i++) {
+    ctx.fillRect(x - w / 2 + 3 + ((i * 7) % (w - 6)), y - 7 - h + 3 + ((i * 5) % (h - 6)), 2, 2);
+  }
+}
+
+// 线路图类对话点：墙挂图板 + 站点
+function drawMapMarker(ctx, x, y, it, gameTime, pulse) {
+  const w = 30, h = 36;
+  ctx.fillStyle = '#3a3530';
+  ctx.fillRect(x - w / 2 - 2, y - h - 2, w + 4, h + 4);
+  ctx.fillStyle = '#1a1814';
+  ctx.fillRect(x - w / 2, y - h, w, h);
+  ctx.strokeStyle = '#100c08';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - w / 2, y - h, w, h);
+  // 线路
+  ctx.strokeStyle = `rgba(220,180,80,${0.6 + pulse * 0.3})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2 + 4, y - h + 7);
+  ctx.lineTo(x - 2, y - h + 15);
+  ctx.lineTo(x + w / 2 - 4, y - h + 11);
+  ctx.moveTo(x - w / 2 + 4, y - h + 20);
+  ctx.lineTo(x + 4, y - h + 26);
+  ctx.lineTo(x + w / 2 - 4, y - h + 22);
+  ctx.stroke();
+  // 站点
+  ctx.fillStyle = `rgba(255,220,140,${0.85 + pulse * 0.15})`;
+  for (const [dx, dy] of [[-w / 2 + 4, -h + 7], [-2, -h + 15], [w / 2 - 4, -h + 11], [4, -h + 26], [w / 2 - 4, -h + 22]]) {
+    ctx.beginPath();
+    ctx.arc(x + dx, y + dy, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// 标牌/告示/乱涂/小龛类对话点：杆 + 牌
+function drawSignMarker(ctx, x, y, it, gameTime, pulse) {
+  const w = 28, h = 22;
+  // 杆
+  ctx.fillStyle = '#2a2520';
+  ctx.fillRect(x - 1.5, y - h, 3, h);
+  // 牌
+  ctx.fillStyle = '#3a3025';
+  ctx.fillRect(x - w / 2, y - h - 5, w, h);
+  ctx.fillStyle = '#2a2018';
+  ctx.fillRect(x - w / 2, y - h - 5, w, 3);
+  ctx.strokeStyle = '#1a140e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - w / 2, y - h - 5, w, h);
+  // 泛光内容
+  ctx.fillStyle = `rgba(220,180,90,${0.35 + pulse * 0.3})`;
+  ctx.fillRect(x - w / 2 + 2, y - h - 1, w - 4, h - 7);
+  ctx.fillStyle = `rgba(255,220,140,${0.7 + pulse * 0.3})`;
+  ctx.font = 'bold 9px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('※', x, y - h + 1);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
 }
 
 // ============================================================

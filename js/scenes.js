@@ -158,6 +158,7 @@ export const scenes = {
     height: 1400,
     bgColor: '#262019',
     atmosphere: { tint: 'rgba(255,180,110,0.08)', motes: { n: 40, color: '255,210,150', speed: 0.3, size: 1.8 }, fog: 0.6 },
+    mode: 'sidescroll',  // 2D 横版关卡（魂斗罗式）
 
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
@@ -243,6 +244,8 @@ export const scenes = {
       { id: 'subway_map', x: 500, y: 400, label: '地铁线路图', type: 'dialog', dialogKey: 'subway_map' },
       // 深处通往梗鬼巢穴的口（暂时封住）
       { id: 'subway_deep', x: 1300, y: 800, label: '黑暗深处', type: 'dialog', dialogKey: 'subway_deep' },
+      // 维度裂隙：通往3D深渊关卡的传送点
+      { id: 'portal_3d', x: 1280, y: 720, label: '维度裂隙', type: 'portal3d' },
     ],
 
     items: [
