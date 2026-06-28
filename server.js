@@ -21,6 +21,17 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 function looksReal(k) {
   return typeof k === 'string' && k.length > 12 && !/在此填入|填入/.test(k);
 }
+function expandEnv(obj) {
+  if (typeof obj === 'string')
+    return obj.replace(/\$\{(\w+)\}/g, (_, n) => (process.env[n] != null ? process.env[n] : ''));
+  if (Array.isArray(obj)) return obj.map(expandEnv);
+  if (obj && typeof obj === 'object') {
+    const out = {};
+    for (const k in obj) out[k] = expandEnv(obj[k]);
+    return out;
+  }
+  return obj;
+}
 function loadConfig() {
   let cfg = {};
   try {
@@ -29,6 +40,7 @@ function loadConfig() {
     try { cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'ai_keys.example.json'), 'utf8')); }
     catch { cfg = {}; }
   }
+  cfg = expandEnv(cfg);
   cfg.llm = cfg.llm || {};
   cfg.tts = cfg.tts || {};
   // 环境变量覆盖

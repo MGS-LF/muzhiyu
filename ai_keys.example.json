@@ -1,8 +1,8 @@
 {
   "llm": {
-    "baseUrl": "https://api.deepseek.com",
-    "apiKey": "在此填入 DeepSeek 的 API Key（sk-...）",
-    "model": "deepseek-chat"
+    "baseUrl": "https://api.cnb.cool/hu06.com/game/-/ai",
+    "apiKey": "在此填入 CNB_TOKEN 环境变量的值（${CNB_TOKEN}）",
+    "model": "hy3-preview"
   },
   "tts": {
     "baseUrl": "https://token-plan-cn.xiaomimimo.com/v1",
