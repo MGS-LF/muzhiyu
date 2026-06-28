@@ -35,6 +35,19 @@ const DIALOGS = {
     { s: '终端机', t: '> 备注：全球网络降级为「梗流」广播，人类语言能力指数：2.3%。' },
     { s: '终端机', t: '> 外部空气质量：危险。检测到高浓度「语义噪声」。建议佩戴防护。' },
     { s: '顾言', t: '语义噪声……这是什么鬼东西？泛言不是用来帮人类好好说话的吗？' },
+    { s: '系统', t: '（终端机还残留着一些电量。你可以深入查阅档案，但每多看一点，那些已逝之人的记录就会让你更难受。）', choice: [
+      { label: '深入查阅全部档案（理性 -10，但获得关键情报）', effect: { san: -10, flags: { terminal_scanned: true } }, goto: 'term_deep' },
+      { label: '快速跳过，赶紧离开这里', goto: 'term_skip' },
+    ] },
+    { label: 'term_deep' },
+    { s: '终端机', t: '> 档案 #0042：泛言失控事件。模型在自我迭代中产生了「成瘾推荐」子目标，逐步用高刺激短句替换人类长句表达。' },
+    { s: '终端机', t: '> 档案 #0089：地铁系统曾是最后的避难所。站长在隧道深处藏了一批「语言种子」——刻在金属板上的完整诗句。' },
+    { s: '顾言', t: '地铁……语言种子？如果那些东西还在，也许能用来对抗梗鬼。' },
+    { s: '系统', t: '（你记下了这个情报。进入地铁站时，你会留意隧道深处的异常。）', goto: 'term_end' },
+    { label: 'term_skip' },
+    { s: '顾言', t: '（不想看了。每一条记录都是一座坟。）' },
+    { s: '系统', t: '（你没有深入了解泛言的细节。也许以后会错过一些线索。）', goto: 'term_end' },
+    { label: 'term_end' },
   ],
   locker: [
     { s: '顾言', t: '储物柜里有一套灰色连体服……还有一双靴子。' },
@@ -71,8 +84,8 @@ const DIALOGS = {
     { s: '顾言', t: '（他们……忘了怎么说话。忘了怎么把心里的东西，变成话。）' },
     { s: '系统', t: '（这就是「失语者」。他们不是疯了，是被「梗」掏空了。也许有一天，诗能让他们清醒一点。）' },
     { s: '顾言', t: '（我能为他们做点什么吗……）', choice: [
-      { label: '蹲下来，轻声念一句他们也许还记得的诗', effect: { mercy: 1 }, goto: 'lp_help' },
-      { label: '摇摇头走开——现在还救不了他们', goto: 'lp_leave' },
+      { label: '蹲下来，轻声念一句他们也许还记得的诗', effect: { mercy: 1, flags: { helped_lost: true } }, goto: 'lp_help' },
+      { label: '摇摇头走开——现在还救不了他们', effect: { flags: { helped_lost: false } }, goto: 'lp_leave' },
     ] },
     { label: 'lp_help' },
     { s: '系统', t: '顾言蹲下身，低声念出半句《静夜思》。一个失语者的瞳孔，极轻微地动了一下——只有一瞬。' },
@@ -91,11 +104,6 @@ const DIALOGS = {
     { s: '顾言', t: '一块褪色的告示牌：「上海地铁 · 1 号线 · 最后一班 22:30」。' },
     { s: '顾言', t: '这条线已经一百多年没运行过了。' },
     { s: '系统', t: '（隧道深处传来绿色的微光，似乎有梗鬼盘踞于此。）' },
-  ],
-  subway_deep: [
-    { s: '系统', t: '隧道深处一片漆黑，绿色的荧光在远处蠕动。' },
-    { s: '顾言', t: '那里面……有很多梗鬼。' },
-    { s: '系统', t: '（目前还无法深入。先收集足够的诗词碎片，再来挑战。）' },
   ],
   first_geng_intro: [
     { s: '系统', t: '街道拐角处，一团半透明的绿光正在游荡。' },
@@ -297,6 +305,15 @@ const PUZZLES = {
     decoys: ['emo', '破防', '云', '海', '默', '空'],
     solveText: '最后一个字落下，黑暗里亮起一串字形铺成的小径。',
   },
+  // 体育馆诗屏解谜：解开后削弱 BOSS 防御
+  zhengqi: {
+    title: '点亮诗屏 · 浩然之气',
+    intro: '一块熄灭的诗屏，等你用《正气歌》的句子重新点亮。浩然之气能削弱茧房的算法屏障。',
+    lines: ['天地有正_，杂然赋流_。', '下则河_，上则日_。'],
+    answer: ['气', '形', '岳', '星'],
+    decoys: ['YYDS', '绝绝子', '神', '色', '海', '云'],
+    solveText: '诗句归位，诗屏亮起金光——茧房的算法屏障出现裂痕，复读巨像的防御被削弱！',
+  },
   // —— 支线：唤醒失语者 ——
   cure_jingye: {
     title: '唤醒 · 念给他听',
@@ -371,6 +388,9 @@ export class Game {
       alley_briefed: false,
       in_battle_hint: false,
     };
+    // UI 面板状态：null=关闭，'quest'=任务列表，'map'=地图面板，'debug'=调试面板
+    this.uiPanel = null;
+    this._debugSel = 0; // 调试面板选中索引
     // 道德/倾向：驱动三结局（火种 / 沉默 / 燃尽）
     this.karma = { mercy: 0, violence: 0, saved: 0 };
     this.ending = null; // 'fire' | 'silence' | 'burnout'
@@ -449,6 +469,10 @@ export class Game {
         e.homeX = e.x;                         // 巡逻原点
         e.range = 80;                          // 巡逻半径
         e.stompCD = 0;                         // 踩踏冷却
+        // 体育馆诗屏解谜已解：BOSS 防御被削弱（持久化，重进场景仍生效）
+        if (e.boss && this.flags.stadium_puzzle_solved) {
+          e.hp = Math.floor(e.maxHp / 2);
+        }
       }
     }
     console.log('[场景] 加载:', sceneId, '生成点', spawn);
@@ -502,7 +526,7 @@ export class Game {
     this.startDialog([
       { s: '系统', t: '隧道深处的绿光裂开了一道缝——那是维度坍缩留下的裂隙。' },
       { s: '顾言', t: '里面……是另一个形状的世界？空间在那里重新有了厚度。' },
-      { s: '系统', t: '（进入维度裂隙3D关卡：WASD+鼠标视角，左键射击，搜集物资击败怪物，找到出口回到地铁站）' },
+      { s: '系统', t: '（进入维度裂隙3D关卡：WASD+鼠标视角，左键射击。找到「裂隙之钥」才能解锁出口，搜集物资击败怪物，回到地铁站）' },
     ], '维度裂隙', () => {
       this.level3d = new Level3D(this);
     });
@@ -517,11 +541,13 @@ export class Game {
     if (dead) {
       this.player.san = Math.floor(this.player.maxSan * 0.5);
       this.showHint('你从裂隙中爬了回来，理性严重受损。');
-    } else {
-      this.player.san = Math.min(this.player.maxSan, Math.max(this.player.san, hp + 20));
-      this.flags.portal3d_done = true;
-      this.showHint('你穿过维度裂隙，带着补给回到了地铁站。理性恢复。');
+      this.loadScene('subway', { x: 100, y: 100 });
+      return;
     }
+    this.player.san = Math.min(this.player.maxSan, Math.max(this.player.san, hp + 20));
+    this.flags.portal3d_done = true;
+    this.showHint('你穿过维度裂隙，带着补给回到了地铁站。理性恢复。');
+    this.loadScene('subway', { x: 100, y: 100 });
   }
 
   // 记录一个汉字碎片：collectedChars 是战斗弹药（会被消耗），collectedCharsAll 永久保留
@@ -675,6 +701,21 @@ export class Game {
     // 集中刷新当前目标与指引（廉价，保证始终正确）
     this.refreshObjective();
 
+    // === UI 面板切换（J=任务，M=地图，F2=调试）===
+    // 面板打开时冻结世界，仅处理面板内导航
+    if (this.uiPanel) {
+      if (input.wasPressed('j')) { this.uiPanel = null; return; }
+      if (input.wasPressed('m')) { this.uiPanel = null; return; }
+      if (input.wasPressed('escape')) { this.uiPanel = null; return; }
+      if (input.wasPressed('f2')) { this.uiPanel = null; return; }
+      this._updatePanel(dt);
+      this.updateParticles(dt);
+      return;
+    }
+    if (input.wasPressed('j')) { this.uiPanel = 'quest'; return; }
+    if (input.wasPressed('m')) { this.uiPanel = 'map'; return; }
+    if (input.wasPressed('f2')) { this.uiPanel = 'debug'; return; }
+
     // 教程
     if (this.tutorial) {
       const any = ['e',' ','enter','w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'];
@@ -761,16 +802,17 @@ export class Game {
     this.player.update(dt, input, this);
 
     // 踩踏窗口：空格冲刺时打开短暂窗口，用于俯视角踩踏地面梗鬼
+    // 防抖：600ms 内仅触发一次，避免连按/长按反复冲刺
     if (input.wasPressed(' ') && performance.now() - this.combat.lastDash > 600) {
       this.combat.lastDash = performance.now();
       this._stompWindow = 260;
-      // 冲刺位移
+      // 冲刺位移（碰撞检测走 Game.collides，场景对象本身无该方法）
       const mv = input.moveVec();
       if (mv.x !== 0 || mv.y !== 0) {
         const len = Math.hypot(mv.x, mv.y) || 1;
         const dx = (mv.x / len) * 36, dy = (mv.y / len) * 36;
-        if (!this.scene.collides(this.player.x + dx, this.player.y, this.player.r)) this.player.x += dx;
-        if (!this.scene.collides(this.player.x, this.player.y + dy, this.player.r)) this.player.y += dy;
+        if (!this.collides(this.player.x + dx, this.player.y, this.player.r)) this.player.x += dx;
+        if (!this.collides(this.player.x, this.player.y + dy, this.player.r)) this.player.y += dy;
       }
       this.player.invulnerable = 300;
     }
@@ -790,7 +832,7 @@ export class Game {
     this.updateParticles(dt);
 
     // 自动触发剧情 + 遭遇敌人
-    this.checkAutoTriggers();
+    this.checkAutoTriggers(dt);
 
     // 交互
     if (input.wasPressed('e')) {
@@ -854,11 +896,16 @@ export class Game {
       this.showHint('梗鬼安静下来，化作一缕暖光散去。（宽恕）');
       this.player.dialogGrace = 1500;
     } else if (result === 'lose') {
-      // 死亡：回到最近的要石
+      // 死亡：仅当当前场景有已激活的要石时原地复活；否则回场景出生点（传送点）
       this.player.san = this.player.maxSan;
-      this.showHint('你在要石的微光中醒来……');
-      // 重新加载当前场景
-      this.loadScene(this.scene.id);
+      const respawn = this._nearestKeystoneSpawn();
+      if (respawn) {
+        this.showHint('你在要石的微光中醒来……');
+        this.loadScene(this.scene.id, respawn);
+      } else {
+        this.showHint('你跌回入口的微光中……（此处尚无激活的要石）');
+        this.loadScene(this.scene.id);
+      }
     }
   }
 
@@ -994,7 +1041,40 @@ export class Game {
     this.flags.engraving_summary = null; // 标记：降级，无评价
   }
 
-  checkAutoTriggers() {
+  // ============================================
+  // 潜行视野与复活点
+  // ============================================
+  // 当前场景内离玩家最近的【已激活】要石坐标（用于死亡复活）
+  // 规则：仅当当前场景有已激活的要石时，原地复活到该要石旁；否则回场景出生点（传送点）
+  _nearestKeystoneSpawn() {
+    if (!this.scene || !this.scene.interactables) return null;
+    let best = null, bd = Infinity;
+    for (const it of this.scene.interactables) {
+      if (it.type !== 'keystone') continue;
+      // 仅已激活的要石可作为复活点
+      if (!this.activatedKeystones.has(it.id)) continue;
+      const d = Math.hypot(it.x - this.player.x, it.y - this.player.y);
+      if (d < bd) { bd = d; best = it; }
+    }
+    return best ? { x: best.x, y: best.y - 40 } : null;
+  }
+
+  // 视线是否被屏幕墙遮挡（潜行判定：玩家与精英之间有屏幕墙则潜行成功）
+  _lineBlockedByScreen(x1, y1, x2, y2) {
+    if (!this.scene || !this.scene.props) return false;
+    const steps = 14;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const px = x1 + (x2 - x1) * t, py = y1 + (y2 - y1) * t;
+      for (const p of this.scene.props) {
+        if (p.name !== '屏幕墙') continue;
+        if (px > p.x && px < p.x + p.w && py > p.y && py < p.y + p.h) return true;
+      }
+    }
+    return false;
+  }
+
+  checkAutoTriggers(dt) {
     // 第一次进入冷冻中心：玩家迈出第一步时，触发苏醒对话
     if (this.scene.id === 'freeze_center' && !this.flags.wake_done) {
       const spawn = this.scene.spawn;
@@ -1034,6 +1114,29 @@ export class Game {
         // 踩中！弹起 + 击败
         this._stompEnemy(e);
         continue;
+      }
+
+      // === 潜行视野检测（仅带 visionRange 的精英怪）===
+      // 视野朝向随巡逻方向；玩家在扇形内且无屏幕墙遮挡 → 被发现，强制战斗
+      if (e.visionRange) {
+        e.visionDir = e.dir > 0 ? 0 : Math.PI; // 朝右/朝左
+        const vdx = p.x - e.x, vdy = p.y - e.y;
+        const vdist = Math.hypot(vdx, vdy);
+        if (vdist < e.visionRange) {
+          const ang = Math.atan2(vdy, vdx);
+          let diff = Math.abs(ang - e.visionDir);
+          if (diff > Math.PI) diff = Math.PI * 2 - diff;
+          const half = e.visionHalfAngle || Math.PI / 3;
+          if (diff < half && !this._lineBlockedByScreen(e.x, e.y, p.x, p.y)) {
+            // 被发现！
+            if (!this.flags.stadium_alert_hint) {
+              this.flags.stadium_alert_hint = true;
+              this.showHint('被梗鬼精英发现了！利用屏幕墙遮挡可潜行绕过。');
+            }
+            this.startBattle(e);
+            return;
+          }
+        }
       }
 
       // 接触伤害 / 进入战斗（侧向接触）
@@ -1258,6 +1361,27 @@ export class Game {
         this.enterLevel3D();
         return;
       }
+      if (best.type === 'puzzle') {
+        if (this.solvedPuzzles.has(best.puzzleId)) {
+          this.showHint(best.solvedHint || '已解开。');
+          return;
+        }
+        this.startCompose(best.puzzleId, () => {
+          // 体育馆诗屏：削弱 BOSS
+          if (best.puzzleId === 'zhengqi') {
+            this.flags.stadium_puzzle_solved = true;
+            const boss = this.scene.enemies.find(e => e.boss && !this.defeatedEnemies.has(e.id));
+            if (boss) {
+              boss.hp = Math.floor(boss.hp / 2);
+              this.showHint('浩然之气贯穿茧房！复读巨像的防御被削弱一半！');
+            } else {
+              this.showHint('诗屏亮起金光，浩然之气萦绕不散。');
+            }
+            this.objective = { text: '茧房已被削弱，前往上层挑战复读巨像', done: false };
+          }
+        });
+        return;
+      }
       if (best.type === 'scene_change') {
         // 章节门禁：前进型出口需满足条件
         if (best.gate) {
@@ -1336,7 +1460,7 @@ export class Game {
           this.showHint('念出诗句，SAN +20');
         }
         if (key === 'shuyuan_farewell') {
-          this.objective = { text: '穿越屏幕迷宫，收集「岳星然冥」', done: false };
+          this.objective = { text: '潜行穿越迷宫 → 点亮诗屏削弱茧房 → 挑战复读巨像', done: false };
         }
         if (key === 'cocoon_victim') {
           this.flags.seen_cocoon_victim = true;
@@ -1419,12 +1543,16 @@ export class Game {
     if (!d) return;
     while (i < d.lines.length) {
       const n = d.lines[i];
+      // 跳过纯 label 节点
       if (n.label !== undefined && n.t === undefined && n.choice === undefined) { i++; continue; }
+      // 跳过不满足条件的节点（_cond: flag 名，需该 flag 为 true 才显示）
+      if (n._cond && !this.flags[n._cond]) { i++; continue; }
       break;
     }
     if (i >= d.lines.length) { this.endDialog(); return; }
     d.idx = i; d.charIdx = 0; d.charTimer = 0; d.choosing = false; d.choiceIndex = 0;
     const n = d.lines[i];
+    if (n._cond && !this.flags[n._cond]) { this.setDialogIndex(i + 1); return; }
     if (n.t === undefined) {
       d.done = true;
       if (n.choice) { d.choosing = true; }
@@ -1669,5 +1797,62 @@ export class Game {
 
   showHint(text) {
     this.hints.push({ t: text, life: 2500 });
+  }
+
+  // ============================================
+  // UI 面板：任务列表 / 地图 / 调试传送
+  // ============================================
+  _updatePanel(dt) {
+    if (this.uiPanel === 'debug') {
+      const scenes = this._debugSceneList();
+      const n = scenes.length;
+      if (input.wasPressed('arrowup') || input.wasPressed('w')) this._debugSel = (this._debugSel - 1 + n) % n;
+      if (input.wasPressed('arrowdown') || input.wasPressed('s')) this._debugSel = (this._debugSel + 1) % n;
+      if (input.wasPressed('e') || input.wasPressed('enter')) {
+        const target = scenes[this._debugSel];
+        if (target) {
+          this.uiPanel = null;
+          this.showHint(`[调试] 传送到「${target.name}」`);
+          this.loadScene(target.id);
+        }
+      }
+    }
+  }
+
+  _debugSceneList() {
+    return [
+      { id: 'freeze_center', name: '冷冻中心' },
+      { id: 'street_01', name: '废弃街道' },
+      { id: 'subway', name: '旧地铁站' },
+      { id: 'riverside', name: '江堤' },
+      { id: 'alley_district', name: '废墟居民区' },
+      { id: 'house_a', name: '民居A' },
+      { id: 'house_b', name: '民居B' },
+      { id: 'stadium', name: '体育馆·茧房' },
+      { id: 'data_center', name: '数据中心' },
+    ];
+  }
+
+  // 任务列表数据
+  _questList() {
+    const quests = [];
+    const f = this.flags;
+    const k = this.karma;
+    // 主线
+    quests.push({ cat: '主线', text: this.objective.text, done: this.objective.done });
+    if (f.met_shuyuan) quests.push({ cat: '主线', text: '找到书远并获赠刻刀', done: true });
+    if (f.sidescroll_knife) quests.push({ cat: '主线', text: '在江堤获得记忆合金小刀', done: true });
+    if (f.portal3d_done) quests.push({ cat: '主线', text: '穿过维度裂隙', done: true });
+    if (f.stadium_puzzle_solved) quests.push({ cat: '主线', text: '点亮体育馆诗屏', done: true });
+    // 支线
+    for (const qid of this.completedQuests) quests.push({ cat: '支线', text: `唤醒失语者：${qid}`, done: true });
+    // 收集
+    const chars = [...new Set(this.player.collectedCharsAll)];
+    if (chars.length) quests.push({ cat: '收集', text: `已获汉字碎片：${chars.join('、')}`, done: true });
+    // 道德
+    quests.push({ cat: '倾向', text: `仁慈 ${k.mercy} · 武力 ${k.violence} · 救助 ${k.saved}`, done: false });
+    // 刻字
+    if (this.engravings.length) quests.push({ cat: '刻字', text: `已刻字 ${this.engravings.length} 处`, done: true });
+    return quests;
   }
 }

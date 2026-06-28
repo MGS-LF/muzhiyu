@@ -60,7 +60,7 @@ export const scenes = {
       { id: 'exit_door', x: 380, y: 560, label: '推开大门', type: 'exit' },
     ],
 
-    items: [],
+    items: [    ],
 
     spawn: { x: 360, y: 540 },
   },
@@ -242,10 +242,8 @@ export const scenes = {
       // 月台上的旧告示牌
       { id: 'subway_sign', x: 200, y: 300, label: '告示牌', type: 'dialog', dialogKey: 'subway_sign' },
       { id: 'subway_map', x: 500, y: 400, label: '地铁线路图', type: 'dialog', dialogKey: 'subway_map' },
-      // 深处通往梗鬼巢穴的口（暂时封住）
-      { id: 'subway_deep', x: 1300, y: 800, label: '黑暗深处', type: 'dialog', dialogKey: 'subway_deep' },
-      // 维度裂隙：通往3D深渊关卡的传送点
-      { id: 'portal_3d', x: 1280, y: 720, label: '维度裂隙', type: 'portal3d' },
+      // 维度裂隙：通往3D深渊关卡的传送点（原"黑暗深处"位置）
+      { id: 'portal_3d', x: 1300, y: 800, label: '维度裂隙', type: 'portal3d' },
     ],
 
     items: [
@@ -428,7 +426,9 @@ export const scenes = {
   },
 
   // ==========================================
-  // 体育馆茧房（第三章入口）
+  // 体育馆茧房（第三章）
+  // 布局：底部入口区（出生点/书远/返回点）→ 中部潜行迷宫（要石/精英/诗屏）→ 上部 BOSS 区（茧房核心/数据中心入口）
+  // 三阶段目标：①潜行穿越屏幕迷宫 ②点亮诗屏削弱茧房 ③挑战复读巨像
   // ==========================================
   stadium: {
     id: 'stadium',
@@ -440,65 +440,60 @@ export const scenes = {
 
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
-      { x: 0, y: 1994, w: 900, h: 6 },
-      { x: 1100, y: 1994, w: 900, h: 6 },
+      { x: 0, y: 1994, w: 2000, h: 6 },
       { x: 0, y: 0, w: 6, h: 2000 },
       { x: 1994, y: 0, w: 6, h: 2000 },
-      // 返回居民区缺口
-      { x: 350, y: 0, w: 6, h: 200 },
-      { x: 540, y: 0, w: 6, h: 200 },
-      // 屏幕墙迷宫
-      { x: 700, y: 400, w: 200, h: 6, name: '屏幕墙' },
-      { x: 1000, y: 400, w: 200, h: 6, name: '屏幕墙' },
-      { x: 700, y: 600, w: 6, h: 200, name: '屏幕墙' },
-      { x: 1200, y: 600, w: 6, h: 200, name: '屏幕墙' },
-      { x: 700, y: 800, w: 500, h: 6, name: '屏幕墙' },
-      { x: 1400, y: 400, w: 200, h: 6, name: '屏幕墙' },
-      { x: 1400, y: 600, w: 6, h: 400, name: '屏幕墙' },
     ],
 
     props: [
-      { x: 700, y: 390, w: 200, h: 10, name: '屏幕墙' },
-      { x: 1000, y: 390, w: 200, h: 10, name: '屏幕墙' },
-      { x: 690, y: 600, w: 10, h: 200, name: '屏幕墙' },
-      { x: 1200, y: 600, w: 10, h: 200, name: '屏幕墙' },
-      { x: 700, y: 790, w: 500, h: 10, name: '屏幕墙' },
-      { x: 1400, y: 390, w: 200, h: 10, name: '屏幕墙' },
-      { x: 1390, y: 600, w: 10, h: 400, name: '屏幕墙' },
+      // 潜行迷宫屏幕墙（可遮挡精英怪视野，参与碰撞）
+      { x: 250, y: 780, w: 380, h: 10, name: '屏幕墙' },
+      { x: 750, y: 780, w: 10, h: 260, name: '屏幕墙' },
+      { x: 1100, y: 780, w: 520, h: 10, name: '屏幕墙' },
+      { x: 1100, y: 790, w: 10, h: 260, name: '屏幕墙' },
+      { x: 1640, y: 790, w: 10, h: 260, name: '屏幕墙' },
+      { x: 300, y: 1180, w: 520, h: 10, name: '屏幕墙' },
+      { x: 820, y: 1000, w: 10, h: 300, name: '屏幕墙' },
+      { x: 1180, y: 1180, w: 520, h: 10, name: '屏幕墙' },
+      { x: 1180, y: 1190, w: 10, h: 220, name: '屏幕墙' },
+      { x: 400, y: 1420, w: 460, h: 10, name: '屏幕墙' },
+      { x: 1140, y: 1420, w: 520, h: 10, name: '屏幕墙' },
     ],
 
     enemies: [
-      { id: 'stadium_geng_1', typeId: 'geng_boss', x: 900, y: 700, hp: 140, maxHp: 140, name: '算法核心·复读巨像', boss: true,
+      { id: 'stadium_geng_1', typeId: 'geng_boss', x: 1000, y: 400, hp: 140, maxHp: 140, name: '算法核心·复读巨像', boss: true,
         acts: [
           '你直视那张由千万条弹幕拼成的脸。它在飞快地播放"你可能也喜欢"。',
           '你念出一整句诗，不让它打断。巨像的播放速度，第一次慢了下来。',
           '你说："你喂给他们的不是他们想要的，是最容易上瘾的。" 它的画面闪烁起来。',
           '它的声音里，第一次混进了一丝不像推荐语的、疲惫的东西。',
         ] },
-      { id: 'stadium_geng_2', typeId: 'geng_elite', x: 1600, y: 1000, hp: 100, maxHp: 100, name: '梗鬼精英' },
+      // 梗鬼精英：带视野巡逻，可利用屏幕墙遮挡潜行绕过
+      { id: 'stadium_geng_2', typeId: 'geng_elite', x: 1350, y: 1100, hp: 100, maxHp: 100, name: '梗鬼精英',
+        visionRange: 260, visionHalfAngle: Math.PI / 3, visionDir: 0 },
     ],
 
     interactables: [
-      { id: 'back_alley', x: 440, y: 40, label: '返回居民区', type: 'scene_change', target: 'alley_district', spawn: { x: 980, y: 1620 } },
-      // 书远送别
-      { id: 'shuyuan_farewell', x: 300, y: 200, label: '书远', type: 'dialog', dialogKey: 'shuyuan_farewell' },
-      // 茧房内壁屏幕
-      { id: 'cocoon_screen', x: 1600, y: 1400, label: '流动的屏幕内壁', type: 'dialog', dialogKey: 'cocoon_screen' },
-      // 要石
-      { id: 'keystone_stadium', x: 1800, y: 1800, label: '要石', type: 'keystone', text: '浩然' },
-      // 前往数据中心
-      { id: 'to_datacenter', x: 1000, y: 1950, label: '前往数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 170 },
+      // —— 底部入口区（紧邻出生点）——
+      { id: 'back_alley', x: 700, y: 1880, label: '返回居民区', type: 'scene_change', target: 'alley_district', spawn: { x: 980, y: 1620 } },
+      { id: 'shuyuan_farewell', x: 880, y: 1830, label: '书远', type: 'dialog', dialogKey: 'shuyuan_farewell' },
+      // —— 中部潜行迷宫区 ——
+      { id: 'keystone_stadium', x: 1000, y: 1100, label: '要石', type: 'keystone', text: '浩然' },
+      { id: 'light_screen', x: 560, y: 1080, label: '熄灭的诗屏', type: 'puzzle', puzzleId: 'zhengqi', solvedHint: '诗屏已亮起金光，浩然之气萦绕不散。' },
+      // —— 上部 BOSS 茧房区 ——
+      { id: 'cocoon_screen', x: 1500, y: 350, label: '流动的屏幕内壁', type: 'dialog', dialogKey: 'cocoon_screen' },
+      { id: 'to_datacenter', x: 1100, y: 200, label: '前往数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 170 },
         gate: { chars: ['岳', '星', '然', '冥'], puzzle: 'voidverse', msg: '通往深渊的门一片漆黑，吞掉一切声音。\n先在茧房迷宫里集齐「岳」「星」「然」「冥」——只有完整的诗，能在虚无里点出一条路。' } },
     ],
 
     items: [
-      { id: 'char_yue', x: 300, y: 500, type: 'char_fragment', char: '岳' },
-      { id: 'char_xing2', x: 1600, y: 500, type: 'char_fragment', char: '星' },
-      { id: 'char_ran', x: 500, y: 1400, type: 'char_fragment', char: '然' },
-      { id: 'char_ming', x: 1500, y: 1400, type: 'char_fragment', char: '冥' },
+      { id: 'char_yue', x: 350, y: 1000, type: 'char_fragment', char: '岳' },
+      { id: 'char_xing2', x: 1650, y: 500, type: 'char_fragment', char: '星' },
+      { id: 'char_ran', x: 500, y: 1750, type: 'char_fragment', char: '然' },
+      { id: 'char_ming', x: 1500, y: 1350, type: 'char_fragment', char: '冥' },
     ],
 
-    spawn: { x: 200, y: 1800 },
+    spawn: { x: 1000, y: 1850 },
   },
 
   // ==========================================
@@ -535,7 +530,7 @@ export const scenes = {
       { id: 'keystone_final', x: 700, y: 1100, label: '要石', type: 'keystone', text: '记得' },
     ],
 
-    items: [],
+    items: [    ],
 
     spawn: { x: 700, y: 100 },
   },

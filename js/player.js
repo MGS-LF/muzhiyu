@@ -6,8 +6,8 @@ export class Player {
     this.x = x;
     this.y = y;
     this.r = 7;
-    this.speed = 2.2;
-    this.runSpeed = 3.6;
+    this.speed = 1.6;
+    this.runSpeed = 2.6;
     this.isMoving = false;
     this.direction = 'down';
     this.walkCycle = 0;
@@ -38,9 +38,11 @@ export class Player {
       else this.direction = ny > 0 ? 'down' : 'up';
       this.walkCycle += dt * 0.014 * (isRun ? 1.6 : 1);
 
-      const newX = this.x + nx * sp;
+      // 帧率无关位移：以 60fps 为基准，确保不同刷新率下手感一致、平滑可控
+      const step = sp * (dt / 16.67);
+      const newX = this.x + nx * step;
       if (!scene.collides(newX, this.y, this.r)) this.x = newX;
-      const newY = this.y + ny * sp;
+      const newY = this.y + ny * step;
       if (!scene.collides(this.x, newY, this.r)) this.y = newY;
     }
   }

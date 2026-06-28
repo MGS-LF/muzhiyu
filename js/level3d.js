@@ -13,7 +13,7 @@ const SHOOT_CD = 220;
 const BULLET_DMG = 50;
 const GUN_RANGE = 60;
 
-// 地图网格：# 墙  . 空  E 入口  X 出口  G 枪  M 怪  A 弹药  H 血包  | 门洞(可通行)  P 支柱  L 灯
+// 地图网格：# 墙  . 空  E 入口  X 出口  G 枪  M 怪  A 弹药  H 血包  K 关键道具(裂隙之钥)  | 门洞(可通行)  P 支柱  L 灯
 const MAP = [
   '#########################',
   '#E.....P...#............#',
@@ -21,7 +21,7 @@ const MAP = [
   '#..........#............#',
   '#....######.####........#',
   '#....#...P....#..A....P.#',
-  '#....#..M.....#.L.......#',
+  '#....#..M.....#.L.....K.#',
   '#....|........|..M......#',
   '#....#.L......#.........#',
   '#....######.####........#',
@@ -68,6 +68,7 @@ export class Level3D {
     this.pos = new THREE.Vector3();
     this.yaw = 0; this.pitch = 0;
     this.gun = { have: false, ammo: 0, maxAmmo: 30 };
+    this.hasKey = false; // 裂隙之钥（推进关卡的关键道具）
     this.shootCD = 0;
     this.muzzleFlash = 0;
     this.hp = Math.max(40, game.player.san); // 用 SAN 作为 HP
@@ -233,6 +234,7 @@ export class Level3D {
         if (ch === 'G') this._spawnGun(w);
         else if (ch === 'A') this._spawnPickup(w, 'ammo');
         else if (ch === 'H') this._spawnPickup(w, 'health');
+        else if (ch === 'K') this._spawnKeyItem(w);
         else if (ch === 'M') this._spawnEnemy(w);
       }
     }
@@ -347,6 +349,26 @@ export class Level3D {
     this.scene.add(grp); this.pickups.push(grp);
   }
 
+  // 裂隙之钥：推进关卡的关键道具，必须拾取后才能通过出口
+  _spawnKeyItem(w) {
+    const grp = new THREE.Group();
+    // 八面体核心（金色发光）
+    const core = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.28),
+      new THREE.MeshStandardMaterial({ color: 0xffdd66, emissive: 0xffaa22, emissiveIntensity: 0.8, metalness: 0.6, roughness: 0.2 })
+    );
+    grp.add(core);
+    // 外环
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.04, 8, 24), new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.7 }));
+    ring.rotation.x = Math.PI / 2; grp.add(ring);
+    // 地面光圈
+    const halo = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.65, 24), new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0.4, side: THREE.DoubleSide }));
+    halo.rotation.x = -Math.PI / 2; halo.position.y = -0.45; grp.add(halo);
+    const pl = new THREE.PointLight(0xffcc44, 1.5, 4); pl.position.y = 0.3; grp.add(pl);
+    grp.position.set(w.x, 0.7, w.z); grp.userData = { type: 'key', taken: false, baseY: 0.7 };
+    this.scene.add(grp); this.pickups.push(grp);
+  }
+
   _spawnEnemy(w) {
     const grp = new THREE.Group();
     // 主体（多面体，更精细 subdivision 2）
@@ -386,6 +408,7 @@ export class Level3D {
       <div style="position:absolute;left:20px;bottom:20px;color:#e8d8b8;font-size:14px;">
         <div id="l3d_hp"></div>
         <div id="l3d_ammo" style="margin-top:6px;"></div>
+        <div id="l3d_key" style="margin-top:6px;color:#ffcc44;"></div>
       </div>
       <div id="l3d_hint" style="position:absolute;left:50%;bottom:60px;transform:translateX(-50%);color:#88ccff;font-size:13px;text-shadow:0 0 4px #000;"></div>
       <div id="l3d_pause" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);color:#ddd;font-size:20px;cursor:pointer;">点击恢复</div>
@@ -398,6 +421,9 @@ export class Level3D {
     hpEl.textContent = `理性 ${Math.ceil(this.hp)}/${this.maxHp}`;
     hpEl.style.color = this.hp > this.maxHp * 0.4 ? '#7ad07a' : '#d04040';
     this.hud.querySelector('#l3d_ammo').textContent = this.gun.have ? `弹药 ${this.gun.ammo}` : '无武器';
+    const keyEl = this.hud.querySelector('#l3d_key');
+    keyEl.textContent = this.hasKey ? '🔑 裂隙之钥 已获得' : '🔒 出口被维度锁封住';
+    keyEl.style.color = this.hasKey ? '#ffdd66' : '#888';
     this.hud.querySelector('#l3d_hint').textContent = this._hintText;
     this.hud.querySelector('#l3d_pause').style.display = this._paused ? 'flex' : 'none';
   }
@@ -495,16 +521,22 @@ export class Level3D {
           this.gun.ammo = Math.min(this.gun.maxAmmo, this.gun.ammo + 10); this._hintText = '弹药 +10';
         } else if (p.userData.type === 'health') {
           this.hp = Math.min(this.maxHp, this.hp + 25); this._hintText = '理性 +25';
+        } else if (p.userData.type === 'key') {
+          this.hasKey = true; this._hintText = '获得「裂隙之钥」！现在可以穿过出口了。';
         }
       }
     }
 
-    // === 出口检测 ===
+    // === 出口检测（需持有裂隙之钥）===
     const dex = Math.hypot(this.exitPos.x - this.pos.x, this.exitPos.z - this.pos.z);
     if (dex < 1.2 && !this.exitReached) {
-      this.exitReached = true;
-      this._hintText = '穿过维度裂隙，回到地铁站……';
-      this.done = true;
+      if (!this.hasKey) {
+        if (!this._keyWarned) { this._keyWarned = true; this._hintText = '出口被维度锁封住。需要找到「裂隙之钥」才能通过。'; }
+      } else {
+        this.exitReached = true;
+        this._hintText = '裂隙之钥共鸣！穿过维度裂隙，回到地铁站……';
+        this.done = true;
+      }
     }
     if (this.exitMesh) this.exitMesh.rotation.y += dt * 0.001;
     if (this.exitRing) this.exitRing.rotation.z += dt * 0.002;

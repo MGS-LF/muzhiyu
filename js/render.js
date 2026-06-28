@@ -73,6 +73,7 @@ export function render(game, gameTime) {
     if (dialogState) drawDialog(ctx, dialogState, gameTime);
     if (hints.length) drawHints(ctx, hints);
     if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
+    if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
     return;
   }
 
@@ -157,6 +158,9 @@ export function render(game, gameTime) {
   if (game.flags && game.flags.game_complete && !dialogState && !game.engraveState) {
     drawEnding(ctx, game.ending, gameTime, game.endingEpilogue, game);
   }
+
+  // UI 面板（任务/地图/调试）
+  if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
 }
 
 // ============================================================
@@ -393,6 +397,40 @@ function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     ctx.beginPath();
     ctx.ellipse(s.x, s.y + 4, 16, 4, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // === 潜行怪视野扇形（精英怪）===
+    if (e.visionRange) {
+      const vdir = e.visionDir !== undefined ? e.visionDir : (e.dir > 0 ? 0 : Math.PI);
+      const half = e.visionHalfAngle || Math.PI / 3;
+      // 用 W2S 缩放比换算视野半径到屏幕像素
+      const edge = W2S(e.x + e.visionRange, e.y);
+      const rad = Math.max(20, Math.abs(edge.x - s.x));
+      // 是否发现玩家（在视野内且无遮挡）
+      let spotted = false;
+      if (game) {
+        const pdx = game.player.x - e.x, pdy = game.player.y - e.y;
+        const pd = Math.hypot(pdx, pdy);
+        if (pd < e.visionRange) {
+          const pang = Math.atan2(pdy, pdx);
+          let diff = Math.abs(pang - vdir);
+          if (diff > Math.PI) diff = Math.PI * 2 - diff;
+          if (diff < half && !game._lineBlockedByScreen(e.x, e.y, game.player.x, game.player.y)) spotted = true;
+        }
+      }
+      const pulse = 0.5 + Math.sin(gameTime * 0.005) * 0.15;
+      ctx.fillStyle = spotted
+        ? `rgba(255,70,70,${0.22 + pulse * 0.1})`
+        : `rgba(255,200,70,${0.08 + pulse * 0.04})`;
+      ctx.beginPath();
+      ctx.moveTo(s.x, sy - 10);
+      ctx.arc(s.x, sy - 10, rad, vdir - half, vdir + half);
+      ctx.closePath();
+      ctx.fill();
+      // 视野边缘线
+      ctx.strokeStyle = spotted ? 'rgba(255,90,90,0.5)' : 'rgba(255,200,70,0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
 
     // 外发光
     ctx.shadowColor = 'rgba(80,220,100,0.8)';
@@ -2730,6 +2768,7 @@ function drawDataCenter(ctx, W2S, scene, gameTime, game) {
   }
 }
 
+// ============================================================
 function drawShuyuan(ctx, W2S, gameTime) {
   const s = W2S(400, 900);
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
@@ -2924,8 +2963,8 @@ const INTERACTABLES_WITH_VISUAL = new Set([
   'lost_people', 'subway_entrance', 'street_carwreck',
   // riverside：书远由 drawShuyuan 绘制
   'shuyuan',
-  // subway：出口与黑暗深处有专门的光柱/微光
-  'subway_exit', 'subway_deep',
+  // subway：出口有专门的光柱
+  'subway_exit',
   // house_a：书架已绘制
   'house_a_book',
   // data_center：听雨蓝色光影已绘制
@@ -3422,10 +3461,13 @@ function drawHUD(ctx, player, game, objective) {
     ctx.fill();
     ctx.restore();
   }
-}
 
-// ============================================================
-// 对话
+  // 面板快捷键提示（右下角）
+  ctx.fillStyle = 'rgba(180,170,150,0.4)';
+  ctx.font = '9px monospace'; ctx.textAlign = 'right';
+  ctx.fillText('J 任务 · M 地图 · F2 调试', W - 12, H - 8);
+  ctx.textAlign = 'left';
+}
 // ============================================================
 function drawDialog(ctx, d, gameTime) {
   const curT = d.lines[d.idx].t;
@@ -3659,4 +3701,162 @@ function drawTutorial(ctx, gameTime, tutorial) {
   ctx.fillText('▼ 按 E 或 空格 开始', px + pw/2, py + ph - 18);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+}
+
+// ============================================================
+// UI 面板：任务列表 / 地图 / 调试传送
+// ============================================================
+function drawUIPanel(ctx, game, gameTime) {
+  // 半透明遮罩
+  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  ctx.fillRect(0, 0, W, H);
+
+  const panelW = Math.min(560, W - 40);
+  const panelH = Math.min(440, H - 40);
+  const px = (W - panelW) / 2;
+  const py = (H - panelH) / 2;
+
+  // 面板背景
+  ctx.fillStyle = 'rgba(20,18,28,0.95)';
+  ctx.fillRect(px, py, panelW, panelH);
+  ctx.strokeStyle = 'rgba(200,180,140,0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px, py, panelW, panelH);
+
+  if (game.uiPanel === 'quest') drawQuestPanel(ctx, game, px, py, panelW, panelH, gameTime);
+  else if (game.uiPanel === 'map') drawMapPanel(ctx, game, px, py, panelW, panelH, gameTime);
+  else if (game.uiPanel === 'debug') drawDebugPanel(ctx, game, px, py, panelW, panelH, gameTime);
+}
+
+function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
+  const quests = game._questList();
+  // 标题
+  ctx.fillStyle = 'rgba(255,220,140,0.9)';
+  ctx.font = 'bold 18px serif'; ctx.textAlign = 'center';
+  ctx.fillText('任 务 列 表', px + pw / 2, py + 30);
+  ctx.textAlign = 'left';
+
+  // 分类颜色
+  const catColors = { '主线': '#ffd870', '支线': '#80d8ff', '收集': '#a0ffa0', '倾向': '#ffa0d0', '刻字': '#d0a0ff', '规则': '#ff80ff' };
+  let yy = py + 60;
+  let curCat = '';
+  for (const q of quests) {
+    if (q.cat !== curCat) {
+      curCat = q.cat;
+      ctx.fillStyle = catColors[q.cat] || '#ccc';
+      ctx.font = 'bold 12px serif';
+      ctx.fillText('【' + q.cat + '】', px + 30, yy);
+      yy += 22;
+    }
+    ctx.fillStyle = q.done ? 'rgba(120,200,120,0.7)' : 'rgba(220,210,180,0.85)';
+    ctx.font = '13px serif';
+    const mark = q.done ? '✓ ' : '○ ';
+    ctx.fillText(mark + q.text, px + 50, yy);
+    yy += 20;
+    if (yy > py + ph - 40) break;
+  }
+  // 底部提示
+  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.font = '11px serif'; ctx.textAlign = 'center';
+  ctx.fillText('按 J / Esc 关闭', px + pw / 2, py + ph - 16);
+  ctx.textAlign = 'left';
+}
+
+function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
+  // 标题
+  ctx.fillStyle = 'rgba(255,220,140,0.9)';
+  ctx.font = 'bold 18px serif'; ctx.textAlign = 'center';
+  ctx.fillText('世 界 地 图', px + pw / 2, py + 30);
+  ctx.textAlign = 'left';
+
+  // 场景节点布局（简化关系图）
+  const nodes = [
+    { id: 'freeze_center', name: '冷冻中心', x: 0.15, y: 0.75 },
+    { id: 'street_01', name: '废弃街道', x: 0.35, y: 0.55 },
+    { id: 'subway', name: '地铁站', x: 0.35, y: 0.85 },
+    { id: 'riverside', name: '江堤', x: 0.35, y: 0.3 },
+    { id: 'alley_district', name: '居民区', x: 0.55, y: 0.4 },
+    { id: 'house_a', name: '民居A', x: 0.55, y: 0.25 },
+    { id: 'house_b', name: '民居B', x: 0.55, y: 0.55 },
+    { id: 'stadium', name: '体育馆', x: 0.75, y: 0.5 },
+    { id: 'data_center', name: '数据中心', x: 0.9, y: 0.5 },
+  ];
+  const links = [['freeze_center','street_01'],['street_01','subway'],['street_01','riverside'],['riverside','alley_district'],['alley_district','house_a'],['alley_district','house_b'],['alley_district','stadium'],['stadium','data_center']];
+
+  const toX = (n) => px + 40 + n.x * (pw - 80);
+  const toY = (n) => py + 60 + n.y * (ph - 120);
+
+  // 连线
+  ctx.strokeStyle = 'rgba(150,140,120,0.3)'; ctx.lineWidth = 1.5;
+  for (const [a, b] of links) {
+    const na = nodes.find(n => n.id === a), nb = nodes.find(n => n.id === b);
+    ctx.beginPath(); ctx.moveTo(toX(na), toY(na)); ctx.lineTo(toX(nb), toY(nb)); ctx.stroke();
+  }
+
+  // 节点
+  const curId = game.scene ? game.scene.id : '';
+  const visited = game.visitedScenes || new Set();
+  for (const n of nodes) {
+    const nx = toX(n), ny = toY(n);
+    const isCur = n.id === curId;
+    const isVisited = visited.has(n.id);
+    // 节点圆
+    ctx.beginPath();
+    ctx.arc(nx, ny, isCur ? 10 : 7, 0, Math.PI * 2);
+    if (isCur) {
+      const pulse = 0.6 + Math.sin(gameTime * 0.005) * 0.3;
+      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
+    } else if (isVisited) {
+      ctx.fillStyle = 'rgba(120,200,140,0.6)';
+    } else {
+      ctx.fillStyle = 'rgba(80,80,90,0.5)';
+    }
+    ctx.fill();
+    ctx.strokeStyle = isCur ? '#ffdd66' : 'rgba(150,140,120,0.4)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+    // 标签
+    ctx.fillStyle = isCur ? '#ffdd66' : (isVisited ? 'rgba(180,200,180,0.8)' : 'rgba(120,115,105,0.5)');
+    ctx.font = isCur ? 'bold 11px serif' : '10px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.name, nx, ny - 14);
+    ctx.textAlign = 'left';
+  }
+
+  // 底部提示
+  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.font = '11px serif'; ctx.textAlign = 'center';
+  ctx.fillText('当前: ' + (game.scene ? game.scene.name : '?') + '   ·   按 M / Esc 关闭', px + pw / 2, py + ph - 16);
+  ctx.textAlign = 'left';
+}
+
+function drawDebugPanel(ctx, game, px, py, pw, ph, gameTime) {
+  // 标题
+  ctx.fillStyle = 'rgba(255,100,100,0.9)';
+  ctx.font = 'bold 18px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('调 试 传 送  [F2]', px + pw / 2, py + 30);
+  ctx.textAlign = 'left';
+
+  const scenes = game._debugSceneList();
+  let yy = py + 60;
+  for (let i = 0; i < scenes.length; i++) {
+    const s = scenes[i];
+    const sel = i === game._debugSel;
+    // 选中高亮
+    if (sel) {
+      ctx.fillStyle = 'rgba(255,220,100,0.15)';
+      ctx.fillRect(px + 20, yy - 14, pw - 40, 24);
+    }
+    ctx.fillStyle = sel ? '#ffdd66' : 'rgba(200,200,200,0.7)';
+    ctx.font = sel ? 'bold 14px monospace' : '13px monospace';
+    const mark = sel ? '▶ ' : '  ';
+    const cur = (game.scene && game.scene.id === s.id) ? ' [当前]' : '';
+    ctx.fillText(mark + s.name + cur, px + 40, yy);
+    yy += 28;
+  }
+
+  // 底部提示
+  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.font = '11px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('↑↓ 选择   E 传送   F2/Esc 关闭', px + pw / 2, py + ph - 16);
+  ctx.textAlign = 'left';
 }
