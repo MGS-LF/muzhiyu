@@ -1,0 +1,9 @@
+# CNB.run 部署配置
+# 自动检测 Node.js 项目，运行 server.js
+main:
+  - name: game-server
+    description: 刻痕游戏服务器
+    runtime: node
+    start: node server.js
+    port: 8080
+    cwd: game
