@@ -136,6 +136,8 @@ export const scenes = {
       { id: 'geng_1', typeId: 'geng_weak', x: 1200, y: 900, hp: 30, maxHp: 30 },
       { id: 'geng_2', typeId: 'geng_weak', x: 700, y: 1200, hp: 30, maxHp: 30 },
       { id: 'geng_3', typeId: 'geng_weak', x: 1900, y: 800, hp: 30, maxHp: 30 },
+      { id: 'geng_4', typeId: 'geng_weak', x: 1500, y: 1500, hp: 30, maxHp: 30 },
+      { id: 'geng_5', typeId: 'geng_medium', x: 2200, y: 1400, hp: 60, maxHp: 60, name: '烂梗鬼' },
     ],
 
     interactables: [
@@ -243,13 +245,17 @@ export const scenes = {
     props: [
       { x: 450, y: 700, w: 200, h: 80, name: '列车车厢', collidable: true },
       { x: 850, y: 750, w: 180, h: 70, name: '列车车厢', collidable: true },
-      // 月台边缘
-      { x: 0, y: 580, w: 1400, h: 20, name: '月台', collidable: true },
+      // 月台边缘：分段留出缺口，与 walls 缺口对应，玩家可从缺口下到轨道区
+      { x: 0, y: 580, w: 400, h: 20, name: '月台', collidable: true },
+      { x: 600, y: 580, w: 400, h: 20, name: '月台', collidable: true },
+      { x: 1000, y: 580, w: 200, h: 20, name: '月台', collidable: true },
+      { x: 1250, y: 580, w: 150, h: 20, name: '月台', collidable: true },
     ],
 
     enemies: [
       { id: 'sub_geng_1', typeId: 'geng_weak', x: 800, y: 300, hp: 30, maxHp: 30 },
       { id: 'sub_geng_2', typeId: 'geng_weak', x: 1100, y: 450, hp: 30, maxHp: 30 },
+      { id: 'sub_geng_3', typeId: 'geng_medium', x: 1000, y: 850, hp: 60, maxHp: 60, name: '烂梗鬼' },
     ],
 
     interactables: [
@@ -265,6 +271,8 @@ export const scenes = {
     items: [
       { id: 'sub_page_1', x: 500, y: 200, type: 'page', name: '旧书页' },
       { id: 'sub_char_1', x: 900, y: 850, type: 'char_fragment', char: '洲' },
+      { id: 'seed_subway', x: 1250, y: 750, type: 'language_seed', name: '语言种子·隧道深处' },
+      { id: 'broken_train_lore', x: 540, y: 730, type: 'page', name: '列车遗言' },
     ],
 
     spawn: { x: 100, y: 100 },
@@ -332,6 +340,8 @@ export const scenes = {
       { id: 'alley_geng_1', typeId: 'geng_medium', x: 1600, y: 1000, hp: 60, maxHp: 60, name: '烂梗鬼' },
       { id: 'alley_geng_2', typeId: 'geng_medium', x: 800, y: 1300, hp: 60, maxHp: 60, name: '烂梗鬼' },
       { id: 'alley_geng_3', typeId: 'geng_medium', x: 1900, y: 1400, hp: 60, maxHp: 60, name: '烂梗鬼' },
+      { id: 'alley_geng_4', typeId: 'geng_weak', x: 600, y: 600, hp: 30, maxHp: 30, name: '游荡梗鬼' },
+      { id: 'alley_geng_5', typeId: 'geng_weak', x: 1700, y: 700, hp: 30, maxHp: 30, name: '游荡梗鬼' },
     ],
 
     interactables: [
@@ -362,6 +372,7 @@ export const scenes = {
       { id: 'char_xing', x: 1700, y: 600, type: 'char_fragment', char: '形' },
       { id: 'page_alley_1', x: 350, y: 700, type: 'page', name: '旧书页' },
       { id: 'page_alley_2', x: 2100, y: 1000, type: 'page', name: '旧书页' },
+      { id: 'seed_alley', x: 1800, y: 1300, type: 'language_seed', name: '语言种子·巷尾残碑' },
     ],
 
     spawn: { x: 440, y: 300 },
@@ -498,8 +509,8 @@ export const scenes = {
       { id: 'light_screen', x: 560, y: 1080, label: '熄灭的诗屏', type: 'puzzle', puzzleId: 'zhengqi', solvedHint: '诗屏已亮起金光，浩然之气萦绕不散。' },
       // —— 上部 BOSS 茧房区 ——
       { id: 'cocoon_screen', x: 1500, y: 350, label: '流动的屏幕内壁', type: 'dialog', dialogKey: 'cocoon_screen' },
-      { id: 'to_datacenter', x: 1100, y: 200, label: '前往数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 170 },
-        gate: { chars: ['岳', '星', '然', '冥'], puzzle: 'voidverse', msg: '通往深渊的门一片漆黑，吞掉一切声音。\n先在茧房迷宫里集齐「岳」「星」「然」「冥」——只有完整的诗，能在虚无里点出一条路。' } },
+      { id: 'to_ruined_library', x: 1100, y: 200, label: '通往废墟深处', type: 'scene_change', target: 'ruined_library', spawn: { x: 100, y: 300 },
+        gate: { chars: ['岳', '星', '然', '冥'], puzzle: 'voidverse', msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先在茧房迷宫里集齐「岳」「星」「然」「冥」——只有完整的诗，能在虚无里点出一条路。' } },
     ],
 
     items: [
@@ -507,6 +518,8 @@ export const scenes = {
       { id: 'char_xing2', x: 1650, y: 500, type: 'char_fragment', char: '星' },
       { id: 'char_ran', x: 500, y: 1750, type: 'char_fragment', char: '然' },
       { id: 'char_ming', x: 1500, y: 1350, type: 'char_fragment', char: '冥' },
+      { id: 'page_stadium_1', x: 600, y: 1500, type: 'page', name: '旧书页' },
+      { id: 'page_stadium_2', x: 1700, y: 1100, type: 'page', name: '旧书页' },
     ],
 
     spawn: { x: 1000, y: 1850 },
@@ -541,12 +554,9 @@ export const scenes = {
     enemies: [],
 
     interactables: [
-      { id: 'back_stadium', x: 700, y: 40, label: '返回体育馆', type: 'scene_change', target: 'stadium', spawn: { x: 780, y: 1850 } },
+      { id: 'back_abyss', x: 700, y: 40, label: '返回记忆深渊', type: 'scene_change', target: 'memory_abyss', spawn: { x: 800, y: 100 } },
       { id: 'tingyu', x: 700, y: 700, label: '蓝色光影', type: 'dialog', dialogKey: 'meet_tingyu' },
       { id: 'keystone_final', x: 700, y: 1100, label: '要石', type: 'keystone', text: '记得' },
-      // 第五章入口：真结局后开启
-      { id: 'to_ruined_library', x: 1200, y: 700, label: '通往废墟深处', type: 'scene_change', target: 'ruined_library', spawn: { x: 100, y: 300 },
-        gate: { flag: 'game_complete', msg: '一段新的旅程在等你——但需要先完成与听雨的对话。' } },
     ],
 
     items: [    ],
@@ -602,7 +612,7 @@ export const scenes = {
     ],
 
     interactables: [
-      { id: 'back_data_center', x: 100, y: 100, label: '返回数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 100 } },
+      { id: 'back_stadium', x: 100, y: 100, label: '返回体育馆', type: 'scene_change', target: 'stadium', spawn: { x: 1000, y: 1850 } },
       { id: 'echo_npc', x: 900, y: 400, label: '回声', type: 'dialog', dialogKey: 'echo_meet' },
       { id: 'library_terminal', x: 930, y: 350, label: '方知远的终端', type: 'puzzle', puzzleId: 'jiangjinjiu', solvedHint: '终端屏幕亮着金光，记忆碎片已被取走。' },
       { id: 'memory_shard_1', x: 930, y: 350, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_1', _cond: 'puzzle_jiangjinjiu_solved' },
@@ -749,6 +759,9 @@ export const scenes = {
       { id: 'memory_shard_3', x: 800, y: 650, label: '最后的记忆碎片', type: 'dialog', dialogKey: 'memory_shard_3', _cond: 'puzzle_yueye_solved' },
       { id: 'abyss_choice', x: 800, y: 950, label: '巨大要石', type: 'dialog', dialogKey: 'abyss_final_choice', _cond: 'all_memory_shards' },
       { id: 'keystone_abyss', x: 1400, y: 1200, label: '要石', type: 'keystone', text: '回响' },
+      // 最终节点：数据中心
+      { id: 'to_datacenter', x: 700, y: 1350, label: '前往数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 100 },
+        gate: { flag: 'chapter5_choice', msg: '你还未在巨大要石前做出选择。唯有先面对听雨的过去，才能面对她本人。' } },
     ],
 
     items: [

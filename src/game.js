@@ -712,7 +712,6 @@ export class Game {
       met_shuyuan: false,
       alley_briefed: false,
       in_battle_hint: false,
-      ending_dismissed: false, // 结局卡是否已关闭（关闭后可继续探索/进入第五章）
     };
     // UI 面板状态：null=关闭，'quest'=任务列表，'map'=地图面板，'debug'=调试面板
     this.uiPanel = null;
@@ -782,6 +781,9 @@ export class Game {
     // 屏幕墙减速状态（体育馆陷阱）
     this._screenWallSlow = 0;         // >0 时玩家被减速
     this._screenWallSanDrain = 0;     // >0 时持续扣 SAN
+    // 随机事件系统：探索中随机触发环境事件
+    this._randomEventTimer = 25000;   // 下次随机事件检查（25 秒后首次）
+    this._randomEventCooldown = 20000; // 事件间最小间隔
   }
 
   // 应用当前难度到游戏状态（SAN 上限等）
@@ -1003,10 +1005,7 @@ export class Game {
       if (!need.every(has)) {
         text = '在茧房迷宫收集「岳」「星」「然」「冥」';
         target = point(nearestChar(need)) || point(it('keystone_stadium'));
-      } else { text = '前往体育馆深处的数据中心'; target = point(it('to_datacenter')); }
-    } else if (sid === 'data_center') {
-      if (this.flags.met_tingyu) { text = '—— 全文完 ——'; done = true; }
-      else { text = '走向石桥尽头的蓝色光影'; target = point(it('tingyu')); }
+      } else { text = '通往废墟深处的大门已打开'; target = point(it('to_ruined_library')); }
     } else if (sid === 'ruined_library') {
       const need5a = ['河', '海'];
       progress = { title: '将进酒', chars: charProgress(need5a) };
@@ -1036,7 +1035,13 @@ export class Game {
       } else if (!this.flags.shard3_done) {
         text = '获取最后的记忆碎片';
         target = point(it('memory_shard_3'));
-      } else { text = '走向巨大要石，做出最终选择'; target = point(it('abyss_choice')); }
+      } else if (!this.flags.chapter5_choice) {
+        text = '走向巨大要石，面对听雨的过去';
+        target = point(it('abyss_choice'));
+      } else { text = '前往数据中心，面对听雨'; target = point(it('to_datacenter')); }
+    } else if (sid === 'data_center') {
+      if (this.flags.game_complete) { text = '—— 全文完 ——'; done = true; }
+      else { text = '走向石桥尽头的蓝色光影'; target = point(it('tingyu')); }
     } else if (sid === 'lost_village') {
       text = '唤醒失语者聚居地中的 5 位失语者';
       target = null;
@@ -1081,17 +1086,6 @@ export class Game {
   }
 
   update(dt) {
-    // 结局卡关闭：game_complete 且结局卡尚未关闭时，按 E/Enter/Space 关闭结局卡，继续探索
-    if (this.flags.game_complete && !this.flags.ending_dismissed) {
-      if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
-        this.flags.ending_dismissed = true;
-        this.showHint('新的旅程在等你——前往废墟深处。');
-        return;
-      }
-      // 结局卡显示期间冻结世界更新
-      return;
-    }
-
     // 首次交互解锁音频（浏览器策略：需用户手势）
     if (!this._audioUnlocked) {
       const anyKey = input.wasPressed('e') || input.wasPressed('w') || input.wasPressed('a') ||
@@ -1276,10 +1270,76 @@ export class Game {
     // 自动触发剧情 + 遭遇敌人
     this.checkAutoTriggers(dt);
 
+    // 随机事件系统：探索中触发环境事件
+    this._updateRandomEvents(dt);
+
     // 交互
     if (input.wasPressed('e')) {
       this.tryInteract();
     }
+  }
+
+  // ============================================
+  // 随机事件系统：探索中随机触发的环境事件
+  // ============================================
+  _updateRandomEvents(dt) {
+    // 仅在大地图探索模式（非战斗/对话/谜题/3D/横版）触发
+    if (this.battle || this.dialogState || this.compose || this.level3d ||
+        this.sidescroll || this.uiPanel || this.engraveState || this.converse ||
+        this.aiThinking || this._saveMenu) return;
+    // 仅在有敌人可遭遇的户外场景触发
+    const outdoorScenes = ['street_01', 'subway', 'alley_district', 'stadium', 'ruined_library', 'network_nexus'];
+    if (!this.scene || !outdoorScenes.includes(this.scene.id)) return;
+
+    this._randomEventTimer -= dt;
+    if (this._randomEventTimer > 0) return;
+    // 重置计时器（20-45 秒后下次检查）
+    this._randomEventTimer = this._randomEventCooldown + Math.random() * 25000;
+
+    const events = [
+      // 风中诗韵：听到一句诗，SAN 恢复
+      () => {
+        const poems = ['「海内存知己，天涯若比邻。」', '「但愿人长久，千里共婵娟。」', '「采菊东篱下，悠然见南山。」', '「明月松间照，清泉石上流。」'];
+        const p = poems[Math.floor(Math.random() * poems.length)];
+        this.player.san = Math.min(this.player.maxSan, this.player.san + 8);
+        this.showHint(`风中传来一句诗：${p}（理性 +8）`);
+        fx.flash('#ffd866', 0.15, 400);
+      },
+      // 梗鬼游荡：附近出现一只游荡梗鬼
+      () => {
+        if (!this.scene.enemies) return;
+        const id = 'rand_geng_' + Date.now();
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 200 + Math.random() * 150;
+        const ex = Math.max(50, Math.min(this.scene.width - 50, this.player.x + Math.cos(ang) * dist));
+        const ey = Math.max(50, Math.min(this.scene.height - 50, this.player.y + Math.sin(ang) * dist));
+        this.scene.enemies.push({ id, typeId: 'geng_weak', x: ex, y: ey, hp: 30, maxHp: 30, name: '游荡梗鬼', floating: 0, walkPhase: Math.random() * 6, dir: Math.random() < 0.5 ? -1 : 1, vx: 0.5, vy: 0, onGround: true, homeX: ex, range: 80, stompCD: 0 });
+        this.showHint('远处传来一阵无意义的嗡鸣……一只游荡梗鬼出现了。');
+      },
+      // 旧物发现：脚下捡到一张旧书页碎片
+      () => {
+        this.player.san = Math.min(this.player.maxSan, this.player.san + 15);
+        audio.playSfx('pickup');
+        this.showHint('你在瓦砾下翻到一页泛黄的旧书。理性 +15');
+      },
+      // 语义噪声：SAN 轻微下降（氛围事件）
+      () => {
+        const dmg = 5;
+        this.player.san = Math.max(0, this.player.san - dmg);
+        this.showHint('一阵语义噪声掠过你的脑海……（理性 -' + dmg + '）');
+        fx.shake(3, 200);
+      },
+      // 记忆闪回：随机获得一个已收集字（弹药补充）
+      () => {
+        if (this.player.collectedCharsAll.length === 0) return;
+        const c = this.player.collectedCharsAll[Math.floor(Math.random() * this.player.collectedCharsAll.length)];
+        this.player.collectedChars.push(c);
+        this.showHint(`一段记忆闪过——你想起了一个字「${c}」。（诗词弹药 +1）`);
+        fx.flash('#88ddff', 0.2, 300);
+      },
+    ];
+    const ev = events[Math.floor(Math.random() * events.length)];
+    ev();
   }
 
   // ============================================
@@ -1902,12 +1962,11 @@ export class Game {
         } else if (best.target === 'stadium') {
           this.startDialog(DIALOGS.alley_to_stadium, '系统');
           this.objective = { text: '与书远对话', done: false };
-        } else if (best.target === 'data_center') {
-          this.startDialog(DIALOGS.stadium_to_datacenter, '系统');
-          this.objective = { text: '走向石桥深处', done: false };
         } else if (best.target === 'ruined_library') {
           this.flags.chapter5_started = true;
           this.objective = { text: '在废图书馆找到方知远的终端', done: false };
+        } else if (best.target === 'data_center') {
+          this.objective = { text: '走向石桥尽头的蓝色光影', done: false };
         } else if (best.target === 'network_nexus') {
           this.objective = { text: '在网络中枢找到守卷人', done: false };
         } else if (best.target === 'memory_abyss') {
@@ -1967,12 +2026,12 @@ export class Game {
           this.flags.shard3_done = true;
           this.flags.all_memory_shards = true;
         }
-        // 第五章终章选择完成后标记游戏完成
+        // 第五章终章选择完成后：开启前往数据中心（最终节点）的道路
         if (key === 'abyss_final_choice') {
-          this.flags.game_complete = true;
-          this.flags.met_tingyu = true;
-          audio.playBGM('ending');
+          this.flags.chapter5_choice = true;
+          this.showHint('你已在巨大要石前做出了选择。现在，去数据中心面对听雨。');
           audio.playSfx('victory');
+          fx.flash('#ffd866', 0.4, 500);
           autoSave(this);
         }
         return;
@@ -2034,6 +2093,19 @@ export class Game {
             this.showHint('方知远的日记已集齐！造物者的秘密在你手中。');
             audio.playSfx('victory');
             fx.flash('#ffd866', 0.4, 500);
+          }
+        } else if (it.type === 'language_seed') {
+          // 语言种子：永久 SAN 上限提升 + 收集计数
+          this.player.seeds = (this.player.seeds || 0) + 1;
+          this.player.maxSan += 10;
+          this.player.san = Math.min(this.player.maxSan, this.player.san + 20);
+          audio.playSfx('pickup');
+          fx.flash('#88ddff', 0.3, 400);
+          this.showHint(`${it.name}：理性上限 +10，理性 +20`);
+          if (this.player.seeds >= 3 && !this.flags.all_seeds) {
+            this.flags.all_seeds = true;
+            this.showHint('三枚语言种子已集齐！你的话语有了重量。');
+            audio.playSfx('victory');
           }
         } else {
           this.showHint(`获得：${it.name || '物品'}`);
@@ -2397,6 +2469,10 @@ export class Game {
     // 方知远日记收集进度
     if (this.player.diaries && this.player.diaries.size > 0) {
       quests.push({ cat: '收集', text: `方知远的日记 ${this.player.diaries.size}/6${this.flags.all_diaries ? '（已集齐）' : ''}`, done: !!this.flags.all_diaries });
+    }
+    // 语言种子收集进度
+    if (this.player.seeds && this.player.seeds > 0) {
+      quests.push({ cat: '收集', text: `语言种子 ${this.player.seeds}/3${this.flags.all_seeds ? '（已集齐）' : ''}`, done: !!this.flags.all_seeds });
     }
     return quests;
   }
