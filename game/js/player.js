@@ -28,7 +28,11 @@ export class Player {
 
     const mv = input.moveVec();
     const isRun = input.isDown('shift');
-    const sp = isRun ? this.runSpeed : this.speed;
+    let sp = isRun ? this.runSpeed : this.speed;
+    // 屏幕墙减速：若场景对象提供 getSpeedMul()，应用减速倍率
+    if (scene && typeof scene.getSpeedMul === 'function') {
+      sp *= scene.getSpeedMul();
+    }
     this.isMoving = mv.x !== 0 || mv.y !== 0;
 
     if (this.isMoving) {

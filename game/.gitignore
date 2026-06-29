@@ -1,0 +1,13 @@
+# AI 接入产生的本地文件
+ai_keys.local.json
+cache/
+
+# 临时/测试
+_tmp*
+_tts_*
+*.tmp
+
+# 系统
+.DS_Store
+Thumbs.db
+node_modules/

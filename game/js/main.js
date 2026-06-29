@@ -1,10 +1,14 @@
 // 启动入口
 import { Game } from './game.js';
 import { initAI } from './ai/config.js';
+import * as difficulty from './difficulty.js';
 
 const canvas = document.getElementById('c');
 const game = new Game(canvas);
 initAI(); // 后台探测 AI 服务（失败则自动降级为纯文字），不阻塞启动
+
+// 初始化难度系统（从 localStorage 读取上次选择）
+difficulty.setCurrent(difficulty.loadDifficulty());
 
 // 来自序幕（intro_3d.html）？序幕已经把"世界背景+前情提要+苏醒"演完了，
 // 主屏里再播一遍 wake 长对白就重复了。无感衔接：直接把 wake_done 置位，
@@ -14,4 +18,4 @@ if (FROM_INTRO) game.flags.wake_done = true;
 
 game.start();
 
-console.log('[刻痕] 启动' + (FROM_INTRO ? '（接序幕）' : ''));
+console.log('[刻痕] 启动' + (FROM_INTRO ? '（接序幕）' : '') + `（难度：${difficulty.currentDef().name}）`);

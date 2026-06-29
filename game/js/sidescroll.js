@@ -2,11 +2,11 @@
 // 前段：老人交付武器 + 基础踩踏/挥刀教学
 // 中段：梯子攀爬 + 核心要石（存档点/刻字）
 // 后段：精准平台跳跃 + 精英梗鬼 + 出口通向居民区
-// 重力 + 跳跃 + 平台 + 梯子；鼠标左键小刀近战；空格跳跃踩踏
+// 重力 + 跳跃（轻跳/重跳）+ 平台 + 梯子；鼠标左键小刀近战；空格跳跃踩踏
 import { W, H } from './config.js';
 
+// === 物理参数 ===
 const GRAVITY = 0.55;
-const JUMP_V = -12.5;
 const MOVE_SPD = 2.5;   // 江堤区域专属移速（低于大地图，仅本关卡生效）
 const CLIMB_SPD = 2.0;
 const GROUND_Y = 624;
@@ -14,6 +14,16 @@ const LEVEL_W = 3400;
 const KNIFE_REACH = 46;
 const KNIFE_COOLDOWN = 320;
 const KNIFE_DMG = 34;
+
+// === 跳跃参数（轻跳 / 重跳）===
+// 轻跳：起跳快、滞空短、高度低 —— 适用于精准平台跳跃
+// 重跳：起跳慢、滞空长、高度高 —— 适用于跨越江堤较大间距或高度差
+const JUMP_LIGHT_V = -10.0;   // 轻跳初速度（绝对值小 → 跳得低）
+const JUMP_HEAVY_V = -14.5;   // 重跳初速度（绝对值大 → 跳得高）
+const JUMP_LIGHT_HOLD = 140;  // 轻跳蓄力时间（ms）—— 短按即起跳
+const JUMP_HEAVY_HOLD = 280;  // 重跳蓄力时间（ms）—— 长按蓄力后起跳
+// 上升期持续按住跳跃键 → 重力降低，延长滞空（重跳延长效果更强）
+const JUMP_MAX_VY = 16;        // 下落最大速度
 
 // 段落分界
 const SEG1_END = 1100;  // 前段结束
@@ -23,7 +33,8 @@ const SEG2_END = 2300;  // 中段结束
 const KNIFE_DIALOG = [
   { s: '书远', t: '江堤这条路，被梗鬼堵了。它们在堤面与石板上来回踱步，碰到你就咬你的字。' },
   { s: '书远', t: '近身的东西，诗一时半刻念不利索。这把小刀给你——记忆合金打的，专破那层绿皮。' },
-  { s: '系统', t: '（A/D 左右走，W 或空格跳跃；从上方落下可踩死梗鬼，鼠标左键挥刀近战）' },
+  { s: '系统', t: '（A/D 左右走；空格/W 跳跃——短按为轻跳，精准落点；长按为重跳，跨越沟壑）' },
+  { s: '系统', t: '（从上方落下可踩死梗鬼；鼠标左键挥刀近战）' },
   { s: '书远', t: '砍通这条堤，东头就是去居民区的路。我在出口等你。' },
   { s: '顾言', t: '……多谢。' },
   { s: '系统', t: '（获得：记忆合金小刀）' },
@@ -59,6 +70,10 @@ export class SideScrollLevel {
       hasKnife: !!game.flags.sidescroll_knife,
       hurt: 0,
       onLadder: false,
+      // === 跳跃状态机 ===
+      jumpCharge: 0,      // 蓄力计时（>0 表示正在蓄力）
+      jumpHolding: false,  // 跳跃键是否仍按住（用于可变重力延长滞空）
+      jumpType: null,      // 'light' | 'heavy' | null（当前跳跃类型）
     };
     this.cameraX = 0;
 
@@ -140,8 +155,11 @@ export class SideScrollLevel {
       { x: 3260, y: 490, taken: false },
     ];
     // 核心要石（中段，存档点 + 刻字）
+    // 注意：必须有 id 字段，供 game.activatedKeystones 和 _commitEngraving 使用
     this.keystone = {
-      x: 1900, y: GROUND_Y, activated: !!game.activatedKeystones?.has('keystone_riverside'),
+      id: 'keystone_riverside',
+      x: 1900, y: GROUND_Y,
+      activated: !!game.activatedKeystones?.has('keystone_riverside'),
       engraved: game.flags.riverside_engraved || null,
     };
     // 段落提示标记
@@ -213,7 +231,11 @@ export class SideScrollLevel {
     }
 
     // === 要石交互（中段）===
-    if (input.wasPressed('e') && Math.abs(p.x - this.keystone.x) < 40 && p.onGround) {
+    // 注意：不强制要求 onGround，因为物理更新在后面，落地帧的 onGround 还是旧值
+    // 只要玩家在要石附近（水平距离 < 46，垂直距离 < 50）且不在梯子上即可
+    if (input.wasPressed('e') && !p.onLadder &&
+        Math.abs(p.x - this.keystone.x) < 46 &&
+        Math.abs(p.y - this.keystone.y) < 50) {
       if (!this.keystone.activated) {
         this.keystone.activated = true;
         this.game.activatedKeystones.add('keystone_riverside');
@@ -251,6 +273,10 @@ export class SideScrollLevel {
     if (input.isDown('a') || input.isDown('arrowleft')) mx -= 1;
     if (input.isDown('d') || input.isDown('arrowright')) mx += 1;
 
+    // 跳跃键状态（每帧消费一次 wasPressed，避免重复消费 bug）
+    const jumpPressed = input.wasPressed(' ') || input.wasPressed('w') || input.wasPressed('arrowup');
+    const jumpDown = input.isDown(' ') || input.isDown('w') || input.isDown('arrowup');
+
     if (p.onLadder) {
       // 梯子上：忽略重力，上下移动
       p.vy = 0;
@@ -260,12 +286,12 @@ export class SideScrollLevel {
       p.y += my * CLIMB_SPD * (dt / 16.67);
       p.vx = mx * MOVE_SPD * 0.6 * (dt / 16.67);
       p.x += p.vx;
-      // 跳跃脱离梯子
-      if (input.wasPressed(' ') || input.wasPressed('w')) {
-        if (input.wasPressed(' ')) {
-          p.vy = JUMP_V;
-          p.onLadder = false;
-        }
+      // 跳跃脱离梯子（轻跳）
+      if (jumpPressed) {
+        p.vy = JUMP_LIGHT_V;
+        p.onLadder = false;
+        p.jumpType = 'light';
+        p.jumpHolding = jumpDown;
       }
       p.walkCycle += dt * 0.015;
     } else {
@@ -277,10 +303,41 @@ export class SideScrollLevel {
         p.vx *= 0.7;
         if (Math.abs(p.vx) < 0.1) p.vx = 0;
       }
-      // 跳跃
-      if ((input.wasPressed('w') || input.wasPressed(' ') || input.wasPressed('arrowup')) && p.onGround) {
-        p.vy = JUMP_V;
-        p.onGround = false;
+
+      // === 跳跃状态机（轻跳 / 重跳）===
+      if (p.onGround) {
+        // 在地面：开始蓄力或立即起跳
+        if (jumpPressed) {
+          p.jumpCharge = 1; // 开始蓄力计时
+          p.jumpHolding = true;
+        }
+        if (p.jumpCharge > 0) {
+          p.jumpCharge += dt;
+          // 松开跳跃键 或 蓄力超过重跳阈值 → 起跳
+          if (!jumpDown || p.jumpCharge >= JUMP_HEAVY_HOLD) {
+            if (p.jumpCharge >= JUMP_HEAVY_HOLD) {
+              // 重跳：蓄力满 → 高跳
+              p.vy = JUMP_HEAVY_V;
+              p.jumpType = 'heavy';
+            } else if (p.jumpCharge >= JUMP_LIGHT_HOLD) {
+              // 介于轻跳和重跳之间 → 按比例插值（平滑过渡）
+              const t = (p.jumpCharge - JUMP_LIGHT_HOLD) / (JUMP_HEAVY_HOLD - JUMP_LIGHT_HOLD);
+              p.vy = JUMP_LIGHT_V + (JUMP_HEAVY_V - JUMP_LIGHT_V) * t;
+              p.jumpType = 'medium';
+            } else {
+              // 轻跳：短按即起跳
+              p.vy = JUMP_LIGHT_V;
+              p.jumpType = 'light';
+            }
+            p.onGround = false;
+            p.jumpCharge = 0;
+            p.jumpHolding = jumpDown;
+          }
+        }
+      } else {
+        // 空中：更新按键保持状态（用于可变重力延长滞空）
+        p.jumpHolding = jumpDown;
+        p.jumpCharge = 0; // 空中不蓄力
       }
     }
     p._wasOnLadder = p.onLadder;
@@ -296,8 +353,16 @@ export class SideScrollLevel {
 
     // === 物理 ===
     if (!p.onLadder) {
-      p.vy += GRAVITY;
-      if (p.vy > 16) p.vy = 16;
+      // 可变重力：上升期（vy<0）且玩家仍按住跳跃键 → 使用较低重力延长滞空
+      // 重跳的延长效果更强（滞空更长），轻跳较弱
+      let g = GRAVITY;
+      if (p.vy < 0 && p.jumpHolding) {
+        // 重跳延长系数 0.55，轻跳 0.75（重跳滞空更长）
+        const extendMul = p.jumpType === 'heavy' ? 0.55 : (p.jumpType === 'medium' ? 0.65 : 0.75);
+        g = GRAVITY * extendMul;
+      }
+      p.vy += g;
+      if (p.vy > JUMP_MAX_VY) p.vy = JUMP_MAX_VY;
     }
     p.x += p.vx;
     p.y += p.vy;
@@ -362,7 +427,8 @@ export class SideScrollLevel {
       if (e.stompCD <= 0 && p.vy > 0 && horizOverlap && prevFeet <= headTop + 4 && p.y >= headTop - 2) {
         e.alive = false;
         e.stompCD = 9999;
-        p.vy = JUMP_V * 0.62;
+        p.vy = JUMP_LIGHT_V * 0.65; // 踩踏后轻弹（用轻跳速度，手感更利落）
+        p.jumpType = 'light';
         p.onGround = false;
         this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
         if (!this._stompHint) { this._stompHint = true; this.game.showHint('踩中梗鬼！从上方落下可踩死地面行走的梗鬼'); }
@@ -817,6 +883,27 @@ export class SideScrollLevel {
       ctx.fillStyle = 'rgba(200,200,200,0.6)'; ctx.font = '11px serif';
       ctx.fillText('向前走，找老人……', sx, sy + sanH + 18);
     }
+    // === 跳跃蓄力指示器 ===
+    if (this.p.jumpCharge > 0) {
+      const barW = 100, barH = 6;
+      const bx = sx, by = sy + sanH + 36;
+      ctx.fillStyle = 'rgba(20,15,10,0.8)';
+      ctx.fillRect(bx, by, barW, barH);
+      // 蓄力进度
+      const chargeRatio = Math.min(1, this.p.jumpCharge / JUMP_HEAVY_HOLD);
+      // 轻跳区间（绿色）→ 重跳区间（金色）
+      const lightRatio = JUMP_LIGHT_HOLD / JUMP_HEAVY_HOLD;
+      ctx.fillStyle = chargeRatio < lightRatio ? '#66dd66' : '#ffd866';
+      ctx.fillRect(bx + 1, by + 1, (barW - 2) * chargeRatio, barH - 2);
+      ctx.strokeStyle = 'rgba(220,200,150,0.4)'; ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, barW, barH);
+      // 轻跳/重跳分界线
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.moveTo(bx + barW * lightRatio, by); ctx.lineTo(bx + barW * lightRatio, by + barH); ctx.stroke();
+      // 标签
+      ctx.fillStyle = 'rgba(255,240,200,0.7)'; ctx.font = '9px serif';
+      ctx.fillText(chargeRatio < lightRatio ? '轻跳蓄力…' : '重跳蓄力…', bx, by - 3);
+    }
     // 剩余敌人计数 + 段落标识
     const left = this.enemies.filter(e => e.alive).length;
     ctx.fillStyle = 'rgba(120,220,120,0.7)'; ctx.font = 'bold 11px serif'; ctx.textAlign = 'right';
@@ -826,6 +913,11 @@ export class SideScrollLevel {
     const segName = px < SEG1_END ? '前段·教学' : px < SEG2_END ? '中段·攀爬' : '后段·跳跃';
     ctx.fillStyle = 'rgba(255,220,140,0.6)'; ctx.font = '10px serif';
     ctx.fillText(segName, W - 16, sy + 28);
+    // 跳跃提示（首次进入后段时显示）
+    if (px > SEG2_END && !this._jumpHintShown) {
+      ctx.fillStyle = 'rgba(255,220,140,0.5)'; ctx.font = '9px serif'; ctx.textAlign = 'right';
+      ctx.fillText('短按=轻跳  长按=重跳', W - 16, sy + 44);
+    }
     ctx.textAlign = 'left';
   }
 }

@@ -1,5 +1,9 @@
 // 渲染器 — 矢量线稿 + 块面填充，明暗对比强，统一协调
 import { COLORS, W, H } from './config.js';
+import * as fx from './fx.js';
+import { isMuted } from './audio.js';
+import { drawMinimap } from './minimap.js';
+import { listDifficulties, getDifficultyDef } from './difficulty.js';
 
 export class Camera {
   constructor() {
@@ -82,6 +86,13 @@ export function render(game, gameTime) {
   ctx.fillStyle = scene.bgColor;
   ctx.fillRect(0, 0, W, H);
 
+  // 屏幕震动偏移（仅在非战斗/非对话的探索模式下应用，避免影响独立模式）
+  const shakeOff = fx.getShakeOffset();
+  ctx.save();
+  if (shakeOff.x !== 0 || shakeOff.y !== 0) {
+    ctx.translate(shakeOff.x, shakeOff.y);
+  }
+
   camera.follow(player.x, player.y);
   camera.clamp(scene.width, scene.height);
 
@@ -136,6 +147,9 @@ export function render(game, gameTime) {
 
   drawHUD(ctx, player, game, objective);
 
+  // 恢复震动偏移的 save（HUD 之后的内容不受震动影响）
+  ctx.restore();
+
   if (dialogState) drawDialog(ctx, dialogState, gameTime);
 
   if (hints.length) drawHints(ctx, hints);
@@ -161,6 +175,52 @@ export function render(game, gameTime) {
 
   // UI 面板（任务/地图/调试）
   if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
+
+  // === 视觉特效叠加层（震动偏移已在上方 ctx.save/translate 应用，此处仅画覆盖物）===
+  fx.drawOverlay(ctx, gameTime);
+
+  // 存档成功闪烁提示
+  if (game._saveFlash > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, game._saveFlash / 500);
+    ctx.fillStyle = '#ffd866';
+    ctx.font = '14px "SimSun","Songti SC",serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('✓ 已存档', W - 12, 30);
+    ctx.restore();
+  }
+
+  // 静音指示
+  if (isMuted()) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(200,200,200,0.6)';
+    ctx.font = '11px "SimSun",serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('🔇 静音中 (N 取消)', W - 12, 50);
+    ctx.restore();
+  }
+
+  // 小地图（右上角，Tab 切换显示，非面板/对话/战斗时显示）
+  if (game._showMinimap && !game.uiPanel && !game.battle && !game.compose &&
+      !game.converse && !game.sidescroll && !game.level3d && !game._saveMenu &&
+      game.scene && !game.dialogState && !game.tutorial && !game.engraveState) {
+    drawMinimap(ctx, game, gameTime);
+  }
+
+  // 难度指示（左下角小字）
+  if (game.difficultyId) {
+    ctx.save();
+    const def = getDifficultyDef(game.difficultyId);
+    ctx.fillStyle = def.color;
+    ctx.font = '10px "SimSun",serif';
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 0.6;
+    ctx.fillText(`难度：${def.name}`, 12, H - 12);
+    ctx.restore();
+  }
+
+  // 存档菜单
+  if (game._saveMenu) drawSaveMenu(ctx, game, gameTime);
 }
 
 // ============================================================
@@ -3418,8 +3478,10 @@ function drawHUD(ctx, player, game, objective) {
   }
 
   const scene = game.scene;
+  // 右上角场景信息面板：当小地图显示时下移到小地图下方，避免重叠
+  const miniH = game._showMinimap ? 132 + 12 : 0; // 小地图高度 120 + margin 12
   ctx.fillStyle = 'rgba(20,15,10,0.7)';
-  const mx = W - 200, my = 14;
+  const mx = W - 200, my = 14 + miniH;
   roundRect(ctx, mx, my, 184, 60, 4);
   ctx.fill();
   ctx.strokeStyle = 'rgba(180,140,80,0.4)';
@@ -3625,82 +3687,124 @@ function drawHints(ctx, hints) {
 // 教程覆盖层
 // ============================================================
 function drawTutorial(ctx, gameTime, tutorial) {
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(0, 0, W, H);
 
-  const px = 200, py = 160, pw = 400, ph = 300;
-  ctx.fillStyle = 'rgba(15,12,8,0.96)';
-  roundRect(ctx, px, py, pw, ph, 8);
+  // 面板尺寸：加宽加高，适配 9 个快捷键 + 充足留白
+  const pw = 560, ph = 460;
+  const px = (W - pw) / 2, py = (H - ph) / 2;
+
+  // 面板背景 + 双层边框
+  ctx.fillStyle = 'rgba(15,12,8,0.97)';
+  roundRect(ctx, px, py, pw, ph, 10);
   ctx.fill();
   ctx.strokeStyle = 'rgba(180,140,80,0.7)';
   ctx.lineWidth = 2;
-  roundRect(ctx, px, py, pw, ph, 8);
+  roundRect(ctx, px, py, pw, ph, 10);
   ctx.stroke();
+  // 顶部金色装饰条
   ctx.fillStyle = 'rgba(180,140,80,0.6)';
-  ctx.fillRect(px, py, pw, 3);
+  ctx.fillRect(px + 2, py, pw - 4, 3);
 
+  // === 标题区 ===
   ctx.fillStyle = 'rgba(255,210,120,0.95)';
-  ctx.font = 'bold 22px serif';
+  ctx.font = 'bold 26px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText(tutorial.title || '刻痕 · 遗 忘 的 文 字', px + pw/2, py + 18);
+  ctx.fillText(tutorial.title || '刻痕 · 遗 忘 的 文 字', px + pw / 2, py + 28);
 
-  ctx.fillStyle = 'rgba(200,200,180,0.7)';
-  ctx.font = '11px serif';
-  ctx.fillText('公元 2147 · 上海废墟', px + pw/2, py + 50);
+  ctx.fillStyle = 'rgba(200,200,180,0.65)';
+  ctx.font = '12px serif';
+  ctx.fillText('公元 2147 · 上海废墟', px + pw / 2, py + 64);
 
-  ctx.strokeStyle = 'rgba(180,140,80,0.4)';
+  // 分隔线
+  ctx.strokeStyle = 'rgba(180,140,80,0.35)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(px + 40, py + 78);
-  ctx.lineTo(px + pw - 40, py + 78);
+  ctx.moveTo(px + 60, py + 92);
+  ctx.lineTo(px + pw - 60, py + 92);
   ctx.stroke();
 
-  ctx.fillStyle = 'rgba(232,220,200,0.95)';
-  ctx.font = '14px serif';
-  ctx.textAlign = 'left';
+  // === 快捷键列表（双列布局，避免拥挤）===
   const keys = tutorial.keys || [
     { k: 'WASD', d: '移动' },
     { k: 'Shift', d: '奔跑' },
-    { k: 'Space', d: '冲刺闪避' },
-    { k: 'E', d: '交互 / 拾取' },
-    { k: 'J', d: '诗词净化波（需先收集）' },
   ];
-  let yy = py + 95;
-  for (const row of keys) {
+  const colW = (pw - 80) / 2; // 两列各占一半宽度（减去左右边距）
+  const rowH = 30;            // 行高加大
+  const startY = py + 110;
+  const keyBoxW = 80, keyBoxH = 24;
+
+  for (let i = 0; i < keys.length; i++) {
+    const col = i % 2;          // 0=左列, 1=右列
+    const row = Math.floor(i / 2);
+    const kx = px + 40 + col * colW;
+    const ky = startY + row * rowH;
+
+    // 按键标签框
     ctx.fillStyle = 'rgba(60,50,40,0.9)';
-    roundRect(ctx, px + 50, yy - 13, 90, 22, 3);
+    roundRect(ctx, kx, ky - 12, keyBoxW, keyBoxH, 3);
     ctx.fill();
     ctx.strokeStyle = 'rgba(180,140,80,0.6)';
     ctx.lineWidth = 1;
-    roundRect(ctx, px + 50, yy - 13, 90, 22, 3);
+    roundRect(ctx, kx, ky - 12, keyBoxW, keyBoxH, 3);
     ctx.stroke();
     ctx.fillStyle = 'rgba(255,210,120,0.95)';
-    ctx.font = 'bold 12px monospace';
+    ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(row.k, px + 95, yy - 2);
+    ctx.fillText(keys[i].k, kx + keyBoxW / 2, ky);
+
+    // 描述文字
     ctx.fillStyle = 'rgba(232,220,200,0.9)';
-    ctx.font = '14px serif';
+    ctx.font = '13px serif';
     ctx.textAlign = 'left';
-    ctx.fillText(row.d, px + 155, yy);
-    yy += 26;
+    ctx.fillText(keys[i].d, kx + keyBoxW + 12, ky);
   }
 
-  ctx.fillStyle = 'rgba(180,180,160,0.7)';
-  ctx.font = '11px serif';
+  // === 底部提示区 ===
+  const tipY = startY + Math.ceil(keys.length / 2) * rowH + 20;
+  ctx.strokeStyle = 'rgba(180,140,80,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px + 60, tipY);
+  ctx.lineTo(px + pw - 60, tipY);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(180,180,160,0.75)';
+  ctx.font = '12px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   const tip = tutorial.tip || '提示：靠近发光的物体按 E 交互。';
-  ctx.fillText(tip, px + pw/2, py + ph - 36);
+  // 长提示自动换行
+  _wrapText(ctx, tip, px + pw / 2, tipY + 14, pw - 80, 18);
 
   // 开始提示（闪烁）
   const blink = 0.5 + Math.sin(gameTime * 0.004) * 0.4;
   ctx.fillStyle = `rgba(255,210,120,${blink})`;
-  ctx.font = 'bold 14px serif';
-  ctx.fillText('▼ 按 E 或 空格 开始', px + pw/2, py + ph - 18);
+  ctx.font = 'bold 15px serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('▼ 按 E 或 空格 开始', px + pw / 2, py + ph - 32);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+}
+
+// 简单的文本自动换行（供 drawTutorial 使用）
+function _wrapText(ctx, text, cx, startY, maxWidth, lineHeight) {
+  const chars = text.split('');
+  let line = '';
+  let y = startY;
+  for (const ch of chars) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, cx, y);
+      line = ch;
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line) ctx.fillText(line, cx, y);
 }
 
 // ============================================================
@@ -3725,6 +3829,7 @@ function drawUIPanel(ctx, game, gameTime) {
 
   if (game.uiPanel === 'quest') drawQuestPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'map') drawMapPanel(ctx, game, px, py, panelW, panelH, gameTime);
+  else if (game.uiPanel === 'inventory') drawInventoryPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'debug') drawDebugPanel(ctx, game, px, py, panelW, panelH, gameTime);
 }
 
@@ -3858,5 +3963,190 @@ function drawDebugPanel(ctx, game, px, py, pw, ph, gameTime) {
   ctx.fillStyle = 'rgba(180,170,150,0.5)';
   ctx.font = '11px monospace'; ctx.textAlign = 'center';
   ctx.fillText('↑↓ 选择   E 传送   F2/Esc 关闭', px + pw / 2, py + ph - 16);
+  ctx.textAlign = 'left';
+}
+
+// ============================================================
+// 存档菜单（F6 打开）
+// ============================================================
+function drawSaveMenu(ctx, game, gameTime) {
+  if (!game._saveMenu) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(0, 0, W, H);
+  const pw = 540, ph = 500;
+  const px = (W - pw) / 2, py = (H - ph) / 2;
+  ctx.fillStyle = '#1a1d22';
+  ctx.fillRect(px, py, pw, ph);
+  ctx.strokeStyle = '#3a3d44';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px, py, pw, ph);
+
+  ctx.fillStyle = '#e8dcc8';
+  ctx.font = 'bold 20px "SimSun","Songti SC",serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('📜 存档管理', px + pw / 2, py + 38);
+
+  const saves = _readSavesForMenu();
+  const items = [...saves, { slot: 'new', isNew: true }];
+  let yy = py + 70;
+  const lineH = 72;
+  game._saveMenuIdx = Math.min(game._saveMenuIdx, items.length - 1);
+
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const sel = i === game._saveMenuIdx;
+    const iy = yy + i * lineH;
+    if (sel) {
+      ctx.fillStyle = 'rgba(255,220,100,0.12)';
+      ctx.fillRect(px + 20, iy - 6, pw - 40, lineH - 10);
+      ctx.strokeStyle = 'rgba(255,220,100,0.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 20, iy - 6, pw - 40, lineH - 10);
+    }
+    if (it.isNew) {
+      ctx.fillStyle = sel ? '#ffdd66' : 'rgba(200,200,200,0.6)';
+      ctx.font = sel ? 'bold 15px "SimSun",serif' : '14px "SimSun",serif';
+      ctx.textAlign = 'left';
+      ctx.fillText((sel ? '▶ ' : '  ') + '＋ 新建存档（存入第一个空槽位）', px + 40, iy + 28);
+    } else {
+      const tag = it.slot === 'auto' ? '自动' : '槽位 ' + it.slot;
+      ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
+      ctx.font = 'bold 14px "SimSun",serif';
+      ctx.textAlign = 'left';
+      ctx.fillText((sel ? '▶ ' : '  ') + `[${tag}]  ${it.scene}`, px + 40, iy + 22);
+      ctx.fillStyle = 'rgba(180,170,150,0.7)';
+      ctx.font = '11px "SimSun",serif';
+      ctx.fillText(`时间 ${it.time}  ·  SAN ${it.san}  ·  碎片 ${it.chars}  ·  仁慈${it.karma.mercy}/武力${it.karma.violence}`, px + 40, iy + 42);
+    }
+  }
+
+  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.font = '11px "SimSun",serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('↑↓ 选择   E 读取/新建   F6/Esc 关闭', px + pw / 2, py + ph - 16);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+// 从 localStorage 同步读取存档列表（避免循环依赖，不 import save.js）
+function _readSavesForMenu() {
+  try {
+    const raw = localStorage.getItem('keheng_saves');
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    const out = [];
+    const sceneNames = {
+      freeze_center: '冷冻中心', street_01: '废弃街道', riverside: '江堤',
+      subway: '地铁站', alley_district: '居民区', house_a: '民居A', house_b: '民居B',
+      stadium: '体育馆', data_center: '数据中心',
+    };
+    const fmtTime = (t) => {
+      const d = new Date(t);
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    if (data.auto) out.push({ slot: 'auto', scene: sceneNames[data.auto.sceneId] || data.auto.sceneId, time: fmtTime(data.auto.time), san: data.auto.san, chars: (data.auto.collectedCharsAll||[]).length, karma: data.auto.karma || {mercy:0,violence:0,saved:0} });
+    if (data.slots) for (let i = 0; i < data.slots.length; i++) {
+      if (data.slots[i]) out.push({ slot: i+1, scene: sceneNames[data.slots[i].sceneId] || data.slots[i].sceneId, time: fmtTime(data.slots[i].time), san: data.slots[i].san, chars: (data.slots[i].collectedCharsAll||[]).length, karma: data.slots[i].karma || {mercy:0,violence:0,saved:0} });
+    }
+    return out;
+  } catch (e) { return []; }
+}
+
+// ============================================================
+// 背包面板（I 键）
+// ============================================================
+function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
+  const data = game.getInventoryData();
+
+  // 标题
+  ctx.fillStyle = '#e8dcc8';
+  ctx.font = 'bold 18px "SimSun","Songti SC",serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎒 背包', px + pw / 2, py + 36);
+
+  // SAN 值条
+  const barX = px + 30, barY = py + 56, barW = pw - 60, barH = 12;
+  ctx.fillStyle = 'rgba(60,60,60,0.8)';
+  ctx.fillRect(barX, barY, barW, barH);
+  const sanRatio = data.san / data.maxSan;
+  const sanColor = sanRatio > 0.6 ? '#66dd66' : (sanRatio > 0.3 ? '#d4a85a' : '#cc4444');
+  ctx.fillStyle = sanColor;
+  ctx.fillRect(barX, barY, barW * sanRatio, barH);
+  ctx.strokeStyle = 'rgba(200,200,200,0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, barY, barW, barH);
+  ctx.fillStyle = '#fff';
+  ctx.font = '11px "SimSun",serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`理性 ${Math.floor(data.san)} / ${data.maxSan}`, px + pw / 2, barY + 9);
+
+  // 道具列表
+  let yy = py + 90;
+  ctx.textAlign = 'left';
+  if (!data.items.length) {
+    ctx.fillStyle = 'rgba(180,170,150,0.6)';
+    ctx.font = '13px "SimSun",serif';
+    ctx.fillText('（背包是空的）', px + 30, yy + 20);
+  } else {
+    ctx.fillStyle = 'rgba(200,200,200,0.5)';
+    ctx.font = '11px "SimSun",serif';
+    ctx.fillText('道具：', px + 30, yy);
+    yy += 20;
+    const ITEM_NAMES = {
+      knife: '记忆合金小刀',
+      poem_guanju: '《关雎》诗页',
+      old_page: '旧书页',
+      page: '旧书页',
+    };
+    const ITEM_DESCS = {
+      knife: '刻字与战斗的必备工具',
+      poem_guanju: '已收录的诗词，战斗中可作武器',
+      old_page: '可使用：恢复 30 点理性',
+      page: '可使用：恢复 30 点理性',
+    };
+    for (let i = 0; i < data.items.length; i++) {
+      const it = data.items[i];
+      const sel = it.selected;
+      if (sel) {
+        ctx.fillStyle = 'rgba(255,220,100,0.12)';
+        ctx.fillRect(px + 20, yy - 14, pw - 40, 36);
+        ctx.strokeStyle = 'rgba(255,220,100,0.4)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 20, yy - 14, pw - 40, 36);
+      }
+      ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
+      ctx.font = sel ? 'bold 14px "SimSun",serif' : '13px "SimSun",serif';
+      const mark = sel ? '▶ ' : '  ';
+      ctx.fillText(mark + (it.name || ITEM_NAMES[it.id] || it.id), px + 40, yy);
+      ctx.fillStyle = 'rgba(180,170,150,0.6)';
+      ctx.font = '10px "SimSun",serif';
+      ctx.fillText(ITEM_DESCS[it.id] || '', px + 40, yy + 14);
+      yy += 38;
+    }
+  }
+
+  // 诗词碎片收集
+  yy += 10;
+  ctx.fillStyle = 'rgba(200,200,200,0.5)';
+  ctx.font = '11px "SimSun",serif';
+  ctx.fillText('已收集汉字：', px + 30, yy);
+  yy += 18;
+  if (data.chars.length) {
+    ctx.font = 'bold 16px "SimSun",serif';
+    ctx.fillStyle = '#ffd866';
+    ctx.fillText(data.chars.join('  '), px + 40, yy);
+  } else {
+    ctx.fillStyle = 'rgba(180,170,150,0.5)';
+    ctx.font = '12px "SimSun",serif';
+    ctx.fillText('（尚无）', px + 40, yy);
+  }
+
+  // 底部提示
+  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.font = '11px "SimSun",serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('↑↓ 选择   E 使用   I/Esc 关闭', px + pw / 2, py + ph - 16);
   ctx.textAlign = 'left';
 }

@@ -3,6 +3,9 @@
 
 import { W, H } from './config.js';
 import { input } from './input.js';
+import * as audio from './audio.js';
+import * as fx from './fx.js';
+import * as difficulty from './difficulty.js';
 
 // 弹幕框尺寸（战斗界面中央的躲避区域）
 const BOX_W = 280;
@@ -10,10 +13,14 @@ const BOX_H = 200;
 
 export class Battle {
   constructor(enemy, player, onEnd) {
+    // 应用全局难度倍率到敌人 HP
+    const mul = difficulty.currentMul();
+    const baseHp = enemy.hp || 30;
+    const baseMaxHp = enemy.maxHp || 30;
     this.enemy = {
       ...enemy,
-      hp: enemy.hp || 30,
-      maxHp: enemy.maxHp || 30,
+      hp: Math.round(baseHp * mul.enemyHp),
+      maxHp: Math.round(baseMaxHp * mul.enemyHp),
       name: enemy.name || '梗鬼',
     };
     this.player = player;
@@ -29,10 +36,10 @@ export class Battle {
     this.menuIndex = 0; // 0=战斗 1=调查 2=诗词 3=宽恕
     this.menuItems = ['战 斗', '调 查', '诗 词', '宽 恕'];
 
-    // 清醒值（调查累积；满了才能宽恕）
+    // 清醒值（调查累积；满了才能宽恕）—— 受难度影响
     this.isBoss = !!enemy.boss;
     this.clarity = 0;
-    this.clarityMax = this.isBoss ? 4 : 3;
+    this.clarityMax = Math.max(1, (this.isBoss ? 4 : 3) + mul.clarityMax);
     this.attacked = false;
     this.acts = enemy.acts || [
       '你凑近看它。绿光里浮着半张人脸，像谁褪色的旧照片。',
@@ -42,6 +49,10 @@ export class Battle {
     ];
     // 弹幕难度
     this.diff = this.isBoss ? 2 : (this.enemy.maxHp >= 60 ? 1.4 : 1);
+
+    // Boss 阶段系统：血量过半切换到更激进的弹幕模式
+    this.bossPhase = 1; // 1=第一阶段, 2=第二阶段（血量<50%）
+    this.bossPhaseTriggered = false;
 
     // 红心（玩家在弹幕框里的位置）
     this.heart = { x: 0, y: 0, r: 6 };
@@ -187,6 +198,8 @@ export class Battle {
     this.attacked = true; // 动用了武力
     this.attackBar.hit = true;
     this.lastDamage = damage;
+    audio.playSfx('hit');
+    fx.shake(4, 150);
     // 粒子
     for (let i = 0; i < 12; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -202,6 +215,7 @@ export class Battle {
     if (this.enemy.hp <= 0) {
       this.enemy.hp = 0;
       this.result = 'win';
+      audio.playSfx('victory');
       this.setEnemyText('不……不可能……');
     } else {
       this.setEnemyText(`啊！(${damage} 伤害)`);
@@ -229,6 +243,8 @@ export class Battle {
       const damage = 35;
       this.enemy.hp -= damage;
       this.lastDamage = damage;
+      audio.playSfx('purifyWave');
+      fx.flash('#ffd866', 0.5, 500);
       // 消耗一个汉字
       if (this.player.collectedChars.length > 0) {
         this.player.collectedChars.pop();
@@ -245,6 +261,7 @@ export class Battle {
       if (this.enemy.hp <= 0) {
         this.enemy.hp = 0;
         this.result = 'win';
+        audio.playSfx('victory');
         this.setEnemyText('那些字……好烫……');
       } else {
         this.setEnemyText(`浩然正气！(${damage} 伤害)`);
@@ -270,10 +287,13 @@ export class Battle {
   trySpare() {
     if (this.clarity >= this.clarityMax) {
       this.result = 'spare';
+      audio.playSfx('spare');
+      fx.flash('#ffd866', 0.4, 600);
       this.setEnemyText('它安静下来，绿光褪成一缕暖色……「谢……谢你。」');
       this.phase = 'result';
       this.timer = 0;
     } else {
+      audio.playSfx('uiCancel');
       const left = this.clarityMax - this.clarity;
       this.setEnemyText(`它还听不进去。再「调查」${left}次，让它想起自己是谁。`);
       this.lastDamage = null;
@@ -327,16 +347,23 @@ export class Battle {
       b.y += b.vy * dt * 0.06;
       b.life -= dt;
       if (b.life <= 0) { this.bullets.splice(i, 1); continue; }
-      // 出框清除
-      if (Math.abs(b.x) > BOX_W/2 + 30 || Math.abs(b.y) > BOX_H/2 + 30) {
+      // 反弹弹幕：碰到弹幕框边界反弹
+      if (b.bounce) {
+        if (b.x < -BOX_W/2) { b.x = -BOX_W/2; b.vx = Math.abs(b.vx); }
+        if (b.x > BOX_W/2) { b.x = BOX_W/2; b.vx = -Math.abs(b.vx); }
+        if (b.y < -BOX_H/2) { b.y = -BOX_H/2; b.vy = Math.abs(b.vy); }
+        if (b.y > BOX_H/2) { b.y = BOX_H/2; b.vy = -Math.abs(b.vy); }
+      } else if (Math.abs(b.x) > BOX_W/2 + 30 || Math.abs(b.y) > BOX_H/2 + 30) {
+        // 出框清除
         this.bullets.splice(i, 1);
         continue;
       }
       // 碰撞红心
       const d = Math.hypot(b.x - this.heart.x, b.y - this.heart.y);
       if (d < this.heart.r + b.r) {
-        this.heartHp -= 6;
+        this.heartHp -= Math.round(6 * difficulty.currentMul().sanDamage);
         this.bullets.splice(i, 1);
+        audio.playSfx('bulletHit');
         // 受伤粒子
         for (let k = 0; k < 6; k++) {
           const a = Math.random() * Math.PI * 2;
@@ -350,6 +377,7 @@ export class Battle {
         if (this.heartHp <= 0) {
           this.heartHp = 0;
           this.result = 'lose';
+          audio.playSfx('death');
           this.setEnemyText('你的语言……被吞噬了……');
           this.phase = 'result';
           this.timer = 0;
@@ -368,12 +396,27 @@ export class Battle {
   }
 
   spawnBulletWave() {
+    // Boss 阶段检测：血量过半时切换到第二阶段
+    if (this.isBoss && !this.bossPhaseTriggered && this.enemy.hp <= this.enemy.maxHp / 2) {
+      this.bossPhaseTriggered = true;
+      this.bossPhase = 2;
+      this.diff += 0.5; // 难度提升
+      this.enemyTurnDuration += 2000; // 第二阶段更长
+      this.setEnemyText('……你……竟敢……！！');
+      audio.playSfx('hit');
+      fx.shake(10, 300);
+      fx.flash('#ff4444', 0.3, 300);
+    }
+
     const words = ['YYDS', '绝绝子', '蚌', '啊对', '6', '栓Q', '泰裤辣', 'emo'];
     const word = () => words[Math.floor(Math.random() * words.length)];
     const d = this.diff;
-    const sp = 0.9 + d * 0.35;        // 速度系数
+    const mul = difficulty.currentMul();
+    const sp = (0.9 + d * 0.35) * mul.bulletSpeed; // 速度系数 × 难度倍率
     const r = 8;
-    const pick = Math.floor(Math.random() * (this.isBoss ? 5 : 4));
+    // 第二阶段 Boss 有更多弹幕模式可选
+    const maxPick = this.isBoss ? (this.bossPhase === 2 ? 8 : 5) : 4;
+    const pick = Math.floor(Math.random() * maxPick);
 
     if (pick === 0) {
       // 左侧扫射（难度越高越多发）
@@ -401,12 +444,50 @@ export class Battle {
         const a = base + (i / k) * Math.PI * 2;
         this.bullets.push({ x: 0, y: 0, vx: Math.cos(a) * 2.2 * sp, vy: Math.sin(a) * 2.2 * sp, r: 7, text: '6', life: 3500 });
       }
-    } else {
+    } else if (pick === 4) {
       // Boss：带缺口的横墙
       const gap = (Math.random() - 0.5) * BOX_W * 0.5;
       for (let gx = -BOX_W/2; gx < BOX_W/2; gx += 26) {
         if (Math.abs(gx - gap) < 28) continue;
         this.bullets.push({ x: gx, y: -BOX_H/2 - 10, vx: 0, vy: 2.6 * sp, r: 7, text: '卡', life: 4200 });
+      }
+    } else if (pick === 5) {
+      // 【新】追踪弹波浪：从两侧交替发射瞄准弹
+      const fromLeft = Math.random() < 0.5;
+      const sx = fromLeft ? -BOX_W/2 - 10 : BOX_W/2 + 10;
+      const ax = this.heart.x - sx, ay = this.heart.y;
+      const m = Math.hypot(ax, ay) || 1;
+      for (let i = 0; i < 3; i++) {
+        this.bullets.push({
+          x: sx, y: (i - 1) * 30,
+          vx: (ax / m) * 2.5 * sp, vy: (ay / m) * 2.5 * sp + (i - 1) * 0.3,
+          r: 7, text: word(), life: 4000,
+        });
+      }
+    } else if (pick === 6) {
+      // 【新】墙壁反弹弹：从角落发射，碰墙反弹
+      const corners = [[-BOX_W/2,-BOX_H/2],[BOX_W/2,-BOX_H/2],[-BOX_W/2,BOX_H/2],[BOX_W/2,BOX_H/2]];
+      const c = corners[Math.floor(Math.random() * 4)];
+      const ang = Math.atan2(this.heart.y - c[1], this.heart.x - c[0]) + (Math.random() - 0.5) * 0.5;
+      this.bullets.push({
+        x: c[0], y: c[1],
+        vx: Math.cos(ang) * 2.8 * sp, vy: Math.sin(ang) * 2.8 * sp,
+        r: 8, text: '弹', life: 5000, bounce: true, // 反弹标记
+      });
+    } else {
+      // 【新】螺旋连续弹：多波次螺旋，时间偏移
+      const waves = 2;
+      const k = 5;
+      for (let w = 0; w < waves; w++) {
+        const base = (this.timer * 0.001 + w * Math.PI / waves) % (Math.PI * 2);
+        for (let i = 0; i < k; i++) {
+          const a = base + (i / k) * Math.PI * 2;
+          this.bullets.push({
+            x: 0, y: 0,
+            vx: Math.cos(a) * 2 * sp, vy: Math.sin(a) * 2 * sp,
+            r: 6, text: '6', life: 3500,
+          });
+        }
       }
     }
   }

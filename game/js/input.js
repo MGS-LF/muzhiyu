@@ -23,7 +23,7 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (!keys[k]) justPressed[k] = true;
   keys[k] = true;
-  if (['arrowup','arrowdown','arrowleft','arrowright',' ','backspace'].includes(k)) e.preventDefault();
+  if (['arrowup','arrowdown','arrowleft','arrowright',' ','backspace','tab'].includes(k)) e.preventDefault();
 });
 window.addEventListener('keyup', e => { if (inField(e)) return; keys[e.key.toLowerCase()] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.down = false; });

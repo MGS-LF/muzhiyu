@@ -11,6 +11,12 @@ import { AI } from './ai/config.js';
 import { generateBranch, buildBranchDialog, tingyuReply } from './ai/director.js';
 import { SideScrollLevel } from './sidescroll.js';
 import { Level3D } from './level3d.js';
+// 新增系统：存档 / 音效 / 视觉特效 / 难度 / 小地图
+import { autoSave, saveToSlot, loadSnapshot, restore, listSaves, summarize, deleteSave, SAVE_SLOTS } from './save.js';
+import * as audio from './audio.js';
+import * as fx from './fx.js';
+import * as difficulty from './difficulty.js';
+import * as minimap from './minimap.js';
 
 const DIALOGS = {
   wake: [
@@ -491,6 +497,10 @@ export class Game {
         { k: '方向键', d: '战斗中移动红心 / 选菜单' },
         { k: 'J', d: '战斗中：攻击瞄准' },
         { k: 'Space', d: '战斗中确认 / 大地图冲刺' },
+        { k: 'I', d: '背包' },
+        { k: 'Tab', d: '小地图开关' },
+        { k: 'F5/F9', d: '快速存档 / 读档' },
+        { k: 'N', d: '静音切换' },
       ],
       tip: '左上角是当前目标，金色箭头指向下一步。靠近发光物按 E，靠近绿色梗鬼会进入战斗。',
     };
@@ -499,6 +509,40 @@ export class Game {
     this.level3d = null;
     this.gameTime = 0;
     this.lastTime = 0;
+    // 新增系统状态
+    this._audioUnlocked = false;      // 音频是否已解锁（首次交互后）
+    this._saveMenu = null;            // 存档菜单状态：null | 'save' | 'load'
+    this._saveMenuIdx = 0;            // 菜单选中索引
+    this._saveFlash = 0;              // 存档成功闪烁提示计时
+    this._lastBgmScene = null;        // 上次播放 BGM 的场景（避免重复切换）
+    this._lastAutoSave = 0;           // 上次自动存档时间（节流）
+    // 难度系统：从 localStorage 读取，应用到全局
+    this.difficultyId = difficulty.loadDifficulty();
+    difficulty.setCurrent(this.difficultyId);
+    this._applyDifficulty();
+    // 背包面板状态（I 键切换）
+    // uiPanel 已支持 'quest'/'map'/'debug'，新增 'inventory'
+    // 小地图显示开关（默认开）
+    this._showMinimap = true;
+    // 屏幕墙减速状态（体育馆陷阱）
+    this._screenWallSlow = 0;         // >0 时玩家被减速
+    this._screenWallSanDrain = 0;     // >0 时持续扣 SAN
+  }
+
+  // 应用当前难度到游戏状态（SAN 上限等）
+  _applyDifficulty() {
+    const mul = difficulty.currentMul();
+    this.player.maxSan = mul.sanMax;
+    this.player.san = Math.min(this.player.san, this.player.maxSan);
+  }
+
+  // 切换难度（游戏内/菜单调用）
+  changeDifficulty(id) {
+    if (!['easy', 'normal', 'hard'].includes(id)) return;
+    this.difficultyId = id;
+    difficulty.setCurrent(id);
+    this._applyDifficulty();
+    this.showHint(`难度已切换：${difficulty.getDifficultyDef(id).name}`);
   }
 
   start() {
@@ -521,6 +565,7 @@ export class Game {
     this.dialogState = null;
     this.combat.bullets = [];
     this.combat.particles = [];
+    fx.reset(); // 清除上一场景残留特效（震动/闪光/净化波），保留过渡动画
     // 敌人：移除已击败的
     if (this.scene.enemies) {
       this.scene.enemies = this.scene.enemies.filter(e => !this.defeatedEnemies.has(e.id));
@@ -547,6 +592,17 @@ export class Game {
       this.visitedScenes.add(sceneId);
       const intro = SCENE_INTROS[sceneId];
       if (intro) this.showHint(intro);
+    }
+    // BGM 切换：场景变更时播放对应氛围曲（同曲不重启）
+    if (this._audioUnlocked && this._lastBgmScene !== sceneId) {
+      audio.playBGM(sceneId);
+      this._lastBgmScene = sceneId;
+    }
+    // 自动存档（节流：3 秒内不重复存，冷冻中心苏醒前不存）
+    const canSave = sceneId !== 'freeze_center' || this.flags.wake_done;
+    if (canSave && performance.now() - this._lastAutoSave > 3000) {
+      this._lastAutoSave = performance.now();
+      autoSave(this);
     }
     // 江堤横版模式：进入 riverside 时启动
     if (this.scene.mode === 'sidescroll') {
@@ -752,6 +808,8 @@ export class Game {
     const dt = Math.min(now - this.lastTime, 50);
     this.lastTime = now;
     this.gameTime += dt;
+    fx.update(dt); // 视觉特效每帧更新
+    if (this._saveFlash > 0) this._saveFlash -= dt;
     this.update(dt);
     // 3D 关卡用独立 WebGL 渲染器，不走 Canvas 2D render()
     if (this.level3d) {
@@ -763,21 +821,63 @@ export class Game {
   }
 
   update(dt) {
+    // 首次交互解锁音频（浏览器策略：需用户手势）
+    if (!this._audioUnlocked) {
+      const anyKey = input.wasPressed('e') || input.wasPressed('w') || input.wasPressed('a') ||
+                     input.wasPressed('s') || input.wasPressed('d') || input.wasPressed(' ') ||
+                     input.mousePressed();
+      if (anyKey) {
+        audio.unlockAudio();
+        this._audioUnlocked = true;
+      }
+    }
+
+    // === 全局快捷键（不受面板/对话状态限制）===
+    // F5 快速存档（自动槽）、F9 快速读档、N 静音、F6 存档菜单
+    if (input.wasPressed('f5')) { this._quickSave(); return; }
+    if (input.wasPressed('f9')) { this._quickLoad(); return; }
+    if (input.wasPressed('n')) {
+      audio.setMuted(!audio.isMuted());
+      this.showHint(audio.isMuted() ? '🔇 已静音' : '🔊 已开启声音');
+      audio.playSfx('ui');
+      return;
+    }
+    if (input.wasPressed('f6')) { this._saveMenu = this._saveMenu ? null : 'save'; return; }
+    // Tab 切换小地图显示
+    if (input.wasPressed('tab')) { this._showMinimap = !this._showMinimap; this.showHint(this._showMinimap ? '小地图已开启' : '小地图已关闭'); return; }
+
+    // 存档菜单：冻结世界，仅处理菜单内导航
+    if (this._saveMenu) {
+      this._updateSaveMenu(dt);
+      return;
+    }
+
     // 集中刷新当前目标与指引（廉价，保证始终正确）
     this.refreshObjective();
 
-    // === UI 面板切换（J=任务，M=地图，F2=调试）===
+    // 小地图探索标记：以玩家为中心标记已探索区域
+    if (this.scene) {
+      minimap.markExplored(this.scene.id, this.player.x, this.player.y, 100);
+    }
+
+    // SAN 值低时触发持续视觉扭曲
+    const sanRatio = this.player.san / this.player.maxSan;
+    fx.setDistortion(sanRatio < 0.4 ? (0.4 - sanRatio) / 0.4 : 0);
+
+    // === UI 面板切换（J=任务，M=地图，I=背包，F2=调试）===
     // 面板打开时冻结世界，仅处理面板内导航
     if (this.uiPanel) {
       if (input.wasPressed('j')) { this.uiPanel = null; return; }
       if (input.wasPressed('m')) { this.uiPanel = null; return; }
+      if (input.wasPressed('i')) { this.uiPanel = null; return; }
       if (input.wasPressed('escape')) { this.uiPanel = null; return; }
       if (input.wasPressed('f2')) { this.uiPanel = null; return; }
       this._updatePanel(dt);
       this.updateParticles(dt);
       return;
     }
-    if (input.wasPressed('j')) { this.uiPanel = 'quest'; return; }
+    if (input.wasPressed('j')) { this.uiPanel = 'quest'; audio.playSfx('ui'); return; }
+    if (input.wasPressed('i')) { this.uiPanel = 'inventory'; audio.playSfx('ui'); return; }
     if (input.wasPressed('m')) { this.uiPanel = 'map'; return; }
     if (input.wasPressed('f2')) { this.uiPanel = 'debug'; return; }
 
@@ -866,6 +966,12 @@ export class Game {
     // 玩家移动
     this.player.update(dt, input, this);
 
+    // === 体育馆屏幕墙陷阱：靠近屏幕墙时减速 + 持续扣 SAN ===
+    this._updateScreenWallTrap(dt);
+
+    // === NPC 游荡行为：失语者小范围随机移动 ===
+    this._updateNpcWander(dt);
+
     // 踩踏窗口：空格冲刺时打开短暂窗口，用于俯视角踩踏地面梗鬼
     // 防抖：600ms 内仅触发一次，避免连按/长按反复冲刺
     if (input.wasPressed(' ') && performance.now() - this.combat.lastDash > 600) {
@@ -913,6 +1019,7 @@ export class Game {
       this.battleResult = result;
       this.battleEnemy = e;
     });
+    audio.playBGM('battle'); // 战斗 BGM
   }
 
   endBattle() {
@@ -921,6 +1028,11 @@ export class Game {
     this.battle = null;
     this.battleResult = null;
     this.battleEnemy = null;
+
+    // 恢复场景 BGM
+    if (this._audioUnlocked && this.scene) {
+      audio.playBGM(this.scene.id);
+    }
 
     if (result === 'win') {
       // 标记敌人击败
@@ -940,6 +1052,8 @@ export class Game {
         type: 'char_fragment', char: drop
       });
       this.showHint(`击败梗鬼！掉落汉字碎片「${drop}」`);
+      audio.playSfx('victory');
+      fx.flash('#ffd866', 0.3, 300);
       // 检查集齐
       const haveZhou = this.player.collectedCharsAll.filter(c => c === '洲').length;
       const haveQiu = this.player.collectedCharsAll.filter(c => c === '逑').length;
@@ -950,6 +1064,8 @@ export class Game {
       }
       // 对话保护
       this.player.dialogGrace = 1500;
+      // 战斗胜利自动存档
+      autoSave(this);
     } else if (result === 'spare') {
       // 以诗唤醒、宽恕：倾向"火种"
       this.defeatedEnemies.add(enemy.id);
@@ -959,9 +1075,16 @@ export class Game {
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
       this.showHint('梗鬼安静下来，化作一缕暖光散去。（宽恕）');
+      audio.playSfx('spare');
+      fx.flash('#ffd866', 0.4, 500);
+      fx.purifyWave(this.player.x, this.player.y, 400);
       this.player.dialogGrace = 1500;
+      autoSave(this); // 宽恕也存档
     } else if (result === 'lose') {
       // 死亡：仅当当前场景有已激活的要石时原地复活；否则回场景出生点（传送点）
+      audio.playSfx('death');
+      fx.shake(16, 600);
+      fx.flash('#cc4444', 0.5, 400);
       this.player.san = this.player.maxSan;
       const respawn = this._nearestKeystoneSpawn();
       if (respawn) {
@@ -1104,6 +1227,9 @@ export class Game {
     this.ending = this.resolveEnding();
     this.flags.game_complete = true;
     this.flags.engraving_summary = null; // 标记：降级，无评价
+    audio.playBGM('ending');
+    audio.playSfx('victory');
+    autoSave(this); // 通关存档
   }
 
   // ============================================
@@ -1236,12 +1362,15 @@ export class Game {
       x: e.x, y: e.y, vx: 0, vy: -2, life: 400, color: '180,255,180', size: 3,
     });
     this.player.san = Math.min(this.player.maxSan, this.player.san + 4);
+    audio.playSfx('hit');
+    fx.shake(5, 150);
     if (!this.stompHintShown) {
       this.stompHintShown = true;
       this.showHint('踩中梗鬼！（空格冲刺可踩踏地面行走的梗鬼）');
     } else {
       this.showHint('踩中！理性 +4');
     }
+    autoSave(this); // 踩踏击败也存档
   }
 
   // ============================================
@@ -1322,6 +1451,15 @@ export class Game {
     // 记录刻字内容到目标对象，供渲染显示
     e.target.engraved = t;
     this.engraveState = null;
+    // 要石激活：音效 + 金色闪光 + 净化波 + 自动存档（天然存档点）
+    if (e.type === 'keystone') {
+      audio.playSfx('keystone');
+      fx.flash('#ffd866', 0.4, 500);
+      fx.purifyWave(e.target.x, e.target.y, 300);
+      autoSave(this); // 要石刻字是天然存档点
+    } else {
+      audio.playSfx('uiConfirm');
+    }
     this.startDialog([
       { s: '系统', t: `顾言用刻刀刻下「${t}」。` },
       { s: '系统', t: '金色的微光从刻痕里渗出，像是一个被重新点燃的坐标。' },
@@ -1568,6 +1706,7 @@ export class Game {
         this.collected.add(it.id);
         if (it.type === 'char_fragment') {
           this.recordChar(it.char);
+          audio.playSfx('pickup');
           this.showHint(`获得：汉字碎片「${it.char}」`);
           // 检查是否集齐
           const haveZhou = this.player.collectedCharsAll.filter(c => c === '洲').length;
@@ -1579,6 +1718,7 @@ export class Game {
           }
         } else if (it.type === 'page') {
           this.player.san = Math.min(this.player.maxSan, this.player.san + 30);
+          audio.playSfx('pickup');
           const line = POEM_LINES[Math.floor(Math.random() * POEM_LINES.length)];
           this.showHint('旧书页：' + line + '（理性 +30）');
         } else {
@@ -1874,6 +2014,10 @@ export class Game {
   // UI 面板：任务列表 / 地图 / 调试传送
   // ============================================
   _updatePanel(dt) {
+    if (this.uiPanel === 'inventory') {
+      this._updateInventoryPanel(dt);
+      return;
+    }
     if (this.uiPanel === 'debug') {
       const scenes = this._debugSceneList();
       const n = scenes.length;
@@ -1925,5 +2069,254 @@ export class Game {
     // 刻字
     if (this.engravings.length) quests.push({ cat: '刻字', text: `已刻字 ${this.engravings.length} 处`, done: true });
     return quests;
+  }
+
+  // ============================================
+  // 存档系统方法
+  // ============================================
+  // 快速存档到自动槽
+  _quickSave() {
+    const ok = autoSave(this);
+    if (ok) {
+      this._saveFlash = 1500;
+      this.showHint('✓ 已自动存档（F5）');
+      audio.playSfx('save');
+    } else {
+      this.showHint('✗ 存档失败（localStorage 不可用）');
+    }
+  }
+
+  // 快速读档（自动槽）
+  _quickLoad() {
+    const snap = loadSnapshot('auto');
+    if (!snap) {
+      this.showHint('没有可读取的自动存档');
+      audio.playSfx('uiCancel');
+      return;
+    }
+    audio.playSfx('load');
+    fx.transition(600, () => {
+      const ok = restore(this, snap);
+      if (ok && this._pendingScene) {
+        this.loadScene(this._pendingScene, this._pendingSpawn);
+        this._pendingScene = null;
+        this._pendingSpawn = null;
+        this.showHint('✓ 已读取自动存档（F9）');
+      }
+    });
+  }
+
+  // 存档菜单更新
+  _updateSaveMenu(dt) {
+    const menu = this._saveMenu;
+    if (!menu) return;
+    // ESC 关闭
+    if (input.wasPressed('escape') || input.wasPressed('f6')) {
+      this._saveMenu = null;
+      audio.playSfx('uiCancel');
+      return;
+    }
+    const saves = listSaves();
+    const n = saves.length + 1; // +1 为"新建存档"行
+    if (input.wasPressed('arrowup') || input.wasPressed('w'))
+      this._saveMenuIdx = (this._saveMenuIdx - 1 + n) % n;
+    if (input.wasPressed('arrowdown') || input.wasPressed('s'))
+      this._saveMenuIdx = (this._saveMenuIdx + 1) % n;
+    if (input.wasPressed('e') || input.wasPressed('enter')) {
+      if (this._saveMenuIdx < saves.length) {
+        // 读取已有存档
+        const snap = saves[this._saveMenuIdx];
+        const ok = restore(this, snap);
+        if (ok && this._pendingScene) {
+          this.loadScene(this._pendingScene, this._pendingSpawn);
+          this._pendingScene = null;
+          this._pendingSpawn = null;
+          this.showHint(`✓ 已读取存档（${snap.slot === 'auto' ? '自动' : '槽位 ' + snap.slot}）`);
+          audio.playSfx('load');
+        }
+        this._saveMenu = null;
+      } else {
+        // 新建存档到第一个空槽位
+        let slot = 0;
+        const allSaves = listSaves();
+        for (let i = 1; i <= SAVE_SLOTS; i++) {
+          if (!allSaves.find(s => s.slot === i)) { slot = i; break; }
+        }
+        if (slot === 0) slot = 1; // 全满则覆盖槽位1
+        saveToSlot(this, slot);
+        this.showHint(`✓ 已存档到槽位 ${slot}`);
+        audio.playSfx('save');
+        this._saveMenu = null;
+      }
+    }
+  }
+
+  // ============================================
+  // 体育馆屏幕墙陷阱：靠近屏幕墙时减速 + 持续扣 SAN
+  // ============================================
+  _updateScreenWallTrap(dt) {
+    if (!this.scene || !this.scene.props) {
+      this._screenWallSlow = 0;
+      this._screenWallSanDrain = 0;
+      return;
+    }
+    // 仅体育馆场景启用屏幕墙陷阱
+    if (this.scene.id !== 'stadium') {
+      this._screenWallSlow = 0;
+      this._screenWallSanDrain = 0;
+      return;
+    }
+    // 检测玩家是否在任意屏幕墙的影响范围内（距墙边 20 像素内）
+    let near = false;
+    for (const p of this.scene.props) {
+      // 屏幕墙的标识：name 包含"屏幕"，或有 type='screen'
+      const isScreen = (p.name && String(p.name).includes('屏幕')) || p.type === 'screen';
+      if (!isScreen) continue;
+      const px = this.player.x, py = this.player.y;
+      // 矩形扩展检测
+      if (px > p.x - 20 && px < p.x + p.w + 20 &&
+          py > p.y - 20 && py < p.y + p.h + 20) {
+        near = true;
+        break;
+      }
+    }
+    if (near) {
+      this._screenWallSlow = 200; // 减速持续 200ms（每帧刷新）
+      this._screenWallSanDrain = 200;
+      // 持续扣 SAN（每秒 4 点，受难度影响）
+      const drain = 4 * (dt / 1000) * difficulty.currentMul().sanDamage;
+      this.player.san = Math.max(0, this.player.san - drain);
+      // SAN 归零触发死亡
+      if (this.player.san <= 0 && !this.combat.dead) {
+        this._handleScreenWallDeath();
+      }
+    } else {
+      if (this._screenWallSlow > 0) this._screenWallSlow -= dt;
+      if (this._screenWallSanDrain > 0) this._screenWallSanDrain -= dt;
+    }
+  }
+
+  _handleScreenWallDeath() {
+    this.combat.dead = true;
+    audio.playSfx('death');
+    fx.shake(16, 600);
+    fx.flash('#cc4444', 0.5, 400);
+    this.player.san = this.player.maxSan;
+    const respawn = this._nearestKeystoneSpawn();
+    if (respawn) {
+      this.showHint('屏幕的噪音吞噬了你的理性……在要石旁醒来。');
+      this.loadScene(this.scene.id, respawn);
+    } else {
+      this.showHint('你跌回入口的微光中……');
+      this.loadScene(this.scene.id);
+    }
+    this.combat.dead = false;
+  }
+
+  // 供 player.js 查询：当前是否被屏幕墙减速（返回速度倍率）
+  getSpeedMul() {
+    return this._screenWallSlow > 0 ? 0.5 : 1.0;
+  }
+
+  // ============================================
+  // 背包面板（I 键）：查看/使用道具
+  // ============================================
+  _updateInventoryPanel(dt) {
+    const items = this.player.inventory;
+    if (!items.length) {
+      if (input.wasPressed('e') || input.wasPressed('escape') || input.wasPressed('i')) {
+        this.uiPanel = null;
+        audio.playSfx('uiCancel');
+      }
+      return;
+    }
+    if (!this._invSel) this._invSel = 0;
+    this._invSel = Math.min(this._invSel, items.length - 1);
+    if (input.wasPressed('arrowup') || input.wasPressed('w'))
+      this._invSel = (this._invSel - 1 + items.length) % items.length;
+    if (input.wasPressed('arrowdown') || input.wasPressed('s'))
+      this._invSel = (this._invSel + 1) % items.length;
+    if (input.wasPressed('e') || input.wasPressed('enter')) {
+      this._useItem(this._invSel);
+    }
+    if (input.wasPressed('escape') || input.wasPressed('i')) {
+      this.uiPanel = null;
+      audio.playSfx('uiCancel');
+    }
+  }
+
+  // 使用道具
+  _useItem(idx) {
+    const item = this.player.inventory[idx];
+    if (!item) return;
+    audio.playSfx('uiConfirm');
+    if (item.id === 'old_page' || item.id === 'page') {
+      // 旧书页：恢复 30 SAN
+      const heal = Math.min(30, this.player.maxSan - this.player.san);
+      this.player.san = Math.min(this.player.maxSan, this.player.san + 30);
+      this.player.inventory.splice(idx, 1);
+      this.showHint(`使用旧书页，理性 +${heal}`);
+      fx.flash('#ffd866', 0.3, 300);
+    } else if (item.id === 'knife') {
+      this.showHint('记忆合金小刀：战斗中用来刻字/攻击，无需消耗。');
+    } else if (item.id === 'poem_guanju') {
+      this.showHint('《关雎》诗页：已收录，作为武器使用。');
+    } else {
+      this.showHint(`${item.name || '道具'}：暂无使用效果。`);
+    }
+  }
+
+  // 获取背包数据（供 render.js 绘制）
+  getInventoryData() {
+    return {
+      items: this.player.inventory.map((it, i) => ({
+        ...it,
+        selected: i === (this._invSel || 0),
+      })),
+      san: this.player.san,
+      maxSan: this.player.maxSan,
+      chars: [...new Set(this.player.collectedCharsAll)],
+    };
+  }
+
+  // ============================================
+  // NPC 游荡行为：失语者小范围随机移动
+  // ============================================
+  _updateNpcWander(dt) {
+    if (!this.scene || !this.scene.interactables) return;
+    for (const it of this.scene.interactables) {
+      // 仅对 cure（失语者）添加游荡；dialog 类型多为静态物体（告示/轿车/书架等），不游荡
+      if (it.type !== 'cure') continue;
+      // 已完成治愈的 cure NPC 不再游荡
+      if (this.completedQuests.has(it.puzzle)) continue;
+      // 初始化游荡状态
+      if (it._wander === undefined) {
+        it._wander = {
+          homeX: it.x, homeY: it.y,   // 原点
+          tx: it.x, ty: it.y,          // 目标点
+          timer: Math.random() * 3000, // 下次决策计时
+          phase: Math.random() * 6,    // 行走动画相位
+        };
+      }
+      const w = it._wander;
+      w.timer -= dt;
+      if (w.timer <= 0) {
+        // 选择新目标点（原点 40 像素半径内）
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 10 + Math.random() * 30;
+        w.tx = w.homeX + Math.cos(ang) * dist;
+        w.ty = w.homeY + Math.sin(ang) * dist;
+        w.timer = 2000 + Math.random() * 4000; // 停留 2-6 秒
+      }
+      // 向目标点缓慢移动
+      const dx = w.tx - it.x, dy = w.ty - it.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 1) {
+        const sp = 0.3 * (dt / 16);
+        it.x += (dx / d) * sp;
+        it.y += (dy / d) * sp;
+        w.phase += dt * 0.01;
+      }
+    }
   }
 }
