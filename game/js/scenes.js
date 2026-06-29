@@ -16,7 +16,7 @@ export const DROP_TABLES = {
   lost_village: ['洲', '逑', '鹜', '天'],             // 失语者村落：混合掉落
   // 未配置的场景默认使用 street_01 的掉落表
 };
-const DEFAULT_DROPS = ['洲', '逑'];
+export const DEFAULT_DROPS = ['洲', '逑'];
 
 export const scenes = {
   // ==========================================

@@ -106,6 +106,11 @@ export function render(game, gameTime) {
   else if (scene.id === 'house_a' || scene.id === 'house_b') drawHouse(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'stadium') drawStadium(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'data_center') drawDataCenter(ctx, W2S, scene, gameTime, game);
+  // 第五章新场景：复用通用渲染（props/walls/装饰物由通用层绘制）
+  else if (scene.id === 'ruined_library' || scene.id === 'network_nexus' ||
+           scene.id === 'memory_abyss' || scene.id === 'lost_village') {
+    drawGenericScene(ctx, W2S, scene, gameTime, game);
+  }
 
   // 交互点远距离视觉标识（为仅有靠近触发圈、却无实体模型的交互点补可见物）
   drawInteractableMarkers(ctx, W2S, scene, game, gameTime);
@@ -4193,4 +4198,94 @@ function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
   ctx.textAlign = 'center';
   ctx.fillText('↑↓ 选择   E 使用   I/Esc 关闭', px + pw / 2, py + ph - 16);
   ctx.textAlign = 'left';
+}
+
+// ============================================================
+// 通用场景渲染（第五章新场景：废图书馆/网络中枢/记忆深渊/失语者聚居地）
+// 绘制背景/墙壁/props/道具等基础元素，无场景专属装饰
+// ============================================================
+function drawGenericScene(ctx, W2S, scene, gameTime, game) {
+  // 背景渐变（基于场景 bgColor）
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, scene.bgColor || '#0a0a0e');
+  bgGrad.addColorStop(1, '#000');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 氛围光斑（基于场景 atmosphere）
+  if (scene.atmosphere && scene.atmosphere.tint) {
+    ctx.fillStyle = scene.atmosphere.tint;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 墙壁
+  ctx.fillStyle = 'rgba(50,48,44,0.85)';
+  for (const w of scene.walls) {
+    const s = W2S(w.x, w.y);
+    ctx.fillRect(s.x, s.y, w.w, w.h);
+  }
+  ctx.strokeStyle = 'rgba(100,90,70,0.4)';
+  ctx.lineWidth = 1;
+  for (const w of scene.walls) {
+    const s = W2S(w.x, w.y);
+    ctx.strokeRect(s.x, s.y, w.w, w.h);
+  }
+
+  // Props（带 collidable 的画实心，否则画半透明轮廓）
+  for (const p of scene.props) {
+    const s = W2S(p.x, p.y);
+    if (s.x + p.w < -50 || s.x > W + 50) continue;
+    if (s.y + p.h < -50 || s.y > H + 50) continue;
+    if (p.collidable) {
+      ctx.fillStyle = 'rgba(60,55,48,0.8)';
+      ctx.fillRect(s.x, s.y, p.w, p.h);
+      ctx.strokeStyle = 'rgba(120,100,70,0.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(s.x, s.y, p.w, p.h);
+    } else {
+      // 装饰性 prop：半透明
+      ctx.fillStyle = 'rgba(80,75,65,0.3)';
+      ctx.fillRect(s.x, s.y, p.w, p.h);
+    }
+    // 名称标签（小字）
+    if (p.name && Math.hypot(s.x - W / 2, s.y - H / 2) < 400) {
+      ctx.fillStyle = 'rgba(200,180,140,0.4)';
+      ctx.font = '9px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.name, s.x + p.w / 2, s.y - 4);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // 场景专属氛围
+  if (scene.id === 'network_nexus') {
+    // 网络中枢：数据流光柱
+    ctx.fillStyle = 'rgba(80,130,230,0.06)';
+    for (let i = 0; i < 5; i++) {
+      const x = 200 + i * 320;
+      const s = W2S(x, 0);
+      ctx.fillRect(s.x, 0, 60, H);
+    }
+  } else if (scene.id === 'memory_abyss') {
+    // 记忆深渊：飘浮光点
+    for (let i = 0; i < 30; i++) {
+      const wx = (i * 137 + 50) % scene.width;
+      const wy = ((i * 89 + 30) % scene.height) + Math.sin(gameTime * 0.001 + i) * 10;
+      const s = W2S(wx, wy);
+      const pulse = 0.3 + Math.sin(gameTime * 0.003 + i * 2) * 0.3;
+      ctx.fillStyle = `rgba(150,180,255,${pulse})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (scene.id === 'ruined_library') {
+    // 废图书馆：书页飘落
+    for (let i = 0; i < 12; i++) {
+      const wx = (i * 173 + 80) % scene.width;
+      const wy = ((i * 97 + gameTime * 0.02) % scene.height);
+      const s = W2S(wx, wy);
+      ctx.fillStyle = 'rgba(200,180,120,0.15)';
+      ctx.fillRect(s.x, s.y, 8, 10);
+    }
+  }
 }
