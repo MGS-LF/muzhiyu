@@ -1,0 +1,13 @@
+{
+  "name": "keheng",
+  "version": "1.0.0",
+  "description": "刻痕 · 遗忘的文字 — HTML5 Canvas 2D 开放世界探索 RPG",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
