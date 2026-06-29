@@ -23,6 +23,7 @@ export class Battle {
       hp: Math.round(baseHp * mul.enemyHp),
       maxHp: Math.round(baseMaxHp * mul.enemyHp),
       name: enemy.name || '梗鬼',
+      typeId: enemy.typeId || 'geng_weak',
     };
     this.player = player;
     this.onEnd = onEnd;
@@ -449,6 +450,11 @@ export class Battle {
       const d = Math.hypot(b.x - this.heart.x, b.y - this.heart.y);
       if (d < this.heart.r + b.r) {
         this.heartHp -= Math.round(6 * difficulty.currentMul().sanDamage);
+        // 格式化者弹幕：被击中时偷走一个已收集的汉字碎片（仅 collectedChars 弹药，不影响 collectedCharsAll 永久记录）
+        if (b.stealFragment && this.player.collectedChars && this.player.collectedChars.length > 0) {
+          const stolen = this.player.collectedChars.pop();
+          this.setEnemyText(`「${stolen}」已被格式化！`);
+        }
         this.bullets.splice(i, 1);
         audio.playSfx('bulletHit');
         // 受伤粒子
@@ -501,6 +507,20 @@ export class Battle {
     const mul = difficulty.currentMul();
     const sp = (0.9 + d * 0.35) * mul.bulletSpeed; // 速度系数 × 难度倍率
     const r = 8;
+
+    // ===== 第五章新敌人：独立弹幕模式 =====
+    const typeId = this.enemy.typeId;
+    if (typeId === 'formatter') {
+      // 格式化者：发射 404/NULL/ERROR 代码弹幕，被击中会偷走一个已收集的汉字碎片
+      this._spawnFormatterBullets(sp, r);
+      return;
+    }
+    if (typeId === 'memory_guard') {
+      // 记忆守卫：诗句阵型弹幕——汉字排成诗句形状推进
+      this._spawnMemoryGuardBullets(sp, r);
+      return;
+    }
+
     // 第二阶段 Boss 有更多弹幕模式可选
     const maxPick = this.isBoss ? (this.bossPhase === 2 ? 8 : 5) : 4;
     const pick = Math.floor(Math.random() * maxPick);
@@ -575,6 +595,89 @@ export class Battle {
             r: 6, text: '6', life: 3500,
           });
         }
+      }
+    }
+  }
+
+  // ===== 格式化者弹幕：404/NULL/ERROR 代码弹，被击中偷走一个汉字碎片 =====
+  _spawnFormatterBullets(sp, r) {
+    const codes = ['404', 'NULL', 'ERROR', '404', 'NULL'];
+    const code = () => codes[Math.floor(Math.random() * codes.length)];
+    const pick = Math.floor(Math.random() * 3);
+    if (pick === 0) {
+      // 数据删除弹幕：从四面涌入的 NULL 弹
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + Math.random() * 0.3;
+        const edge = Math.max(BOX_W, BOX_H) / 2 + 20;
+        this.bullets.push({
+          x: Math.cos(a) * edge, y: Math.sin(a) * edge,
+          vx: -Math.cos(a) * 2.4 * sp, vy: -Math.sin(a) * 2.4 * sp,
+          r: 9, text: code(), life: 4000, stealFragment: true,
+        });
+      }
+    } else if (pick === 1) {
+      // ERROR 弹幕墙：带缺口的横墙
+      const gap = (Math.random() - 0.5) * BOX_W * 0.4;
+      for (let gx = -BOX_W / 2; gx < BOX_W / 2; gx += 32) {
+        if (Math.abs(gx - gap) < 34) continue;
+        this.bullets.push({
+          x: gx, y: -BOX_H / 2 - 10, vx: 0, vy: 2.8 * sp,
+          r: 8, text: 'ERR', life: 4200, stealFragment: true,
+        });
+      }
+    } else {
+      // 追踪 404 弹幕：瞄准红心
+      const sx = (Math.random() - 0.5) * BOX_W, sy = -BOX_H / 2 - 10;
+      const ax = this.heart.x - sx, ay = this.heart.y - sy;
+      const m = Math.hypot(ax, ay) || 1;
+      for (let i = 0; i < 2; i++) {
+        this.bullets.push({
+          x: sx + (i - 0.5) * 40, y: sy,
+          vx: (ax / m) * 3 * sp, vy: (ay / m) * 3 * sp,
+          r: 8, text: '404', life: 4000, stealFragment: true,
+        });
+      }
+    }
+  }
+
+  // ===== 记忆守卫弹幕：诗句阵型——汉字排成诗句形状向红心推进 =====
+  _spawnMemoryGuardBullets(sp, r) {
+    const poemChars = ['月', '夜', '忆', '舍', '弟', '秋', '思'];
+    const pick = Math.floor(Math.random() * 3);
+    if (pick === 0) {
+      // 诗句横列：一排汉字从顶部缓慢下落
+      const line = poemChars.slice(0, 4 + Math.floor(Math.random() * 3));
+      const startX = -((line.length - 1) * 28) / 2;
+      for (let i = 0; i < line.length; i++) {
+        this.bullets.push({
+          x: startX + i * 28, y: -BOX_H / 2 - 10,
+          vx: 0, vy: 1.8 * sp,
+          r: 9, text: line[i], life: 5000,
+        });
+      }
+    } else if (pick === 1) {
+      // 诗句旋涡：汉字绕中心旋转扩散
+      const k = 6;
+      const base = this.timer * 0.002;
+      for (let i = 0; i < k; i++) {
+        const a = base + (i / k) * Math.PI * 2;
+        this.bullets.push({
+          x: 0, y: 0,
+          vx: Math.cos(a) * 1.8 * sp, vy: Math.sin(a) * 1.8 * sp,
+          r: 8, text: poemChars[i % poemChars.length], life: 4000,
+        });
+      }
+    } else {
+      // 记忆碎片弹：两侧交替发射诗句字
+      const fromLeft = Math.random() < 0.5;
+      const sx = fromLeft ? -BOX_W / 2 - 10 : BOX_W / 2 + 10;
+      const dir = fromLeft ? 1 : -1;
+      for (let i = 0; i < 3; i++) {
+        this.bullets.push({
+          x: sx, y: (i - 1) * 35,
+          vx: dir * 2.6 * sp, vy: (Math.random() - 0.5) * 0.5,
+          r: 8, text: poemChars[Math.floor(Math.random() * poemChars.length)], life: 4500,
+        });
       }
     }
   }

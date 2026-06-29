@@ -24,6 +24,7 @@ function snapshot(game) {
     collectedChars: game.player.collectedChars.slice(),
     collectedCharsAll: game.player.collectedCharsAll.slice(),
     inventory: game.player.inventory.slice(),
+    diaries: game.player.diaries ? Array.from(game.player.diaries) : [],
     flags: { ...game.flags },
     karma: { ...game.karma },
     collected: Array.from(game.collected),
@@ -120,6 +121,7 @@ export function restore(game, snap) {
     game.player.collectedChars = (snap.collectedChars || []).slice();
     game.player.collectedCharsAll = (snap.collectedCharsAll || []).slice();
     game.player.inventory = (snap.inventory || []).slice();
+    game.player.diaries = new Set(snap.diaries || []);
     game.player.invulnerable = 0;
     game.player.hurtFlash = false;
     game.player.dialogGrace = 0;

@@ -47,12 +47,43 @@ export const POEM_ULTIMATES = [
   {
     id: 'voidverse',
     name: '太虚',
-    chars: ['岳', '星', '然', '冥'], // 同岳阳楼记碎片，但为终极诗词
+    chars: ['岳', '星', '然', '冥', '月', '秋'], // 需集齐岳阳楼记(第三章)与月夜忆舍弟(第五章)全部碎片，方为终极
     damage: 200,
     color: '#ddaaff',
     effect: 'void_collapse',        // 虚空坍缩
-    text: '道可道，非常道。名可名，非常名。',
+    text: '星河旋落，岳色苍苍；万籁俱冥，吾心了然。',
     desc: '终极·太虚之力',
+  },
+  // ===== 第五章新诗词大招 =====
+  {
+    id: 'jiangjinjiu',
+    name: '将进酒',
+    chars: ['河', '海'],
+    damage: 130,
+    color: '#ffcc66',
+    effect: 'golden_wave',          // 金色酒浪
+    text: '君不见黄河之水天上来，奔流到海不复回。',
+    desc: '《将进酒》·豪情万丈',
+  },
+  {
+    id: 'chunwang',
+    name: '春望',
+    chars: ['山', '春'],
+    damage: 130,
+    color: '#88ee88',
+    effect: 'spring_bloom',         // 春日花开
+    text: '国破山河在，城春草木深。',
+    desc: '《春望》·家国之情',
+  },
+  {
+    id: 'yueye',
+    name: '月夜忆舍弟',
+    chars: ['月', '秋'],
+    damage: 140,
+    color: '#aaccff',
+    effect: 'moonlight',            // 月华如水
+    text: '今夜月明人尽望，不知秋思落谁家。',
+    desc: '《月夜忆舍弟》·思念之光',
   },
 ];
 

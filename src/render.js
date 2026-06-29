@@ -173,8 +173,8 @@ export function render(game, gameTime) {
     game._engraveInput = null;
   }
 
-  // 结局卡（对话结束后，game_complete 时覆盖显示）
-  if (game.flags && game.flags.game_complete && !dialogState && !game.engraveState) {
+  // 结局卡（对话结束后，game_complete 时覆盖显示；关闭后可继续探索）
+  if (game.flags && game.flags.game_complete && !game.flags.ending_dismissed && !dialogState && !game.engraveState) {
     drawEnding(ctx, game.ending, gameTime, game.endingEpilogue, game);
   }
 
@@ -317,6 +317,11 @@ function drawEnding(ctx, ending, gameTime, epilogue, game) {
   ctx.fillStyle = `rgba(${c.col},${blink})`;
   ctx.font = '12px serif';
   ctx.fillText('刷新页面，可换一种走法重新开始', W / 2, y + 86);
+  // 第五章入口提示：按 E 继续探索（关闭结局卡，可进入第五章「余烬」）
+  const hintBlink = 0.4 + Math.sin(gameTime * 0.005) * 0.4;
+  ctx.fillStyle = `rgba(255,210,120,${hintBlink})`;
+  ctx.font = '13px serif';
+  ctx.fillText('按 E 继续——新的旅程在等你', W / 2, y + 112);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }

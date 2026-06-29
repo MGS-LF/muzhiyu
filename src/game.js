@@ -689,6 +689,7 @@ export class Game {
     this.player.collectedChars = [];
     this.player.collectedCharsAll = []; // 永久收集记录（战斗诗词攻击不消耗它），用于门禁与进度 UI
     this.player.inventory = [];
+    this.player.diaries = new Set(); // 方知远日记收集记录（id 集合）
     this.player.invulnerable = 0;
     this.player.hurtFlash = false;
     this.player.dialogGrace = 0;
@@ -711,6 +712,7 @@ export class Game {
       met_shuyuan: false,
       alley_briefed: false,
       in_battle_hint: false,
+      ending_dismissed: false, // 结局卡是否已关闭（关闭后可继续探索/进入第五章）
     };
     // UI 面板状态：null=关闭，'quest'=任务列表，'map'=地图面板，'debug'=调试面板
     this.uiPanel = null;
@@ -1079,6 +1081,17 @@ export class Game {
   }
 
   update(dt) {
+    // 结局卡关闭：game_complete 且结局卡尚未关闭时，按 E/Enter/Space 关闭结局卡，继续探索
+    if (this.flags.game_complete && !this.flags.ending_dismissed) {
+      if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
+        this.flags.ending_dismissed = true;
+        this.showHint('新的旅程在等你——前往废墟深处。');
+        return;
+      }
+      // 结局卡显示期间冻结世界更新
+      return;
+    }
+
     // 首次交互解锁音频（浏览器策略：需用户手势）
     if (!this._audioUnlocked) {
       const anyKey = input.wasPressed('e') || input.wasPressed('w') || input.wasPressed('a') ||
@@ -1774,6 +1787,8 @@ export class Game {
 
     let best = null, bd = 55;
     for (const it of this.scene.interactables) {
+      // _cond 条件检查：未满足 flag 条件的交互点不可触发（如记忆碎片需先解谜）
+      if (it._cond && !this.flags[it._cond]) continue;
       const d = Math.hypot(it.x - this.player.x, it.y - this.player.y);
       if (d < bd) { bd = d; best = it; }
     }
@@ -2007,6 +2022,19 @@ export class Game {
           audio.playSfx('pickup');
           const line = POEM_LINES[Math.floor(Math.random() * POEM_LINES.length)];
           this.showHint('旧书页：' + line + '（理性 +30）');
+        } else if (it.type === 'diary') {
+          // 方知远日记：独立收集计数，集齐 6 页触发「造物者的忏悔」
+          this.player.diaries.add(it.id);
+          this.player.san = Math.min(this.player.maxSan, this.player.san + 15);
+          audio.playSfx('pickup');
+          this.showHint(`获得：${it.name}（理性 +15）`);
+          const TOTAL_DIARIES = 6;
+          if (this.player.diaries.size >= TOTAL_DIARIES && !this.flags.all_diaries) {
+            this.flags.all_diaries = true;
+            this.showHint('方知远的日记已集齐！造物者的秘密在你手中。');
+            audio.playSfx('victory');
+            fx.flash('#ffd866', 0.4, 500);
+          }
         } else {
           this.showHint(`获得：${it.name || '物品'}`);
         }
@@ -2365,6 +2393,10 @@ export class Game {
       if (this.flags.shard2_done) quests.push({ cat: '余烬', text: '记忆碎片·其二「保护」已获取', done: true });
       if (this.flags.shard3_done) quests.push({ cat: '余烬', text: '记忆碎片·其三「完整」已获取', done: true });
       if (this.flags.chapter5_choice) quests.push({ cat: '余烬', text: '终章选择已完成', done: true });
+    }
+    // 方知远日记收集进度
+    if (this.player.diaries && this.player.diaries.size > 0) {
+      quests.push({ cat: '收集', text: `方知远的日记 ${this.player.diaries.size}/6${this.flags.all_diaries ? '（已集齐）' : ''}`, done: !!this.flags.all_diaries });
     }
     return quests;
   }

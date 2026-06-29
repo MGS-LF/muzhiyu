@@ -622,8 +622,8 @@ export const scenes = {
       { id: 'char_hai', x: 1600, y: 300, type: 'char_fragment', char: '海' },
       { id: 'page_lib_1', x: 750, y: 500, type: 'page', name: '旧书页' },
       { id: 'page_lib_2', x: 1450, y: 1200, type: 'page', name: '旧书页' },
-      { id: 'diary_1', x: 1650, y: 600, type: 'page', name: '方知远的日记·其一' },
-      { id: 'diary_2', x: 1150, y: 650, type: 'page', name: '方知远的日记·其二' },
+      { id: 'diary_1', x: 1650, y: 600, type: 'diary', name: '方知远的日记·其一' },
+      { id: 'diary_2', x: 1150, y: 650, type: 'diary', name: '方知远的日记·其二' },
     ],
 
     spawn: { x: 100, y: 300 },
@@ -667,9 +667,9 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'nexus_geng_1', typeId: 'geng_elite', x: 500, y: 700, hp: 100, maxHp: 100, name: '格式化者',
+      { id: 'nexus_geng_1', typeId: 'formatter', x: 500, y: 700, hp: 100, maxHp: 100, name: '格式化者',
         visionRange: 280, visionHalfAngle: Math.PI / 3, visionDir: 0 },
-      { id: 'nexus_geng_2', typeId: 'geng_elite', x: 1500, y: 800, hp: 100, maxHp: 100, name: '格式化者',
+      { id: 'nexus_geng_2', typeId: 'formatter', x: 1500, y: 800, hp: 100, maxHp: 100, name: '格式化者',
         visionRange: 280, visionHalfAngle: Math.PI / 3, visionDir: Math.PI },
       { id: 'nexus_geng_3', typeId: 'geng_medium', x: 900, y: 1100, hp: 60, maxHp: 60, name: '烂梗鬼' },
     ],
@@ -694,8 +694,8 @@ export const scenes = {
       { id: 'char_chun', x: 1500, y: 500, type: 'char_fragment', char: '春' },
       { id: 'page_nexus_1', x: 450, y: 800, type: 'page', name: '旧书页' },
       { id: 'page_nexus_2', x: 1450, y: 1300, type: 'page', name: '旧书页' },
-      { id: 'diary_3', x: 1450, y: 450, type: 'page', name: '方知远的日记·其三' },
-      { id: 'diary_4', x: 650, y: 1450, type: 'page', name: '方知远的日记·其四' },
+      { id: 'diary_3', x: 1450, y: 450, type: 'diary', name: '方知远的日记·其三' },
+      { id: 'diary_4', x: 650, y: 1450, type: 'diary', name: '方知远的日记·其四' },
     ],
 
     spawn: { x: 200, y: 200 },
@@ -736,9 +736,9 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'abyss_guard_1', typeId: 'geng_elite', x: 500, y: 800, hp: 100, maxHp: 100, name: '记忆守卫',
+      { id: 'abyss_guard_1', typeId: 'memory_guard', x: 500, y: 800, hp: 100, maxHp: 100, name: '记忆守卫',
         visionRange: 300, visionHalfAngle: Math.PI / 2, visionDir: 0 },
-      { id: 'abyss_guard_2', typeId: 'geng_elite', x: 1100, y: 800, hp: 100, maxHp: 100, name: '记忆守卫',
+      { id: 'abyss_guard_2', typeId: 'memory_guard', x: 1100, y: 800, hp: 100, maxHp: 100, name: '记忆守卫',
         visionRange: 300, visionHalfAngle: Math.PI / 2, visionDir: Math.PI },
     ],
 
@@ -755,8 +755,8 @@ export const scenes = {
       { id: 'char_yue2', x: 300, y: 600, type: 'char_fragment', char: '月' },
       { id: 'char_qiu2', x: 1300, y: 600, type: 'char_fragment', char: '秋' },
       { id: 'page_abyss_1', x: 200, y: 1100, type: 'page', name: '旧书页' },
-      { id: 'diary_5', x: 1200, y: 1200, type: 'page', name: '方知远的日记·其五' },
-      { id: 'diary_6', x: 500, y: 1200, type: 'page', name: '方知远的日记·其六' },
+      { id: 'diary_5', x: 1200, y: 1200, type: 'diary', name: '方知远的日记·其五' },
+      { id: 'diary_6', x: 500, y: 1200, type: 'diary', name: '方知远的日记·其六' },
     ],
 
     spawn: { x: 800, y: 100 },
