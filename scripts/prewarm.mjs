@@ -1,10 +1,10 @@
-// 预热 TTS 缓存：扫描 js/game.js 里的静态台词，逐条请求 /api/tts 生成并落盘。
+// 预热 TTS 缓存：扫描 src/game.js 里的静态台词，逐条请求 /api/tts 生成并落盘。
 // 用法：先 `node server.js`，再另开终端 `node scripts/prewarm.mjs`
 //      指定端口：`PORT=9000 node scripts/prewarm.mjs`
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { speakerStyle } from '../js/ai/speakers.js';
+import { speakerStyle } from '../src/ai/speakers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -17,7 +17,7 @@ function unescape(s) {
 
 // 从 game.js 文本里提取 { s: '说话人', t: '台词' } 对
 function extractLines() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
   const re = /\{\s*s:\s*'((?:[^'\\]|\\.)*)'\s*,\s*t:\s*'((?:[^'\\]|\\.)*)'/g;
   const seen = new Set();
   const out = [];

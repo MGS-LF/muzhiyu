@@ -39,12 +39,12 @@ node scripts/prewarm.mjs            # 默认连 http://localhost:8080
 PORT=9000 node scripts/prewarm.mjs  # 指定端口
 ```
 
-它会扫描 `js/game.js` 里的静态台词，逐条请求 `/api/tts` 把音频生成并落盘。
+它会扫描 `src/game.js` 里的静态台词，逐条请求 `/api/tts` 把音频生成并落盘。
 
 ## 调参
 
 - 语速听感不对：改 `ai_keys.local.json` 的 `tts.sampleRate`（默认 24000）。
-- 角色语气 / 音色 / 模型路由：改 `js/ai/voices.config.js`。
+- 角色语气 / 音色 / 模型路由：改 `src/ai/voices.config.js`。
   每个说话人配置 `{ model, voice, style }`：
   - `model` 可选 `mimo-v2.5-tts`（预置精品音色）、`mimo-v2.5-tts-voicedesign`（文本描述造音色）、`mimo-v2.5-tts-voiceclone`（音频样本复刻）
   - `voice` 预置音色（中文：冰糖/茉莉/苏打/白桦；英文：Mia/Chloe/Milo/Dean；缺省 `mimo_default`）
@@ -52,7 +52,7 @@ PORT=9000 node scripts/prewarm.mjs  # 指定端口
   `speakers.js` 仅做"按名字取配置 + 回退链"，实际数据全部集中在 `voices.config.js`。
   服务端 `/api/tts` 已支持 `model` 字段；TTS 缓存 key 把 `model` 算进去，
   改 model/voice/style 都不会读到错误的旧音频。
-- 是否自动续播：`js/ai/config.js` 的 `AI.autoplay`。
+- 是否自动续播：`src/ai/config.js` 的 `AI.autoplay`。
 
 ## 游戏系统（v2 新增）
 

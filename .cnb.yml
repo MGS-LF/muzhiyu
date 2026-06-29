@@ -6,4 +6,3 @@ main:
     runtime: node
     start: node server.js
     port: 8080
-    cwd: game
