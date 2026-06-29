@@ -6,6 +6,7 @@ import { input } from './input.js';
 import * as audio from './audio.js';
 import * as fx from './fx.js';
 import * as difficulty from './difficulty.js';
+import { getFirstAvailableUltimate, canUseUltimate, POEM_ULTIMATES } from './poem_ultimate.js';
 
 // 弹幕框尺寸（战斗界面中央的躲避区域）
 const BOX_W = 280;
@@ -53,6 +54,11 @@ export class Battle {
     // Boss 阶段系统：血量过半切换到更激进的弹幕模式
     this.bossPhase = 1; // 1=第一阶段, 2=第二阶段（血量<50%）
     this.bossPhaseTriggered = false;
+
+    // 诗词连击大招系统：集齐完整诗句可按 K 释放全屏大招（每场限一次）
+    this.ultimateReady = canUseUltimate(player.collectedCharsAll, POEM_ULTIMATES[0]);
+    this.ultimateUsed = false;
+    this.ultimateAnim = 0; // 大招动画计时
 
     // 红心（玩家在弹幕框里的位置）
     this.heart = { x: 0, y: 0, r: 6 };
@@ -133,6 +139,11 @@ export class Battle {
       return;
     }
 
+    if (this.phase === 'ultimate') {
+      this.updateUltimate(dt);
+      return;
+    }
+
     if (this.phase === 'result') {
       if (this.timer > 1500) {
         this.finish();
@@ -150,6 +161,11 @@ export class Battle {
     if (input.wasPressed('arrowright') || input.wasPressed('d')) {
       this.menuIndex = (this.menuIndex + 1) % n;
     }
+    // 诗词连击大招：K 键释放（需集齐完整诗句且本场未用过）
+    if (input.wasPressed('k')) {
+      this.tryUltimate();
+      return;
+    }
     if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
       input.wasPressed(' '); // 消费
       const label = this.menuItems[this.menuIndex];
@@ -157,6 +173,77 @@ export class Battle {
       else if (label === '调 查') this.startAct();
       else if (label === '诗 词') this.startPoem();
       else if (label === '宽 恕') this.trySpare();
+    }
+  }
+
+  // 诗词连击大招：集齐完整诗句 → 全屏净化波 → 大量伤害
+  tryUltimate() {
+    if (this.ultimateUsed) {
+      this.setEnemyText('本场战斗已用过诗词大招！');
+      audio.playSfx('uiCancel');
+      return;
+    }
+    const ult = getFirstAvailableUltimate(this.player.collectedCharsAll);
+    if (!ult) {
+      this.setEnemyText('尚未集齐任何完整诗句！');
+      audio.playSfx('uiCancel');
+      return;
+    }
+    // 释放大招
+    this.ultimateUsed = true;
+    this.ultimateAnim = 2000; // 2 秒全屏特效
+    this.phase = 'ultimate';
+    this.timer = 0;
+    this._ultimateDef = ult;
+    this.setEnemyText(`「${ult.text}」`);
+    audio.playSfx('purifyWave');
+    fx.flash(ult.color, 0.8, 1000);
+    fx.shake(12, 800);
+    fx.purifyWave(W / 2, H / 2, 800);
+  }
+
+  // 大招阶段更新
+  updateUltimate(dt) {
+    this.ultimateAnim -= dt;
+    // 1 秒后结算伤害
+    if (this.ultimateAnim <= 1000 && !this._ultimateResolved) {
+      this._ultimateResolved = true;
+      const ult = this._ultimateDef;
+      this.enemy.hp -= ult.damage;
+      this.lastDamage = ult.damage;
+      // 消耗所有对应汉字（collectedChars 弹药）
+      for (const c of ult.chars) {
+        const idx = this.player.collectedChars.indexOf(c);
+        if (idx !== -1) this.player.collectedChars.splice(idx, 1);
+      }
+      // 粒子爆发
+      for (let i = 0; i < 40; i++) {
+        const a = (i / 40) * Math.PI * 2;
+        this.particles.push({
+          x: 0, y: -40,
+          vx: Math.cos(a) * 6, vy: Math.sin(a) * 6,
+          life: 1000, maxLife: 1000,
+          color: '255,220,120', size: 5,
+        });
+      }
+      if (this.enemy.hp <= 0) {
+        this.enemy.hp = 0;
+        this.result = 'win';
+        audio.playSfx('victory');
+        this.setEnemyText('那些字……好烫……');
+      } else {
+        this.setEnemyText(`浩然正气！(${ult.damage} 伤害)`);
+      }
+    }
+    // 动画结束 → 进入结算
+    if (this.ultimateAnim <= 0) {
+      this._ultimateResolved = false;
+      if (this.result === 'win') {
+        this.phase = 'result';
+      } else {
+        this.phase = 'attack_resolve';
+      }
+      this.timer = 0;
     }
   }
 

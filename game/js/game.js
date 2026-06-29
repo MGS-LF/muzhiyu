@@ -2,7 +2,7 @@
 import { W, H } from './config.js';
 import { input, bindCanvas } from './input.js';
 import { Player } from './player.js';
-import { scenes } from './scenes.js';
+import { scenes, DROP_TABLES, DEFAULT_DROPS } from './scenes.js';
 import { Camera, render } from './render.js';
 import { Battle } from './battle.js';
 import { voice } from './ai/voice.js';
@@ -756,47 +756,19 @@ export class Game {
     this.objective = { text, target, progress, done };
   }
 
-  // 碰撞检测：只与 walls + 部分 prop 碰撞
+  // 碰撞检测：walls + 标记了 collidable 的 prop（数据驱动，不再硬编码 name 字符串）
   collides(x, y, r) {
     for (const wall of this.scene.walls) {
       if (x + r > wall.x && x - r < wall.x + wall.w &&
           y + r > wall.y && y - r < wall.y + wall.h) return true;
     }
     for (const p of this.scene.props) {
-      // 不参与碰撞的 prop
-      if (p.name === '终端机') continue;
-      if (p.name === '我的冷冻仓') continue;
-      if (p.name === '冷冻仓 A' || p.name === '冷冻仓 B' || p.name === '冷冻仓 C' ||
-          p.name === '冷冻仓 D' || p.name === '冷冻仓 E' || p.name === '冷冻仓 F' ||
-          p.name === '冷冻仓 G' || p.name === '冷冻仓 H' || p.name === '冷冻仓 I') continue;
-      if (p.name === '废弃车辆' || p.name === '碎石堆' || p.name === '倒塌的货架' || p.name === '碎玻璃') {
-        if (x + r > p.x && x - r < p.x + p.w &&
-            y + r > p.y && y - r < p.y + p.h) return true;
-      }
-      if (p.name === '地铁站入口') {
-        if (x + r > p.x && x - r < p.x + p.w &&
-            y + r > p.y && y - r < p.y + p.h) return true;
-      }
-      if (p.name === '对岸高楼') {
-        if (x + r > p.x && x - r < p.x + p.w &&
-            y + r > p.y && y - r < p.y + p.h) return true;
-      }
-      // 背景高楼（远处装饰）不参与碰撞
-      // '高楼' 跳过
-      if (p.name === '民居A' || p.name === '民居B' || p.name === '民居C' || p.name === '民居D') {
-        if (x + r > p.x && x - r < p.x + p.w &&
-            y + r > p.y && y - r < p.y + p.h) return true;
-      }
-      if (p.name === '桌子' || p.name === '书架') {
-        if (x + r > p.x && x - r < p.x + p.w &&
-            y + r > p.y && y - r < p.y + p.h) return true;
-      }
-      if (p.name === '屏幕墙' || p.name === '深渊' || p.name === '废弃花坛') {
-        if (x + r > p.x && x - r < p.x + p.w &&
-            y + r > p.y && y - r < p.y + p.h) return true;
-      }
+      // 数据驱动：仅 collidable: true 的 prop 参与碰撞
+      if (!p.collidable) continue;
+      if (x + r > p.x && x - r < p.x + p.w &&
+          y + r > p.y && y - r < p.y + p.h) return true;
     }
-    // 门禁
+    // 门禁（freeze_center 出口门未开时阻挡）
     if (this.scene.id === 'freeze_center' && !this.flags.door_opened) {
       if (x + r > 270 && x - r < 480 &&
           y + r > 570 && y - r < 600) return true;
@@ -1043,8 +1015,8 @@ export class Game {
         const idx = this.scene.enemies.findIndex(e => e.id === enemy.id);
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
-      // 掉落汉字碎片
-      const drops = ['洲','洲','逑','洲','逑','逑'];
+      // 掉落汉字碎片（数据驱动：从场景掉落表读取）
+      const drops = DROP_TABLES[this.scene.id] || DEFAULT_DROPS;
       const drop = drops[Math.floor(Math.random() * drops.length)];
       const charId = `drop_${enemy.id}_${Date.now()}`;
       this.scene.items.push({

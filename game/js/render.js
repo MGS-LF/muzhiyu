@@ -1069,11 +1069,55 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.fillStyle = 'rgba(180,180,190,0.6)';
     ctx.font = '11px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('← → 选择    E / 空格 确认', W/2, H - 20);
+    let hintText = '← → 选择    E / 空格 确认';
+    if (battle.ultimateReady && !battle.ultimateUsed) {
+      hintText += '    K 诗词大招';
+    }
+    ctx.fillText(hintText, W/2, H - 20);
     ctx.fillStyle = 'rgba(150,150,160,0.5)';
     ctx.font = '10px serif';
     ctx.fillText('调查＝看清它残存的"人"，集满清醒可宽恕（不沾血也能脱战）', W/2, H - 6);
+    // 大招就绪指示（菜单右上角）
+    if (battle.ultimateReady && !battle.ultimateUsed) {
+      const pulse = 0.5 + Math.sin(gameTime * 0.006) * 0.4;
+      ctx.fillStyle = `rgba(255,200,80,${pulse})`;
+      ctx.font = 'bold 11px serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('★ 诗词大招就绪 (K)', W - 20, H - 50);
+      ctx.textAlign = 'left';
+    }
     ctx.textAlign = 'left';
+  } else if (battle.phase === 'ultimate') {
+    // 诗词大招全屏特效
+    const ult = battle._ultimateDef;
+    if (ult) {
+      const prog = 1 - battle.ultimateAnim / 2000;
+      // 全屏金色光幕
+      ctx.fillStyle = `${ult.color}`;
+      ctx.globalAlpha = 0.15 + Math.sin(gameTime * 0.01) * 0.1;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+      // 中央诗句文字
+      ctx.fillStyle = `rgba(255,240,180,${0.7 + Math.sin(gameTime * 0.008) * 0.3})`;
+      ctx.font = 'bold 24px "SimSun","Songti SC",serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = ult.color;
+      ctx.shadowBlur = 20;
+      ctx.fillText(ult.text, W/2, H/2 - 40);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = `rgba(255,220,140,${0.6})`;
+      ctx.font = '14px serif';
+      ctx.fillText(`「${ult.desc}」`, W/2, H/2 - 10);
+      // 伤害数字
+      if (battle._ultimateResolved) {
+        ctx.fillStyle = `rgba(255,100,80,${0.8 + Math.sin(gameTime * 0.01) * 0.2})`;
+        ctx.font = 'bold 36px serif';
+        ctx.fillText(`-${ult.damage}`, W/2, H/2 + 40);
+      }
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    }
   } else if (battle.phase === 'enemyTurn') {
     ctx.fillStyle = 'rgba(255,100,100,0.8)';
     ctx.font = 'bold 13px serif';

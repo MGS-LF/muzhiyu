@@ -1,6 +1,18 @@
 // 场景数据 —— 第一章：苏醒
 // 重要：freeze_center 800x600 是个小房间，walled 围绕，玩家走中下区域。
-//       prop 中的"冷冻仓"只用于渲染，不要做碰撞体（已经在 game.collides 里跳过）
+//       prop 中的"冷冻仓"只用于渲染，不要做碰撞体（已标记 collidable，默认不参与碰撞）
+//       prop 的碰撞由 collidable 字段控制（数据驱动），不再在 game.collides 中硬编码 name
+
+// 各场景敌人掉落表（数据驱动）：key = 场景id，value = 该场景敌人击败后掉落的汉字碎片池
+// 碎片与门禁需求对应：街道→关雎(洲/逑)，居民区→滕王阁序+正气歌(鹜/天/气/形)，体育馆→岳阳楼记(岳/星/然/冥)
+export const DROP_TABLES = {
+  street_01:    ['洲', '洲', '逑', '逑'],           // 关雎：洲/逑
+  subway:       ['洲', '逑', '鹜', '天'],           // 过渡：混杂街道和居民区碎片
+  alley_district: ['鹜', '鹜', '天', '天', '气', '形'], // 滕王阁序+正气歌
+  stadium:      ['岳', '星', '然', '冥'],           // 岳阳楼记（体育馆深处）
+  // 未配置的场景默认使用 street_01 的掉落表
+};
+const DEFAULT_DROPS = ['洲', '逑'];
 
 export const scenes = {
   // ==========================================
@@ -99,18 +111,18 @@ export const scenes = {
       { x: 1400, y: 110, w: 150, h: 280, name: '高楼' },
       { x: 1600, y: 100, w: 110, h: 300, name: '高楼' },
       { x: 1900, y: 130, w: 130, h: 260, name: '高楼' },
-      { x: 700, y: 500, w: 220, h: 60, name: '地铁站入口' },
-      { x: 600, y: 700, w: 55, h: 30, name: '废弃车辆' },
-      { x: 900, y: 850, w: 60, h: 32, name: '废弃车辆' },
-      { x: 1400, y: 750, w: 50, h: 28, name: '废弃车辆' },
-      { x: 1800, y: 900, w: 55, h: 30, name: '废弃车辆' },
-      { x: 300, y: 1000, w: 70, h: 50, name: '碎石堆' },
-      { x: 1700, y: 1100, w: 80, h: 55, name: '碎石堆' },
-      { x: 1100, y: 1300, w: 60, h: 45, name: '碎石堆' },
-      { x: 2000, y: 700, w: 75, h: 52, name: '碎石堆' },
-      { x: 520, y: 1450, w: 65, h: 48, name: '碎石堆' },
-      { x: 1750, y: 1450, w: 55, h: 30, name: '废弃车辆' },
-      { x: 1550, y: 1000, w: 60, h: 32, name: '废弃车辆' },
+      { x: 700, y: 500, w: 220, h: 60, name: '地铁站入口', collidable: true },
+      { x: 600, y: 700, w: 55, h: 30, name: '废弃车辆', collidable: true },
+      { x: 900, y: 850, w: 60, h: 32, name: '废弃车辆', collidable: true },
+      { x: 1400, y: 750, w: 50, h: 28, name: '废弃车辆', collidable: true },
+      { x: 1800, y: 900, w: 55, h: 30, name: '废弃车辆', collidable: true },
+      { x: 300, y: 1000, w: 70, h: 50, name: '碎石堆', collidable: true },
+      { x: 1700, y: 1100, w: 80, h: 55, name: '碎石堆', collidable: true },
+      { x: 1100, y: 1300, w: 60, h: 45, name: '碎石堆', collidable: true },
+      { x: 2000, y: 700, w: 75, h: 52, name: '碎石堆', collidable: true },
+      { x: 520, y: 1450, w: 65, h: 48, name: '碎石堆', collidable: true },
+      { x: 1750, y: 1450, w: 55, h: 30, name: '废弃车辆', collidable: true },
+      { x: 1550, y: 1000, w: 60, h: 32, name: '废弃车辆', collidable: true },
       { x: 2100, y: 130, w: 120, h: 300, name: '高楼' },
       { x: 560, y: 110, w: 110, h: 260, name: '高楼' },
     ],
@@ -170,11 +182,11 @@ export const scenes = {
     ],
 
     props: [
-      { x: 400, y: 80, w: 120, h: 220, name: '对岸高楼' },
-      { x: 550, y: 110, w: 90, h: 180, name: '对岸高楼' },
-      { x: 1300, y: 90, w: 100, h: 250, name: '对岸高楼' },
-      { x: 1450, y: 70, w: 130, h: 300, name: '对岸高楼' },
-      { x: 1620, y: 120, w: 110, h: 200, name: '对岸高楼' },
+      { x: 400, y: 80, w: 120, h: 220, name: '对岸高楼', collidable: true },
+      { x: 550, y: 110, w: 90, h: 180, name: '对岸高楼', collidable: true },
+      { x: 1300, y: 90, w: 100, h: 250, name: '对岸高楼', collidable: true },
+      { x: 1450, y: 70, w: 130, h: 300, name: '对岸高楼', collidable: true },
+      { x: 1620, y: 120, w: 110, h: 200, name: '对岸高楼', collidable: true },
     ],
 
     interactables: [
@@ -220,15 +232,15 @@ export const scenes = {
       { x: 300, y: 450, w: 30, h: 30, name: '立柱' },
       { x: 1100, y: 450, w: 30, h: 30, name: '立柱' },
       // 废弃列车车厢
-      { x: 450, y: 700, w: 200, h: 80, name: '列车车厢' },
-      { x: 850, y: 750, w: 180, h: 70, name: '列车车厢' },
+      { x: 450, y: 700, w: 200, h: 80, name: '列车车厢', collidable: true },
+      { x: 850, y: 750, w: 180, h: 70, name: '列车车厢', collidable: true },
     ],
 
     props: [
-      { x: 450, y: 700, w: 200, h: 80, name: '列车车厢' },
-      { x: 850, y: 750, w: 180, h: 70, name: '列车车厢' },
+      { x: 450, y: 700, w: 200, h: 80, name: '列车车厢', collidable: true },
+      { x: 850, y: 750, w: 180, h: 70, name: '列车车厢', collidable: true },
       // 月台边缘
-      { x: 0, y: 580, w: 1400, h: 20, name: '月台' },
+      { x: 0, y: 580, w: 1400, h: 20, name: '月台', collidable: true },
     ],
 
     enemies: [
@@ -298,18 +310,18 @@ export const scenes = {
       { x: 2000, y: 90, w: 130, h: 350, name: '高楼' },
       { x: 2150, y: 110, w: 110, h: 300, name: '高楼' },
       // 民居建筑
-      { x: 600, y: 440, w: 200, h: 60, name: '民居A' },
-      { x: 1000, y: 440, w: 200, h: 60, name: '民居B' },
-      { x: 1400, y: 700, w: 200, h: 60, name: '民居C' },
-      { x: 1800, y: 700, w: 200, h: 60, name: '民居D' },
+      { x: 600, y: 440, w: 200, h: 60, name: '民居A', collidable: true },
+      { x: 1000, y: 440, w: 200, h: 60, name: '民居B', collidable: true },
+      { x: 1400, y: 700, w: 200, h: 60, name: '民居C', collidable: true },
+      { x: 1800, y: 700, w: 200, h: 60, name: '民居D', collidable: true },
       // 碎石堆
-      { x: 300, y: 1000, w: 80, h: 50, name: '碎石堆' },
-      { x: 2000, y: 1200, w: 70, h: 45, name: '碎石堆' },
-      { x: 700, y: 800, w: 75, h: 48, name: '碎石堆' },
-      { x: 1950, y: 1150, w: 65, h: 44, name: '碎石堆' },
+      { x: 300, y: 1000, w: 80, h: 50, name: '碎石堆', collidable: true },
+      { x: 2000, y: 1200, w: 70, h: 45, name: '碎石堆', collidable: true },
+      { x: 700, y: 800, w: 75, h: 48, name: '碎石堆', collidable: true },
+      { x: 1950, y: 1150, w: 65, h: 44, name: '碎石堆', collidable: true },
       // 废弃花坛
-      { x: 1200, y: 1200, w: 100, h: 60, name: '废弃花坛' },
-      { x: 450, y: 1550, w: 90, h: 55, name: '废弃花坛' },
+      { x: 1200, y: 1200, w: 100, h: 60, name: '废弃花坛', collidable: true },
+      { x: 450, y: 1550, w: 90, h: 55, name: '废弃花坛', collidable: true },
     ],
 
     enemies: [
@@ -371,8 +383,8 @@ export const scenes = {
     ],
 
     props: [
-      { x: 80, y: 80, w: 100, h: 50, name: '桌子' },
-      { x: 300, y: 80, w: 80, h: 100, name: '书架' },
+      { x: 80, y: 80, w: 100, h: 50, name: '桌子', collidable: true },
+      { x: 300, y: 80, w: 80, h: 100, name: '书架', collidable: true },
     ],
 
     interactables: [
@@ -407,7 +419,7 @@ export const scenes = {
     ],
 
     props: [
-      { x: 80, y: 80, w: 100, h: 50, name: '桌子' },
+      { x: 80, y: 80, w: 100, h: 50, name: '桌子', collidable: true },
     ],
 
     enemies: [
@@ -447,17 +459,17 @@ export const scenes = {
 
     props: [
       // 潜行迷宫屏幕墙（可遮挡精英怪视野，参与碰撞）
-      { x: 250, y: 780, w: 380, h: 10, name: '屏幕墙' },
-      { x: 750, y: 780, w: 10, h: 260, name: '屏幕墙' },
-      { x: 1100, y: 780, w: 520, h: 10, name: '屏幕墙' },
-      { x: 1100, y: 790, w: 10, h: 260, name: '屏幕墙' },
-      { x: 1640, y: 790, w: 10, h: 260, name: '屏幕墙' },
-      { x: 300, y: 1180, w: 520, h: 10, name: '屏幕墙' },
-      { x: 820, y: 1000, w: 10, h: 300, name: '屏幕墙' },
-      { x: 1180, y: 1180, w: 520, h: 10, name: '屏幕墙' },
-      { x: 1180, y: 1190, w: 10, h: 220, name: '屏幕墙' },
-      { x: 400, y: 1420, w: 460, h: 10, name: '屏幕墙' },
-      { x: 1140, y: 1420, w: 520, h: 10, name: '屏幕墙' },
+      { x: 250, y: 780, w: 380, h: 10, name: '屏幕墙', collidable: true },
+      { x: 750, y: 780, w: 10, h: 260, name: '屏幕墙', collidable: true },
+      { x: 1100, y: 780, w: 520, h: 10, name: '屏幕墙', collidable: true },
+      { x: 1100, y: 790, w: 10, h: 260, name: '屏幕墙', collidable: true },
+      { x: 1640, y: 790, w: 10, h: 260, name: '屏幕墙', collidable: true },
+      { x: 300, y: 1180, w: 520, h: 10, name: '屏幕墙', collidable: true },
+      { x: 820, y: 1000, w: 10, h: 300, name: '屏幕墙', collidable: true },
+      { x: 1180, y: 1180, w: 520, h: 10, name: '屏幕墙', collidable: true },
+      { x: 1180, y: 1190, w: 10, h: 220, name: '屏幕墙', collidable: true },
+      { x: 400, y: 1420, w: 460, h: 10, name: '屏幕墙', collidable: true },
+      { x: 1140, y: 1420, w: 520, h: 10, name: '屏幕墙', collidable: true },
     ],
 
     enemies: [
@@ -513,13 +525,13 @@ export const scenes = {
       { x: 0, y: 0, w: 6, h: 1400 },
       { x: 1394, y: 0, w: 6, h: 1400 },
       // 两侧深渊（不可通行）
-      { x: 6, y: 6, w: 500, h: 1388, name: '深渊' },
-      { x: 900, y: 6, w: 500, h: 1388, name: '深渊' },
+      { x: 6, y: 6, w: 500, h: 1388, name: '深渊', collidable: true },
+      { x: 900, y: 6, w: 500, h: 1388, name: '深渊', collidable: true },
     ],
 
     props: [
-      { x: 6, y: 6, w: 500, h: 1388, name: '深渊' },
-      { x: 900, y: 6, w: 500, h: 1388, name: '深渊' },
+      { x: 6, y: 6, w: 500, h: 1388, name: '深渊', collidable: true },
+      { x: 900, y: 6, w: 500, h: 1388, name: '深渊', collidable: true },
     ],
 
     enemies: [],
