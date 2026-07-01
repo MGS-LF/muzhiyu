@@ -1350,7 +1350,8 @@ export class Game {
       this.battleResult = result;
       this.battleEnemy = e;
     });
-    audio.playBGM('battle'); // 战斗 BGM
+    // 战斗 BGM：BOSS 与普通敌人区分（均使用 bgm_02_battle，BOSS 同曲不额外切）
+    audio.playBGM(enemy && enemy.boss ? '__boss__' : '__battle__');
   }
 
   endBattle() {
@@ -1558,7 +1559,9 @@ export class Game {
     this.ending = this.resolveEnding();
     this.flags.game_complete = true;
     this.flags.engraving_summary = null; // 标记：降级，无评价
-    audio.playBGM('ending');
+    // 按结局分流 BGM：火种->净化曲，沉默/燃尽->黯淡结局曲
+    if (this.ending === 'fire') audio.playBGM('__ending_fire__');
+    else audio.playBGM('__ending_silence__'); // silence 与 burnout 共用黯淡曲
     audio.playSfx('victory');
     autoSave(this); // 通关存档
   }
@@ -1785,6 +1788,7 @@ export class Game {
     // 要石激活：音效 + 金色闪光 + 净化波 + 自动存档（天然存档点）
     if (e.type === 'keystone') {
       audio.playSfx('keystone');
+      audio.playBGM('__keystone__'); // 要石激活净化BGM
       fx.flash('#ffd866', 0.4, 500);
       fx.purifyWave(e.target.x, e.target.y, 300);
       autoSave(this); // 要石刻字是天然存档点
@@ -1984,6 +1988,7 @@ export class Game {
             this.startDialog([{ s: '听雨', t: '……（结局已至。刷新页面可重新开始一段旅程。）' }], '听雨');
             return;
           }
+          audio.playBGM('__meet_tingyu__'); // 遇听雨专属BGM
           if (AI.llm) { this.startTingyuConverse(); return; }
           // 降级：静态三选一结局
           this.startDialog(DIALOGS[key] || [], best.label, () => this.finishGame());
@@ -2047,6 +2052,7 @@ export class Game {
           this.player.maxSan += 10;
           this.player.san = this.player.maxSan;
           this.showHint('你唤醒了一个失语者！理性上限 +10。（救助 +1）');
+          audio.playBGM('__cure__'); // 治愈净化BGM（短暂氛围，结束后由场景恢复）
         };
         this.startDialog(DIALOGS[best.introKey] || [{ s: '系统', t: '你在他面前蹲下。' }], best.label, () => {
           this.startCompose(best.puzzle, reward);

@@ -2,6 +2,7 @@
 import { Game } from './game.js';
 import { initAI } from './ai/config.js';
 import * as difficulty from './difficulty.js';
+import * as audio from './audio.js';
 
 const canvas = document.getElementById('c');
 const game = new Game(canvas);
@@ -10,11 +11,24 @@ initAI(); // 后台探测 AI 服务（失败则自动降级为纯文字），不
 // 初始化难度系统（从 localStorage 读取上次选择）
 difficulty.setCurrent(difficulty.loadDifficulty());
 
+// 预加载全部 BGM mp3（后台异步，不阻塞启动）
+audio.preloadBGM();
+
 // 来自序幕（intro_3d.html）？序幕已经把"世界背景+前情提要+苏醒"演完了，
 // 主屏里再播一遍 wake 长对白就重复了。无感衔接：直接把 wake_done 置位，
 // 让 checkAutoTriggers 跳过开局叙述，玩家直接控制顾言。
 const FROM_INTRO = new URLSearchParams(location.search).get('from') === 'intro';
 if (FROM_INTRO) game.flags.wake_done = true;
+
+// 标题页/序幕BGM：首次用户交互后播放序章主题
+const _playTitleBGM = () => {
+  audio.unlockAudio();
+  audio.playBGM('__title__');
+  window.removeEventListener('pointerdown', _playTitleBGM);
+  window.removeEventListener('keydown', _playTitleBGM);
+};
+window.addEventListener('pointerdown', _playTitleBGM, { once: true });
+window.addEventListener('keydown', _playTitleBGM, { once: true });
 
 game.start();
 

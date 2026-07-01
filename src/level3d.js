@@ -4,6 +4,7 @@
 // v2：提升模型精细度与环境细节；提高整体亮度避免误判加载失败
 import * as THREE from 'three';
 import { W, H } from './config.js';
+import * as audio from './audio.js';
 
 const CELL = 2.6;
 const SPEED = 5.2;
@@ -107,6 +108,7 @@ export class Level3D {
     // 请求 pointer lock
     setTimeout(() => { try { this.canvas.requestPointerLock(); } catch (e) {} }, 50);
     this.game.showHint(INTRO_TEXT);
+    audio.playBGM('__level3d__'); // 3D关卡专属BGM
   }
 
   // ============================================
@@ -673,7 +675,9 @@ export class Level3D {
     this.renderer.dispose();
     this.scene.traverse(o => {
       if (o.geometry) o.geometry.dispose();
-      if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose()); else o.material.dispose(); }
+      if (o.material) { if (Array.isArray(o.material)) this.material.forEach(m => m.dispose()); else o.material.dispose(); }
     });
+    // 恢复当前场景BGM
+    if (this.game && this.game.scene) audio.playBGM(this.game.scene.id);
   }
 }

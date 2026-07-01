@@ -13,6 +13,132 @@ let muted = false;
 let bgmVolume = 0.25;
 let sfxVolume = 0.35;
 
+// ---------- 真实 mp3 BGM 系统 ----------
+// 场景/事件 ID -> BGM 曲目文件名映射（5首真实音乐，多场景复用）
+// 缺省回退到下方 BGM_DEFS 的合成 drone
+const BGM_FILES = {
+  bgm_01_prologue: 'assets/audio/bgm/bgm_01_prologue.mp3',
+  bgm_02_battle:   'assets/audio/bgm/bgm_02_battle.mp3',
+  bgm_03_purify:   'assets/audio/bgm/bgm_03_purify.mp3',
+  bgm_04_tingyu:   'assets/audio/bgm/bgm_04_tingyu.mp3',
+  bgm_05_ending:   'assets/audio/bgm/bgm_05_ending.mp3',
+  bgm_06_void:     'assets/audio/bgm/bgm_06_void.mp3',
+  bgm_07_ruins:    'assets/audio/bgm/bgm_07_ruins.mp3',
+  bgm_08_stealth:  'assets/audio/bgm/bgm_08_stealth.mp3',
+  bgm_09_river:    'assets/audio/bgm/bgm_09_river.mp3',
+  bgm_10_ember:    'assets/audio/bgm/bgm_10_ember.mp3',
+};
+
+// 场景/事件 ID -> BGM 曲目 ID 映射（见 docs/BGM_音乐配置方案.md）
+// 真实场景ID（来自 scenes.js）直接映射；事件用 __xxx__ 前缀避免冲突
+const SCENE_TO_BGM = {
+  // BGM-01 序章主题：3D序幕 + 金门标题
+  __intro__: 'bgm_01_prologue',
+  __title__: 'bgm_01_prologue',
+  // BGM-02 战斗：普通战斗 + BOSS战
+  __battle__: 'bgm_02_battle',
+  __boss__: 'bgm_02_battle',
+  // BGM-03 净化与希望：治愈/要石/火种结局
+  __cure__: 'bgm_03_purify',
+  __keystone__: 'bgm_03_purify',
+  __ending_fire__: 'bgm_03_purify',
+  // BGM-04 遇听雨
+  __meet_tingyu__: 'bgm_04_tingyu',
+  // BGM-05 黯淡结局：沉默/燃尽
+  __ending_silence__: 'bgm_05_ending',
+  __ending_burnout__: 'bgm_05_ending',
+  // BGM-06 虚空：冷冻中心/数据中心/记忆深渊/网络中枢
+  freeze_center: 'bgm_06_void',
+  data_center: 'bgm_06_void',
+  memory_abyss: 'bgm_06_void',
+  network_nexus: 'bgm_06_void',
+  // BGM-07 废墟探索：街道/居民区/民居A/民居B
+  street_01: 'bgm_07_ruins',
+  alley_district: 'bgm_07_ruins',
+  house_a: 'bgm_07_ruins',
+  house_b: 'bgm_07_ruins',
+  // BGM-08 幽闭潜行：地铁站/体育馆潜行/3D关卡
+  subway: 'bgm_08_stealth',
+  stadium: 'bgm_08_stealth',
+  __level3d__: 'bgm_08_stealth',
+  // BGM-09 江堤黄昏：江堤（横版）
+  riverside: 'bgm_09_river',
+  // BGM-10 图书馆余烬：废图书馆/失语者村落
+  ruined_library: 'bgm_10_ember',
+  lost_village: 'bgm_10_ember',
+};
+
+const bgmBufferCache = new Map(); // bgmId -> AudioBuffer
+const bgmLoading = new Map();     // bgmId -> Promise
+let currentMp3Source = null;      // 当前播放的 AudioBufferSourceNode
+let currentMp3Gain = null;        // 当前 mp3 的增益（用于淡入淡出）
+
+// 异步加载 mp3 为 AudioBuffer（带缓存）
+async function loadBgmFile(bgmId) {
+  if (bgmBufferCache.has(bgmId)) return bgmBufferCache.get(bgmId);
+  if (bgmLoading.has(bgmId)) return bgmLoading.get(bgmId);
+  const url = BGM_FILES[bgmId];
+  if (!url) return null;
+  const p = (async () => {
+    const c = ensureCtx();
+    if (!c) return null;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const arr = await resp.arrayBuffer();
+      const buf = await c.decodeAudioData(arr);
+      bgmBufferCache.set(bgmId, buf);
+      return buf;
+    } catch (e) { return null; }
+  })();
+  bgmLoading.set(bgmId, p);
+  return p;
+}
+
+// 预加载全部 BGM（游戏启动后可调用以预热）
+export async function preloadBGM() {
+  const ids = Object.keys(BGM_FILES);
+  await Promise.all(ids.map(id => loadBgmFile(id).catch(() => null)));
+}
+
+// 播放真实 mp3 BGM（循环），返回 true 表示成功
+function playMp3BGM(bgmId) {
+  const c = ensureCtx();
+  if (!c) return false;
+  const buf = bgmBufferCache.get(bgmId);
+  if (!buf) return false;
+
+  stopBGM(); // 先停掉当前所有 BGM
+
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+
+  const g = c.createGain();
+  const t = c.currentTime;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(1, t + 1.2); // 淡入
+  src.connect(g);
+  g.connect(bgmGain);
+  src.start(t);
+
+  currentMp3Source = src;
+  currentMp3Gain = g;
+  currentBgmId = bgmId;
+  currentBGM = {
+    isMp3: true,
+    masterBgGain: g,
+    stop: (fadeDur = 0.8) => {
+      const st = c.currentTime;
+      g.gain.cancelScheduledValues(st);
+      g.gain.setValueAtTime(g.gain.value, st);
+      g.gain.linearRampToValueAtTime(0, st + fadeDur);
+      try { src.stop(st + fadeDur + 0.1); } catch (e) {}
+    },
+  };
+  return true;
+}
+
 // 延迟初始化（浏览器要求用户交互后才能创建 AudioContext）
 function ensureCtx() {
   if (ctx) return ctx;
@@ -213,11 +339,32 @@ const BGM_DEFS = {
 
 export function playBGM(sceneId) {
   if (muted) return;
-  const def = BGM_DEFS[sceneId];
-  if (!def) return;
   const c = ensureCtx();
   if (!c) return;
   if (currentBgmId === sceneId && currentBGM) return; // 同曲不重启
+
+  // 1) 优先查找场景对应的真实 mp3 BGM
+  const bgmId = SCENE_TO_BGM[sceneId];
+  if (bgmId) {
+    const buf = bgmBufferCache.get(bgmId);
+    if (buf) {
+      // 已缓存，直接播放
+      if (playMp3BGM(bgmId)) return;
+    } else {
+      // 未缓存：异步加载，加载成功后若仍是该场景则播放；期间先静默或保留旧BGM
+      loadBgmFile(bgmId).then(b => {
+        if (b && (currentBgmId === sceneId || currentBgmId === null)) {
+          playMp3BGM(bgmId);
+        }
+      }).catch(() => {});
+      // 不立即停掉旧BGM，等加载完成再切换（避免空白）
+      return;
+    }
+  }
+
+  // 2) 回退：合成 drone（原有逻辑）
+  const def = BGM_DEFS[sceneId];
+  if (!def) return;
 
   stopBGM();
   currentBgmId = sceneId;
@@ -278,6 +425,7 @@ export function stopBGM(fadeDur = 0.8) {
     currentBGM = null;
     currentBgmId = null;
   }
+  if (currentMp3Source) { currentMp3Source = null; currentMp3Gain = null; }
 }
 
 export function getCurrentBgmId() { return currentBgmId; }
