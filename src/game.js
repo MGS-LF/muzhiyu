@@ -854,6 +854,8 @@ export class Game {
     if (this._audioUnlocked && this._lastBgmScene !== sceneId) {
       audio.playBGM(sceneId);
       this._lastBgmScene = sceneId;
+      // 预测预加载：当前场景的可到达目标场景 BGM 提前缓存
+      this._preloadAdjacentScenes(sceneId);
     }
     // 自动存档（节流：3 秒内不重复存，冷冻中心苏醒前不存）
     const canSave = sceneId !== 'freeze_center' || this.flags.wake_done;
@@ -864,6 +866,30 @@ export class Game {
     // 江堤横版模式：进入 riverside 时启动
     if (this.scene.mode === 'sidescroll') {
       this.sidescroll = new SideScrollLevel(this);
+    }
+  }
+
+  // 预加载当前场景可到达的相邻场景 BGM（提前缓存，减少切换延迟）
+  _preloadAdjacentScenes(sceneId) {
+    // 场景连通图：当前场景 -> 可直接到达的目标场景列表
+    const adjacency = {
+      freeze_center: ['street_01'],
+      street_01: ['freeze_center', 'subway', 'riverside'],
+      subway: ['street_01'],
+      riverside: ['street_01', 'alley_district'],
+      alley_district: ['riverside', 'stadium', 'house_a', 'house_b'],
+      house_a: ['alley_district'],
+      house_b: ['alley_district'],
+      stadium: ['alley_district', 'ruined_library'],
+      ruined_library: ['stadium', 'network_nexus', 'lost_village'],
+      network_nexus: ['ruined_library', 'memory_abyss'],
+      memory_abyss: ['network_nexus', 'data_center'],
+      data_center: ['memory_abyss'],
+      lost_village: ['ruined_library'],
+    };
+    const targets = adjacency[sceneId] || [];
+    for (const t of targets) {
+      if (typeof audio.preloadScene === 'function') audio.preloadScene(t);
     }
   }
 

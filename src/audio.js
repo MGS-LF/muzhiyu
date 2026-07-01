@@ -68,12 +68,36 @@ const SCENE_TO_BGM = {
   lost_village: 'bgm_10_ember',
 };
 
-const bgmBufferCache = new Map(); // bgmId -> AudioBuffer
-const bgmLoading = new Map();     // bgmId -> Promise
-let currentMp3Source = null;      // 当前播放的 AudioBufferSourceNode
-let currentMp3Gain = null;        // 当前 mp3 的增益（用于淡入淡出）
+const bgmBufferCache = new Map(); // bgmId -> AudioBuffer（已解码完整缓存，二次播放用）
+const bgmLoading = new Map();     // bgmId -> Promise（完整解码加载）
+const bgmAudioEls = new Map();    // bgmId -> HTMLAudioElement（流式播放元素池，循环复用）
+const bgmStreamNodes = new Map(); // bgmId -> { source, gain }（MediaElementSource 节点）
+let currentMp3El = null;          // 当前流式播放的 audio 元素
+let currentMp3Gain = null;        // 当前 mp3 的增益节点
 
-// 异步加载 mp3 为 AudioBuffer（带缓存）
+// 优先级：首场景 > 高频 > 其余。用于提前缓存排序
+const BGM_PRELOAD_PRIORITY = [
+  'bgm_01_prologue', 'bgm_06_void', 'bgm_07_ruins', // 冷冻中心+街道（开局必经）
+  'bgm_02_battle', 'bgm_08_stealth',                 // 战斗+地铁（高频）
+  'bgm_09_river', 'bgm_10_ember', 'bgm_03_purify',
+  'bgm_04_tingyu', 'bgm_05_ending',
+];
+
+// 获取/创建流式 audio 元素（浏览器原生边下边播+缓冲，无需等完整下载）
+function getStreamAudioEl(bgmId) {
+  if (bgmAudioEls.has(bgmId)) return bgmAudioEls.get(bgmId);
+  const url = BGM_FILES[bgmId];
+  if (!url) return null;
+  const el = new Audio();
+  el.src = url;
+  el.loop = true;
+  el.preload = 'auto';       // 浏览器自动缓冲
+  el.crossOrigin = 'anonymous';
+  bgmAudioEls.set(bgmId, el);
+  return el;
+}
+
+// 异步完整加载 mp3 为 AudioBuffer（用于提前缓存，二次播放零延迟）
 async function loadBgmFile(bgmId) {
   if (bgmBufferCache.has(bgmId)) return bgmBufferCache.get(bgmId);
   if (bgmLoading.has(bgmId)) return bgmLoading.get(bgmId);
@@ -95,47 +119,132 @@ async function loadBgmFile(bgmId) {
   return p;
 }
 
-// 预加载全部 BGM（游戏启动后可调用以预热）
+// 预加载：按优先级提前缓存（游戏启动时调用）
+// 优先用 fetch 预热浏览器 HTTP 缓存 + 解码为 AudioBuffer
 export async function preloadBGM() {
-  const ids = Object.keys(BGM_FILES);
-  await Promise.all(ids.map(id => loadBgmFile(id).catch(() => null)));
+  // 第一阶段：立即为所有 BGM 创建 audio 元素触发浏览器流式预缓冲（非阻塞）
+  for (const id of Object.keys(BGM_FILES)) {
+    getStreamAudioEl(id); // 创建即触发 preload='auto' 缓冲
+  }
+  // 第二阶段：按优先级解码完整 AudioBuffer（用于后续无缝切换）
+  for (const id of BGM_PRELOAD_PRIORITY) {
+    loadBgmFile(id).catch(() => {});
+  }
 }
 
-// 播放真实 mp3 BGM（循环），返回 true 表示成功
+// 预加载单个 BGM（场景切换前预测调用）
+export function preloadScene(sceneId) {
+  const bgmId = SCENE_TO_BGM[sceneId];
+  if (bgmId) loadBgmFile(bgmId).catch(() => {});
+}
+
+// 流式播放 mp3（边下边播，无需等完整下载），返回 true 表示成功
 function playMp3BGM(bgmId) {
   const c = ensureCtx();
   if (!c) return false;
-  const buf = bgmBufferCache.get(bgmId);
-  if (!buf) return false;
 
   stopBGM(); // 先停掉当前所有 BGM
 
-  const src = c.createBufferSource();
-  src.buffer = buf;
-  src.loop = true;
+  // 优先用已解码的完整 AudioBuffer（零延迟，已缓存时）
+  const buf = bgmBufferCache.get(bgmId);
+  if (buf) {
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const g = c.createGain();
+    const t = c.currentTime;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(1, t + 1.2);
+    src.connect(g);
+    g.connect(bgmGain);
+    src.start(t);
+    currentBgmId = bgmId;
+    currentBGM = {
+      isMp3: true,
+      masterBgGain: g,
+      stop: (fadeDur = 0.8) => {
+        const st = c.currentTime;
+        g.gain.cancelScheduledValues(st);
+        g.gain.setValueAtTime(g.gain.value, st);
+        g.gain.linearRampToValueAtTime(0, st + fadeDur);
+        try { src.stop(st + fadeDur + 0.1); } catch (e) {}
+      },
+    };
+    return true;
+  }
 
-  const g = c.createGain();
+  // 回退：流式播放（HTMLAudioElement 边下边播）
+  const el = getStreamAudioEl(bgmId);
+  if (!el) return false;
+
+  // 创建 MediaElementSource 接入 Web Audio 图（仅一次，复用）
+  let node = bgmStreamNodes.get(bgmId);
+  if (!node) {
+    try {
+      const source = c.createMediaElementSource(el);
+      const g = c.createGain();
+      source.connect(g);
+      g.connect(bgmGain);
+      node = { source, gain: g };
+      bgmStreamNodes.set(bgmId, node);
+    } catch (e) { return false; }
+  }
+
+  const g = node.gain;
   const t = c.currentTime;
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(1, t + 1.2); // 淡入
-  src.connect(g);
-  g.connect(bgmGain);
-  src.start(t);
+  el.currentTime = 0;
+  el.play().catch(() => {});
 
-  currentMp3Source = src;
+  currentMp3El = el;
   currentMp3Gain = g;
   currentBgmId = bgmId;
   currentBGM = {
     isMp3: true,
+    isStream: true,
     masterBgGain: g,
     stop: (fadeDur = 0.8) => {
       const st = c.currentTime;
       g.gain.cancelScheduledValues(st);
       g.gain.setValueAtTime(g.gain.value, st);
       g.gain.linearRampToValueAtTime(0, st + fadeDur);
-      try { src.stop(st + fadeDur + 0.1); } catch (e) {}
+      setTimeout(() => { try { el.pause(); } catch (e) {} }, fadeDur * 1000 + 100);
     },
   };
+
+  // 流式播放期间，后台继续解码完整 AudioBuffer；完成后若仍是该曲则无缝切换（消除循环间隙）
+  if (!bgmBufferCache.has(bgmId) && !bgmLoading.has(bgmId)) {
+    loadBgmFile(bgmId).then(b => {
+      if (b && currentBgmId === bgmId && currentBGM && currentBGM.isStream) {
+        // 切换到 buffer 源（循环更平滑），保留当前播放位置近似
+        const resumeTime = el.currentTime;
+        stopBGM();
+        const src = c.createBufferSource();
+        src.buffer = b;
+        src.loop = true;
+        src.start(0, resumeTime % b.duration);
+        const ng = c.createGain();
+        const nt = c.currentTime;
+        ng.gain.setValueAtTime(0, nt);
+        ng.gain.linearRampToValueAtTime(1, nt + 0.5);
+        src.connect(ng);
+        ng.connect(bgmGain);
+        currentBgmId = bgmId;
+        currentBGM = {
+          isMp3: true,
+          masterBgGain: ng,
+          stop: (fadeDur = 0.8) => {
+            const st = c.currentTime;
+            ng.gain.cancelScheduledValues(st);
+            ng.gain.setValueAtTime(ng.gain.value, st);
+            ng.gain.linearRampToValueAtTime(0, st + fadeDur);
+            try { src.stop(st + fadeDur + 0.1); } catch (e) {}
+          },
+        };
+      }
+    }).catch(() => {});
+  }
   return true;
 }
 
@@ -346,27 +455,10 @@ export function playBGM(sceneId) {
   // 1) 优先查找场景对应的真实 mp3 BGM
   const bgmId = SCENE_TO_BGM[sceneId];
   if (bgmId) {
-    const buf = bgmBufferCache.get(bgmId);
-    if (buf) {
-      // 已缓存，直接播放
-      if (playMp3BGM(bgmId)) return;
-    } else {
-      // 未缓存：先立即播放合成 drone 作为过渡（避免静默），mp3 加载完成后无缝切换
-      const defFallback = BGM_DEFS[sceneId];
-      if (defFallback) {
-        // 停掉旧BGM，播合成drone过渡
-        stopBGM();
-        currentBgmId = sceneId;
-        _startDrone(defFallback, c);
-      }
-      // 异步加载 mp3，完成后若仍是该场景则切换
-      loadBgmFile(bgmId).then(b => {
-        if (b && currentBgmId === sceneId) {
-          playMp3BGM(bgmId);
-        }
-      }).catch(() => {});
-      return;
-    }
+    // playMp3BGM 内部：已缓存AudioBuffer零延迟播放；未缓存则流式边下边播；
+    // 流式播放期间后台继续解码完整缓存，完成后无缝切换消除循环间隙
+    if (playMp3BGM(bgmId)) return;
+    // 流式也失败（如AudioContext未就绪）：回退合成 drone
   }
 
   // 2) 回退：合成 drone（原有逻辑）
@@ -436,7 +528,7 @@ export function stopBGM(fadeDur = 0.8) {
     currentBGM = null;
     currentBgmId = null;
   }
-  if (currentMp3Source) { currentMp3Source = null; currentMp3Gain = null; }
+  if (currentMp3El) { currentMp3El = null; currentMp3Gain = null; }
 }
 
 export function getCurrentBgmId() { return currentBgmId; }
