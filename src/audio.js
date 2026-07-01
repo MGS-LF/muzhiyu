@@ -351,13 +351,20 @@ export function playBGM(sceneId) {
       // 已缓存，直接播放
       if (playMp3BGM(bgmId)) return;
     } else {
-      // 未缓存：异步加载，加载成功后若仍是该场景则播放；期间先静默或保留旧BGM
+      // 未缓存：先立即播放合成 drone 作为过渡（避免静默），mp3 加载完成后无缝切换
+      const defFallback = BGM_DEFS[sceneId];
+      if (defFallback) {
+        // 停掉旧BGM，播合成drone过渡
+        stopBGM();
+        currentBgmId = sceneId;
+        _startDrone(defFallback, c);
+      }
+      // 异步加载 mp3，完成后若仍是该场景则切换
       loadBgmFile(bgmId).then(b => {
-        if (b && (currentBgmId === sceneId || currentBgmId === null)) {
+        if (b && currentBgmId === sceneId) {
           playMp3BGM(bgmId);
         }
       }).catch(() => {});
-      // 不立即停掉旧BGM，等加载完成再切换（避免空白）
       return;
     }
   }
@@ -368,7 +375,11 @@ export function playBGM(sceneId) {
 
   stopBGM();
   currentBgmId = sceneId;
+  _startDrone(def, c);
+}
 
+// 合成 drone 启动（过渡/回退共用）
+function _startDrone(def, c) {
   const t = c.currentTime;
   const oscs = [];
   const masterBgGain = c.createGain();
