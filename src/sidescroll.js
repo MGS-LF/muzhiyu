@@ -31,18 +31,18 @@ const SEG2_END = 2300;  // 中段结束
 
 // 老人交付小刀的对白
 const KNIFE_DIALOG = [
-  { s: '书远', t: '江堤这条路，被梗鬼堵了。它们在堤面与石板上来回踱步，碰到你就咬你的字。' },
-  { s: '书远', t: '近身的东西，诗一时半刻念不利索。这把小刀给你——记忆合金打的，专破那层绿皮。' },
+  { s: '守砚', t: '江堤这条路，被梗鬼堵了。它们在堤面与石板上来回踱步，碰到你就咬你的字。' },
+  { s: '守砚', t: '近身的东西，诗一时半刻念不利索。这把小刀给你——记忆合金打的，专破那层绿皮。' },
   { s: '系统', t: '（A/D 左右走；空格/W 跳跃——短按为轻跳，精准落点；长按为重跳，跨越沟壑）' },
   { s: '系统', t: '（从上方落下可踩死梗鬼；鼠标左键挥刀近战）' },
-  { s: '书远', t: '砍通这条堤，东头就是去居民区的路。我在出口等你。' },
+  { s: '守砚', t: '砍通这条堤，东头就是去居民区的路。我在出口等你。' },
   { s: '顾言', t: '……多谢。' },
   { s: '系统', t: '（获得：记忆合金小刀）' },
 ];
 
 const EXIT_DIALOG = [
   { s: '系统', t: '你穿过长堤，踩过最后一片芦苇。东面的路口通向废墟居民区。' },
-  { s: '书远', t: '（远处传来老人的声音）我在前面等你——居民区里，有更深的的东西。' },
+  { s: '守砚', t: '（远处传来老人的声音）我在前面等你——居民区里，有更深的的东西。' },
 ];
 
 const KEYSTONE_DIALOG = [
@@ -54,8 +54,8 @@ const KEYSTONE_DIALOG = [
 const LADDER_HINT = '靠近梯子按 W 攀爬，松开则滑落';
 
 const RETURN_DIALOG = [
-  { s: '书远', t: '这盏提灯借你。灯亮着的地方，你能随时回到街道歇脚——江堤的入口不会消失。' },
-  { s: '系统', t: '（获得：书远的提灯 · 站在老人旁边的光圈按 E 可返回街道）' },
+  { s: '守砚', t: '这盏提灯借你。灯亮着的地方，你能随时回到街道歇脚——江堤的入口不会消失。' },
+  { s: '系统', t: '（获得：守砚的提灯 · 站在老人旁边的光圈按 E 可返回街道）' },
 ];
 
 export class SideScrollLevel {
@@ -195,11 +195,11 @@ export class SideScrollLevel {
       this.npc.talked = true;
       this.p.hasKnife = true;
       this.game.flags.sidescroll_knife = true;
-      this.game.startDialog(KNIFE_DIALOG, '书远', () => {
+      this.game.startDialog(KNIFE_DIALOG, '守砚', () => {
         // 刀给完后，再交付提灯（返回传送点）
         this.returnPortal.active = true;
         this.game.flags.sidescroll_lantern = true;
-        this.game.startDialog(RETURN_DIALOG, '书远', () => {
+        this.game.startDialog(RETURN_DIALOG, '守砚', () => {
           this.game.showHint('空格跳跃踩踏梗鬼 · 鼠标左键挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石');
         });
       });
@@ -207,6 +207,25 @@ export class SideScrollLevel {
     }
     if (!this.p.hasKnife) {
       if (p.x > this.npc.x + 60) p.x = this.npc.x + 60;
+    }
+
+    // === 要石交互（中段）—— 优先于返回传送点，避免 e 键被抢 ===
+    // 注意：不强制要求 onGround，因为物理更新在后面，落地帧的 onGround 还是旧值
+    // 只要玩家在要石附近（水平距离 < 46，垂直距离 < 50）且不在梯子上即可
+    if (input.wasPressed('e') && !p.onLadder &&
+        Math.abs(p.x - this.keystone.x) < 46 &&
+        Math.abs(p.y - this.keystone.y) < 50) {
+      if (!this.keystone.activated) {
+        this.keystone.activated = true;
+        this.game.activatedKeystones.add('keystone_riverside');
+        this.game.startDialog(KEYSTONE_DIALOG, '要石', () => {
+          // 激活后允许刻字
+          this.game.startEngraving(this.keystone, 'keystone');
+        });
+      } else {
+        this.game.startEngraving(this.keystone, 'keystone');
+      }
+      return;
     }
 
     // === 返回传送点 ===
@@ -228,25 +247,6 @@ export class SideScrollLevel {
         this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 15);
         this.game.showHint('拾得一页旧书 · 理性 +15');
       }
-    }
-
-    // === 要石交互（中段）===
-    // 注意：不强制要求 onGround，因为物理更新在后面，落地帧的 onGround 还是旧值
-    // 只要玩家在要石附近（水平距离 < 46，垂直距离 < 50）且不在梯子上即可
-    if (input.wasPressed('e') && !p.onLadder &&
-        Math.abs(p.x - this.keystone.x) < 46 &&
-        Math.abs(p.y - this.keystone.y) < 50) {
-      if (!this.keystone.activated) {
-        this.keystone.activated = true;
-        this.game.activatedKeystones.add('keystone_riverside');
-        this.game.startDialog(KEYSTONE_DIALOG, '要石', () => {
-          // 激活后允许刻字
-          this.game.startEngraving(this.keystone, 'keystone');
-        });
-      } else {
-        this.game.startEngraving(this.keystone, 'keystone');
-      }
-      return;
     }
 
     // === 梯子检测 ===

@@ -32,4 +32,4 @@ window.addEventListener('keydown', _playTitleBGM, { once: true });
 
 game.start();
 
-console.log('[刻痕] 启动' + (FROM_INTRO ? '（接序幕）' : '') + `（难度：${difficulty.currentDef().name}）`);
+console.log('[墓之语] 启动' + (FROM_INTRO ? '（接序幕）' : '') + `（难度：${difficulty.currentDef().name}）`);

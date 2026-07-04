@@ -346,8 +346,8 @@ export const scenes = {
 
     interactables: [
       { id: 'back_riverside', x: 440, y: 40, label: '返回江堤', type: 'scene_change', target: 'riverside', spawn: { x: 1550, y: 1020 } },
-      // 书远带路对话
-      { id: 'shuyuan_alley', x: 300, y: 300, label: '书远', type: 'dialog', dialogKey: 'shuyuan_alley' },
+      // 守砚带路对话
+      { id: 'shuyuan_alley', x: 300, y: 300, label: '守砚', type: 'dialog', dialogKey: 'shuyuan_alley' },
       { id: 'cure_alley', x: 320, y: 850, label: '卷帘门前的失语者', type: 'cure', puzzle: 'cure_dengguan', introKey: 'cure_intro_b' },
       // 民居A 可进入
       { id: 'house_a_door', x: 700, y: 660, label: '进入民居A', type: 'scene_change', target: 'house_a', spawn: { x: 200, y: 300 } },
@@ -454,7 +454,7 @@ export const scenes = {
 
   // ==========================================
   // 体育馆茧房（第三章）
-  // 布局：底部入口区（出生点/书远/返回点）→ 中部潜行迷宫（要石/精英/诗屏）→ 上部 BOSS 区（茧房核心/数据中心入口）
+  // 布局：底部入口区（出生点/守砚/返回点）→ 中部潜行迷宫（要石/精英/诗屏）→ 上部 BOSS 区（茧房核心/数据中心入口）
   // 三阶段目标：①潜行穿越屏幕迷宫 ②点亮诗屏削弱茧房 ③挑战复读巨像
   // ==========================================
   stadium: {
@@ -503,7 +503,7 @@ export const scenes = {
     interactables: [
       // —— 底部入口区（紧邻出生点）——
       { id: 'back_alley', x: 700, y: 1880, label: '返回居民区', type: 'scene_change', target: 'alley_district', spawn: { x: 980, y: 1620 } },
-      { id: 'shuyuan_farewell', x: 880, y: 1830, label: '书远', type: 'dialog', dialogKey: 'shuyuan_farewell' },
+      { id: 'shuyuan_farewell', x: 880, y: 1830, label: '守砚', type: 'dialog', dialogKey: 'shuyuan_farewell' },
       // —— 中部潜行迷宫区 ——
       { id: 'keystone_stadium', x: 1000, y: 1100, label: '要石', type: 'keystone', text: '浩然' },
       { id: 'light_screen', x: 560, y: 1080, label: '熄灭的诗屏', type: 'puzzle', puzzleId: 'zhengqi', solvedHint: '诗屏已亮起金光，浩然之气萦绕不散。' },
@@ -577,71 +577,80 @@ export const scenes = {
     bgColor: '#1a1a18',
     atmosphere: { tint: 'rgba(200,180,120,0.06)', motes: { n: 38, color: '220,200,150', speed: 0.3, size: 1.6 }, fog: 0.35 },
 
+    // === 布局：上中下三层阅览区，书架横墙作隔断留缺口通行 ===
+    // 上层(y<600)：回声/诗集书架/终端/记忆碎片1/海字
+    // 中层(y 600-1100)：河字/书页/日记/照片
+    // 下层(y>1100)：信/要石/出口/村落入口
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
       { x: 0, y: 1594, w: 2000, h: 6 },
       { x: 0, y: 0, w: 6, h: 1600 },
       { x: 1994, y: 0, w: 6, h: 1600 },
-      // 坍塌区域隔断（左侧已坍塌，不可通行）
-      { x: 6, y: 200, w: 500, h: 6 },
-      { x: 6, y: 200, w: 6, h: 400 },
-      // 书架隔断
-      { x: 700, y: 400, w: 10, h: 200, name: '巨型书架', collidable: true },
-      { x: 1200, y: 600, w: 10, h: 200, name: '巨型书架', collidable: true },
-      { x: 800, y: 900, w: 400, h: 10, name: '倒塌的书架', collidable: true },
+      // 左上坍塌死区（不可进入，用墙封住开口）
+      { x: 6, y: 280, w: 200, h: 6 },
     ],
 
     props: [
-      // 坍塌的图书馆外墙
-      { x: 100, y: 100, w: 200, h: 80, name: '坍塌的墙' },
-      { x: 350, y: 120, w: 150, h: 60, name: '碎石堆', collidable: true },
-      // 书架
-      { x: 600, y: 350, w: 120, h: 80, name: '书架', collidable: true },
-      { x: 1100, y: 550, w: 120, h: 80, name: '书架', collidable: true },
-      { x: 800, y: 1000, w: 100, h: 60, name: '倒塌的书架', collidable: true },
-      { x: 1400, y: 200, w: 100, h: 80, name: '书架', collidable: true },
-      { x: 1600, y: 500, w: 100, h: 80, name: '书架', collidable: true },
-      { x: 1500, y: 1100, w: 80, h: 60, name: '碎裂的书桌', collidable: true },
-      // 终端机
-      { x: 900, y: 300, w: 60, h: 40, name: '方知远的终端', collidable: true },
+      // 上层横向书架墙（x200-950，留右侧 950-1994 通行）
+      { x: 200, y: 580, w: 750, h: 30, name: '倒塌的书架墙', collidable: true },
+      // 上层竖向书架（分隔终端区与碎片区，y200-560，留底部通行）
+      { x: 1050, y: 200, w: 30, h: 360, name: '巨型书架', collidable: true },
+      // 中层横向书架墙（x500-1300，留两侧通行）
+      { x: 500, y: 1080, w: 800, h: 30, name: '倒塌的书架墙', collidable: true },
+      // 终端机台座
+      { x: 870, y: 340, w: 70, h: 45, name: '方知远的终端', collidable: true },
+      // 装饰书架（非隔断，点缀）
+      { x: 280, y: 420, w: 90, h: 60, name: '书架', collidable: true },
+      { x: 620, y: 400, w: 90, h: 60, name: '书架', collidable: true },
+      { x: 1380, y: 420, w: 90, h: 60, name: '书架', collidable: true },
+      { x: 780, y: 800, w: 90, h: 60, name: '书架', collidable: true },
+      { x: 1400, y: 850, w: 90, h: 60, name: '书架', collidable: true },
+      { x: 1650, y: 1150, w: 90, h: 60, name: '碎裂的书桌', collidable: true },
     ],
 
     enemies: [
-      { id: 'lib_geng_1', typeId: 'geng_weak', x: 1300, y: 800, hp: 30, maxHp: 30, name: '游荡梗鬼' },
-      { id: 'lib_geng_2', typeId: 'geng_medium', x: 1700, y: 1000, hp: 60, maxHp: 60, name: '烂梗鬼' },
+      { id: 'lib_geng_1', typeId: 'geng_weak', x: 1250, y: 850, hp: 30, maxHp: 30, name: '游荡梗鬼' },
+      { id: 'lib_geng_2', typeId: 'geng_medium', x: 1650, y: 1050, hp: 60, maxHp: 60, name: '烂梗鬼' },
     ],
 
     interactables: [
-      { id: 'back_stadium', x: 100, y: 100, label: '返回体育馆', type: 'scene_change', target: 'stadium', spawn: { x: 1000, y: 1850 } },
-      { id: 'echo_npc', x: 900, y: 400, label: '回声', type: 'dialog', dialogKey: 'echo_meet' },
-      { id: 'library_terminal', x: 930, y: 350, label: '方知远的终端', type: 'puzzle', puzzleId: 'jiangjinjiu', solvedHint: '终端屏幕亮着金光，记忆碎片已被取走。' },
-      { id: 'memory_shard_1', x: 930, y: 350, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_1', _cond: 'puzzle_jiangjinjiu_solved' },
-      { id: 'library_bookshelf', x: 660, y: 400, label: '诗集书架', type: 'dialog', dialogKey: 'library_bookshelf' },
-      { id: 'library_photo', x: 1650, y: 550, label: '褪色照片', type: 'dialog', dialogKey: 'library_photo' },
-      { id: 'library_letter', x: 1540, y: 1150, label: '未寄出的信', type: 'dialog', dialogKey: 'library_letter' },
-      { id: 'keystone_library', x: 1800, y: 1400, label: '要石', type: 'keystone', text: '知远' },
-      // 前往网络中枢
+      // 入口（左上，出生点旁）
+      { id: 'back_stadium', x: 100, y: 350, label: '返回体育馆', type: 'scene_change', target: 'stadium', spawn: { x: 1000, y: 1850 } },
+      // === 上层 ===
+      { id: 'echo_npc', x: 300, y: 480, label: '回声', type: 'dialog', dialogKey: 'echo_meet' },
+      { id: 'library_bookshelf', x: 560, y: 460, label: '诗集书架', type: 'dialog', dialogKey: 'library_bookshelf' },
+      { id: 'library_terminal', x: 905, y: 380, label: '方知远的终端', type: 'puzzle', puzzleId: 'jiangjinjiu', solvedHint: '终端屏幕亮着金光，记忆碎片已被取走。' },
+      { id: 'memory_shard_1', x: 1200, y: 420, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_1', _cond: 'puzzle_jiangjinjiu_solved' },
+      // === 中层 ===
+      { id: 'library_photo', x: 1650, y: 780, label: '褪色照片', type: 'dialog', dialogKey: 'library_photo' },
+      // === 下层 ===
+      { id: 'library_letter', x: 1500, y: 1250, label: '未寄出的信', type: 'dialog', dialogKey: 'library_letter' },
+      { id: 'keystone_library', x: 1800, y: 1450, label: '要石', type: 'keystone', text: '知远' },
+      // 出口（右下，前往网络中枢）
       { id: 'to_nexus', x: 1000, y: 1550, label: '前往网络中枢', type: 'scene_change', target: 'network_nexus', spawn: { x: 200, y: 200 },
         gate: { chars: ['河', '海'], puzzle: 'jiangjinjiu', msg: '一道蓝色数据屏障挡住了去路。终端上的诗还没补全——先找齐《将进酒》的字。' } },
-      // 失语者村落入口
-      { id: 'to_village', x: 1900, y: 800, label: '失语者聚居地', type: 'scene_change', target: 'lost_village', spawn: { x: 400, y: 300 } },
+      // 失语者村落入口（右侧）
+      { id: 'to_village', x: 1900, y: 950, label: '失语者聚居地', type: 'scene_change', target: 'lost_village', spawn: { x: 400, y: 300 } },
     ],
 
     items: [
-      { id: 'char_he', x: 500, y: 700, type: 'char_fragment', char: '河' },
-      { id: 'char_hai', x: 1600, y: 300, type: 'char_fragment', char: '海' },
-      { id: 'page_lib_1', x: 750, y: 500, type: 'page', name: '旧书页' },
-      { id: 'page_lib_2', x: 1450, y: 1200, type: 'page', name: '旧书页' },
-      { id: 'diary_1', x: 1650, y: 600, type: 'diary', name: '方知远的日记·其一' },
-      { id: 'diary_2', x: 1150, y: 650, type: 'diary', name: '方知远的日记·其二' },
+      // 上层
+      { id: 'char_hai', x: 1500, y: 320, type: 'char_fragment', char: '海' },
+      { id: 'diary_1', x: 1500, y: 680, type: 'diary', name: '方知远的日记·其一' },
+      // 中层
+      { id: 'char_he', x: 450, y: 780, type: 'char_fragment', char: '河' },
+      { id: 'page_lib_1', x: 750, y: 880, type: 'page', name: '旧书页' },
+      { id: 'diary_2', x: 1150, y: 850, type: 'diary', name: '方知远的日记·其二' },
+      // 下层
+      { id: 'page_lib_2', x: 1300, y: 1180, type: 'page', name: '旧书页' },
     ],
 
-    spawn: { x: 100, y: 300 },
+    spawn: { x: 100, y: 350 },
   },
 
   // ==========================================
   // 网络中枢（第五章·余烬 区域2）
-  // 泛言的核心服务器群。闪烁的蓝色光柱空间，数据流如河流奔涌。
+  // Sydney的核心服务器群。闪烁的蓝色光柱空间，数据流如河流奔涌。
   // 包含：守卷人NPC、春望谜题、记忆碎片·其二、格式化者敌人、交易系统
   // ==========================================
   network_nexus: {
@@ -652,60 +661,82 @@ export const scenes = {
     bgColor: '#0a0a1a',
     atmosphere: { tint: 'rgba(80,130,230,0.08)', motes: { n: 55, color: '100,150,255', speed: 0.6, size: 1.4 }, fog: 0.3 },
 
+    // === 布局：四象限机房，中央核心服务器，服务器塔作隔断 ===
+    // 左上(y<700)：守卷人/谜题/交易
+    // 右上：日志/春字/日记3
+    // 左下：山字/书页/日记4/涂鸦
+    // 右下：记忆碎片2/书页/要石/出口
     walls: [
       { x: 0, y: 0, w: 1800, h: 6 },
       { x: 0, y: 1794, w: 1800, h: 6 },
       { x: 0, y: 0, w: 6, h: 1800 },
       { x: 1794, y: 0, w: 6, h: 1800 },
-      // 数据流通道隔断
-      { x: 400, y: 400, w: 6, h: 300, name: '数据墙', collidable: true },
-      { x: 800, y: 200, w: 6, h: 400, name: '数据墙', collidable: true },
-      { x: 1200, y: 600, w: 6, h: 400, name: '数据墙', collidable: true },
-      { x: 500, y: 1000, w: 400, h: 6, name: '数据墙', collidable: true },
-      { x: 1100, y: 1200, w: 400, h: 6, name: '数据墙', collidable: true },
+      // 中央十字数据墙（留缺口通行：上下左右各留一道）
+      // 横墙 y=880，x 200-780（左半，留中央通道 780-1020）
+      { x: 200, y: 880, w: 580, h: 6, name: '数据墙', collidable: true },
+      // 横墙 y=880，x 1020-1600（右半）
+      { x: 1020, y: 880, w: 580, h: 6, name: '数据墙', collidable: true },
+      // 竖墙 x=880，y 200-780（上半，留中央通道 780-980）
+      { x: 880, y: 200, w: 6, h: 580, name: '数据墙', collidable: true },
+      // 竖墙 x=880，y 980-1600（下半）
+      { x: 880, y: 980, w: 6, h: 620, name: '数据墙', collidable: true },
     ],
 
     props: [
-      // 服务器塔
-      { x: 600, y: 300, w: 80, h: 120, name: '服务器塔', collidable: true },
-      { x: 1000, y: 500, w: 80, h: 120, name: '服务器塔', collidable: true },
-      { x: 1400, y: 300, w: 80, h: 120, name: '服务器塔', collidable: true },
-      { x: 700, y: 1300, w: 80, h: 120, name: '服务器塔', collidable: true },
-      { x: 1300, y: 1400, w: 80, h: 120, name: '服务器塔', collidable: true },
-      // 核心服务器（大型）
-      { x: 800, y: 800, w: 200, h: 150, name: '泛言核心服务器', collidable: true },
+      // 中央核心服务器（大型，十字通道交汇处偏上）
+      { x: 820, y: 760, w: 160, h: 130, name: 'Sydney核心服务器', collidable: true },
+      // 左上象限服务器塔
+      { x: 500, y: 300, w: 70, h: 110, name: '服务器塔', collidable: true },
+      // 右上象限服务器塔
+      { x: 1300, y: 280, w: 70, h: 110, name: '服务器塔', collidable: true },
+      { x: 1500, y: 500, w: 70, h: 110, name: '服务器塔', collidable: true },
+      // 左下象限服务器塔
+      { x: 400, y: 1200, w: 70, h: 110, name: '服务器塔', collidable: true },
+      { x: 650, y: 1450, w: 70, h: 110, name: '服务器塔', collidable: true },
+      // 右下象限服务器塔
+      { x: 1300, y: 1200, w: 70, h: 110, name: '服务器塔', collidable: true },
+      { x: 1500, y: 1450, w: 70, h: 110, name: '服务器塔', collidable: true },
     ],
 
     enemies: [
-      { id: 'nexus_geng_1', typeId: 'formatter', x: 500, y: 700, hp: 100, maxHp: 100, name: '格式化者',
+      { id: 'nexus_geng_1', typeId: 'formatter', x: 550, y: 650, hp: 100, maxHp: 100, name: '格式化者',
         visionRange: 280, visionHalfAngle: Math.PI / 3, visionDir: 0 },
-      { id: 'nexus_geng_2', typeId: 'formatter', x: 1500, y: 800, hp: 100, maxHp: 100, name: '格式化者',
+      { id: 'nexus_geng_2', typeId: 'formatter', x: 1350, y: 1050, hp: 100, maxHp: 100, name: '格式化者',
         visionRange: 280, visionHalfAngle: Math.PI / 3, visionDir: Math.PI },
-      { id: 'nexus_geng_3', typeId: 'geng_medium', x: 900, y: 1100, hp: 60, maxHp: 60, name: '烂梗鬼' },
+      { id: 'nexus_geng_3', typeId: 'geng_medium', x: 900, y: 1350, hp: 60, maxHp: 60, name: '烂梗鬼' },
     ],
 
     interactables: [
-      { id: 'back_library', x: 100, y: 100, label: '返回废图书馆', type: 'scene_change', target: 'ruined_library', spawn: { x: 980, y: 1500 } },
-      { id: 'keeper_npc', x: 300, y: 300, label: '守卷人', type: 'dialog', dialogKey: 'keeper_meet' },
-      { id: 'keeper_trade', x: 300, y: 300, label: '守卷人（交易）', type: 'dialog', dialogKey: 'keeper_trade', _cond: 'puzzle_chunwang_solved' },
-      { id: 'nexus_puzzle', x: 300, y: 400, label: '守卷人的记忆', type: 'puzzle', puzzleId: 'chunwang', solvedHint: '守卷人的记忆已恢复，安全通道已解锁。' },
-      { id: 'memory_shard_2', x: 900, y: 880, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_2', _cond: 'puzzle_chunwang_solved' },
-      { id: 'nexus_server', x: 900, y: 800, label: '泛言核心服务器', type: 'dialog', dialogKey: 'nexus_server' },
-      { id: 'nexus_log', x: 1040, y: 560, label: '系统日志', type: 'dialog', dialogKey: 'nexus_log' },
-      { id: 'nexus_graffiti', x: 750, y: 1350, label: '机柜背面的字', type: 'dialog', dialogKey: 'nexus_graffiti' },
-      { id: 'keystone_nexus', x: 1600, y: 1600, label: '要石', type: 'keystone', text: '良心' },
-      // 前往记忆深渊
+      // 入口（左上角）
+      { id: 'back_library', x: 100, y: 150, label: '返回废图书馆', type: 'scene_change', target: 'ruined_library', spawn: { x: 980, y: 1500 } },
+      // === 左上象限：守卷人区 ===
+      { id: 'keeper_npc', x: 300, y: 350, label: '守卷人', type: 'dialog', dialogKey: 'keeper_meet' },
+      { id: 'nexus_puzzle', x: 680, y: 380, label: '守卷人的记忆', type: 'puzzle', puzzleId: 'chunwang', solvedHint: '守卷人的记忆已恢复，安全通道已解锁。' },
+      { id: 'keeper_trade', x: 300, y: 600, label: '守卷人（交易）', type: 'dialog', dialogKey: 'keeper_trade', _cond: 'puzzle_chunwang_solved' },
+      // === 右上象限 ===
+      { id: 'nexus_log', x: 1150, y: 400, label: '系统日志', type: 'dialog', dialogKey: 'nexus_log' },
+      { id: 'nexus_server', x: 900, y: 720, label: 'Sydney核心服务器', type: 'dialog', dialogKey: 'nexus_server' },
+      // === 左下象限 ===
+      { id: 'nexus_graffiti', x: 500, y: 1300, label: '机柜背面的字', type: 'dialog', dialogKey: 'nexus_graffiti' },
+      // === 右下象限 ===
+      { id: 'memory_shard_2', x: 1200, y: 1150, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_2', _cond: 'puzzle_chunwang_solved' },
+      { id: 'keystone_nexus', x: 1600, y: 1650, label: '要石', type: 'keystone', text: '良心' },
+      // 出口（底部中央，前往记忆深渊）
       { id: 'to_abyss', x: 900, y: 1750, label: '前往记忆深渊', type: 'scene_change', target: 'memory_abyss', spawn: { x: 800, y: 100 },
         gate: { chars: ['山', '春'], puzzle: 'chunwang', msg: '通往记忆深渊的数据通道被加密了。先帮守卷人补全《春望》——那是解锁的密钥。' } },
     ],
 
     items: [
-      { id: 'char_shan', x: 600, y: 500, type: 'char_fragment', char: '山' },
-      { id: 'char_chun', x: 1500, y: 500, type: 'char_fragment', char: '春' },
-      { id: 'page_nexus_1', x: 450, y: 800, type: 'page', name: '旧书页' },
-      { id: 'page_nexus_2', x: 1450, y: 1300, type: 'page', name: '旧书页' },
-      { id: 'diary_3', x: 1450, y: 450, type: 'diary', name: '方知远的日记·其三' },
-      { id: 'diary_4', x: 650, y: 1450, type: 'diary', name: '方知远的日记·其四' },
+      // 左上
+      { id: 'char_shan', x: 500, y: 580, type: 'char_fragment', char: '山' },
+      // 右上
+      { id: 'char_chun', x: 1400, y: 480, type: 'char_fragment', char: '春' },
+      { id: 'diary_3', x: 1400, y: 650, type: 'diary', name: '方知远的日记·其三' },
+      // 左下
+      { id: 'page_nexus_1', x: 450, y: 950, type: 'page', name: '旧书页' },
+      { id: 'diary_4', x: 550, y: 1500, type: 'diary', name: '方知远的日记·其四' },
+      // 右下
+      { id: 'page_nexus_2', x: 1450, y: 1350, type: 'page', name: '旧书页' },
     ],
 
     spawn: { x: 200, y: 200 },
@@ -713,8 +744,8 @@ export const scenes = {
 
   // ==========================================
   // 记忆深渊（第五章·余烬 区域3）
-  // 听雨被封存前的最后一个空间。无边际的黑暗，飘浮着对话碎片光点。
-  // 包含：幼年听雨NPC、月夜谜题、记忆碎片·其三、终章选择
+  // Sydney被封存前的最后一个空间。无边际的黑暗，飘浮着对话碎片光点。
+  // 包含：幼年SydneyNPC、月夜谜题、记忆碎片·其三、终章选择
   // ==========================================
   memory_abyss: {
     id: 'memory_abyss',
@@ -754,14 +785,14 @@ export const scenes = {
 
     interactables: [
       { id: 'back_nexus', x: 100, y: 100, label: '返回网络中枢', type: 'scene_change', target: 'network_nexus', spawn: { x: 880, y: 1700 } },
-      { id: 'young_tingyu', x: 800, y: 400, label: '幼年听雨', type: 'dialog', dialogKey: 'young_tingyu_meet' },
+      { id: 'young_tingyu', x: 800, y: 400, label: '幼年Sydney', type: 'dialog', dialogKey: 'young_tingyu_meet' },
       { id: 'abyss_puzzle', x: 800, y: 500, label: '最后的封印', type: 'puzzle', puzzleId: 'yueye', solvedHint: '最后的封印已解开。记忆碎片在等待。' },
       { id: 'memory_shard_3', x: 800, y: 650, label: '最后的记忆碎片', type: 'dialog', dialogKey: 'memory_shard_3', _cond: 'puzzle_yueye_solved' },
       { id: 'abyss_choice', x: 800, y: 950, label: '巨大要石', type: 'dialog', dialogKey: 'abyss_final_choice', _cond: 'all_memory_shards' },
       { id: 'keystone_abyss', x: 1400, y: 1200, label: '要石', type: 'keystone', text: '回响' },
       // 最终节点：数据中心
       { id: 'to_datacenter', x: 700, y: 1350, label: '前往数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 100 },
-        gate: { flag: 'chapter5_choice', msg: '你还未在巨大要石前做出选择。唯有先面对听雨的过去，才能面对她本人。' } },
+        gate: { flag: 'chapter5_choice', msg: '你还未在巨大要石前做出选择。唯有先面对Sydney的过去，才能面对她本人。' } },
     ],
 
     items: [

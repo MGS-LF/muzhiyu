@@ -12,7 +12,7 @@ const mouse = {
   rightDown: false,
 };
 
-// 焦点在输入框/文本域时，完全不拦截（供听雨对话的文字输入使用）
+// 焦点在输入框/文本域时，完全不拦截（供Sydney对话的文字输入使用）
 function inField(e) {
   const t = e.target;
   return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);

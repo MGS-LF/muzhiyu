@@ -1,12 +1,12 @@
 {
   "llm": {
-    "baseUrl": "https://api.cnb.cool/hu06.com/game/-/ai",
-    "apiKey": "在此填入 CNB_TOKEN 环境变量的值（${CNB_TOKEN}）",
-    "model": "hy3-preview"
+    "baseUrl": "https://api.xiaomimimo.com/v1/",
+    "apiKey": "sk-cqrjgrika0u9hgqikxbcn9ydylnpgjubkdaxaw3jnb1rl5ul",
+    "model": "mimo-v2.5"
   },
   "tts": {
-    "baseUrl": "https://token-plan-cn.xiaomimimo.com/v1",
-    "apiKey": "在此填入小米 MiMo TTS 的 API Key（tp-...）",
+    "baseUrl": "https://api.xiaomimimo.com/v1/",
+    "apiKey": "sk-cqrjgrika0u9hgqikxbcn9ydylnpgjubkdaxaw3jnb1rl5ul",
     "model": "mimo-v2.5-tts",
     "defaultVoice": "Chloe",
     "sampleRate": 24000

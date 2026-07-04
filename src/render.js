@@ -65,7 +65,7 @@ export function render(game, gameTime) {
     return;
   }
 
-  // 听雨自由对话：独立渲染
+  // Sydney自由对话：独立渲染
   if (game.converse) {
     drawConverse(ctx, game.converse, gameTime);
     return;
@@ -343,7 +343,7 @@ function drawThinking(ctx, gameTime, text) {
 }
 
 // ============================================================
-// 听雨自由对话（结局）
+// Sydney自由对话（结局）
 // ============================================================
 function wrapText(ctx, text, maxW) {
   const lines = [];
@@ -375,7 +375,7 @@ function drawConverse(ctx, c, gameTime) {
     ctx.fillRect(x, y, 1.5, 1.5);
   }
 
-  // 听雨投影（淡蓝、信号不稳的少女轮廓）
+  // Sydney投影（淡蓝、信号不稳的少女轮廓）
   const cx = W / 2, cy = H * 0.34;
   const flick = 0.6 + Math.sin(gameTime * 0.013) * 0.18 + (Math.random() - 0.5) * 0.06;
   ctx.save();
@@ -404,7 +404,7 @@ function drawConverse(ctx, c, gameTime) {
   ctx.textAlign = 'center';
   ctx.fillText('听 雨', cx, cy + 92);
 
-  // 听雨当前台词
+  // Sydney当前台词
   ctx.font = '20px serif';
   const lines = wrapText(ctx, c.tingyuText || '……', 760);
   ctx.fillStyle = 'rgba(225,235,250,0.96)';
@@ -423,7 +423,7 @@ function drawConverse(ctx, c, gameTime) {
   if (c.status === 'waiting') {
     const dots = '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
     ctx.fillStyle = 'rgba(160,195,255,0.8)';
-    ctx.fillText('听雨正在凝视你' + dots, W / 2, H - 96);
+    ctx.fillText('Sydney正在凝视你' + dots, W / 2, H - 96);
   } else if (c.status === 'ending') {
     const blink = 0.4 + Math.sin(gameTime * 0.005) * 0.4;
     ctx.fillStyle = `rgba(255,225,150,${blink})`;
@@ -2399,7 +2399,7 @@ function drawRiverside(ctx, W2S, scene, gameTime, game) {
 
   drawShuyuan(ctx, W2S, gameTime);
 
-  // 书远位置标记光柱（如果还没遇见过）
+  // 守砚位置标记光柱（如果还没遇见过）
   if (game.flags && !game.flags.met_shuyuan) {
     const markS = W2S(400, 900);
     if (markS.y > -100 && markS.y < H + 100) {
@@ -2847,7 +2847,7 @@ function drawDataCenter(ctx, W2S, scene, gameTime, game) {
     ctx.fillRect(bridgeEndX, 0, 2, H);
   }
 
-  // 听雨（蓝色光影）
+  // Sydney（蓝色光影）
   const tyS = W2S(700, 700);
   if (tyS.y > -100 && tyS.y < H + 100) {
     const pulse = 0.5 + Math.sin(gameTime * 0.003) * 0.3;
@@ -2875,7 +2875,7 @@ function drawDataCenter(ctx, W2S, scene, gameTime, game) {
     ctx.fillStyle = `rgba(150,200,255,${0.7 + pulse * 0.3})`;
     ctx.font = 'bold 12px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('? 听雨', tyS.x, tyS.y - 30);
+    ctx.fillText('? Sydney', tyS.x, tyS.y - 30);
     ctx.textAlign = 'left';
   }
 }
@@ -3073,13 +3073,13 @@ const INTERACTABLES_WITH_VISUAL = new Set([
   'player_pod', 'terminal', 'locker', 'exit_door',
   // street_01：失语者群、地铁站入口、锈死轿车、要石、失语者支线
   'lost_people', 'subway_entrance', 'street_carwreck',
-  // riverside：书远由 drawShuyuan 绘制
+  // riverside：守砚由 drawShuyuan 绘制
   'shuyuan',
   // subway：出口有专门的光柱
   'subway_exit',
   // house_a：书架已绘制
   'house_a_book',
-  // data_center：听雨蓝色光影已绘制
+  // data_center：Sydney蓝色光影已绘制
   'tingyu',
 ]);
 
@@ -3088,7 +3088,7 @@ function markerKind(it) {
   const k = (it.dialogKey || '') + (it.label || '');
   if (/屏幕|内壁|screen/.test(k)) return 'screen';
   if (/线路图|map/.test(k)) return 'map';
-  if (/书远|老人|蹲|victim|失语|人/.test(k)) return 'person';
+  if (/守砚|老人|蹲|victim|失语|人/.test(k)) return 'person';
   if (/告示|标牌|乱涂|graffiti|poster|sign|残破|破碎|小龛/.test(k)) return 'sign';
   return 'sign';
 }
@@ -3763,7 +3763,7 @@ function drawTutorial(ctx, gameTime, tutorial) {
   ctx.font = 'bold 26px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText(tutorial.title || '刻痕 · 遗 忘 的 文 字', px + pw / 2, py + 28);
+  ctx.fillText(tutorial.title || '墓 之 语', px + pw / 2, py + 28);
 
   ctx.fillStyle = 'rgba(200,200,180,0.65)';
   ctx.font = '12px serif';
@@ -3926,19 +3926,31 @@ function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
   ctx.fillText('世 界 地 图', px + pw / 2, py + 30);
   ctx.textAlign = 'left';
 
-  // 场景节点布局（简化关系图）
+  // 场景节点布局（简化关系图，与 scenes.js 的 scene_change 连接一致）
   const nodes = [
-    { id: 'freeze_center', name: '冷冻中心', x: 0.15, y: 0.75 },
-    { id: 'street_01', name: '废弃街道', x: 0.35, y: 0.55 },
-    { id: 'subway', name: '地铁站', x: 0.35, y: 0.85 },
-    { id: 'riverside', name: '江堤', x: 0.35, y: 0.3 },
-    { id: 'alley_district', name: '居民区', x: 0.55, y: 0.4 },
-    { id: 'house_a', name: '民居A', x: 0.55, y: 0.25 },
-    { id: 'house_b', name: '民居B', x: 0.55, y: 0.55 },
-    { id: 'stadium', name: '体育馆', x: 0.75, y: 0.5 },
-    { id: 'data_center', name: '数据中心', x: 0.9, y: 0.5 },
+    { id: 'freeze_center', name: '冷冻中心', x: 0.10, y: 0.75 },
+    { id: 'street_01', name: '废弃街道', x: 0.28, y: 0.55 },
+    { id: 'subway', name: '地铁站', x: 0.28, y: 0.85 },
+    { id: 'riverside', name: '江堤', x: 0.28, y: 0.30 },
+    { id: 'alley_district', name: '居民区', x: 0.46, y: 0.45 },
+    { id: 'house_a', name: '民居A', x: 0.46, y: 0.25 },
+    { id: 'house_b', name: '民居B', x: 0.46, y: 0.65 },
+    { id: 'stadium', name: '体育馆', x: 0.64, y: 0.50 },
+    { id: 'data_center', name: '数据中心', x: 0.78, y: 0.50 },
+    // 第五章·余烬
+    { id: 'ruined_library', name: '废图书馆', x: 0.64, y: 0.78 },
+    { id: 'network_nexus', name: '网络中枢', x: 0.78, y: 0.78 },
+    { id: 'memory_abyss', name: '记忆深渊', x: 0.90, y: 0.65 },
+    { id: 'lost_village', name: '失语者村落', x: 0.52, y: 0.88 },
   ];
-  const links = [['freeze_center','street_01'],['street_01','subway'],['street_01','riverside'],['riverside','alley_district'],['alley_district','house_a'],['alley_district','house_b'],['alley_district','stadium'],['stadium','data_center']];
+  const links = [
+    ['freeze_center','street_01'], ['street_01','subway'], ['street_01','riverside'],
+    ['riverside','alley_district'], ['alley_district','house_a'], ['alley_district','house_b'],
+    ['alley_district','stadium'], ['stadium','data_center'],
+    // 第五章连接：体育馆→废图书馆→网络中枢→记忆深渊；废图书馆→失语者村落
+    ['stadium','ruined_library'], ['ruined_library','network_nexus'],
+    ['network_nexus','memory_abyss'], ['ruined_library','lost_village'],
+  ];
 
   const toX = (n) => px + 40 + n.x * (pw - 80);
   const toY = (n) => py + 60 + n.y * (ph - 120);

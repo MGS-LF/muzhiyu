@@ -42,7 +42,7 @@ const SCENE_TO_BGM = {
   __cure__: 'bgm_03_purify',
   __keystone__: 'bgm_03_purify',
   __ending_fire__: 'bgm_03_purify',
-  // BGM-04 遇听雨
+  // BGM-04 遇Sydney
   __meet_tingyu__: 'bgm_04_tingyu',
   // BGM-05 黯淡结局：沉默/燃尽
   __ending_silence__: 'bgm_05_ending',

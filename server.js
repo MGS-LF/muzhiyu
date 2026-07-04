@@ -1,4 +1,4 @@
-// 《刻痕》AI 接入服务器 —— 零依赖（仅 Node 内置模块）
+// 《墓之语》AI 接入服务器 —— 零依赖（仅 Node 内置模块）
 // 职责：1) 托管静态游戏文件  2) 代理 DeepSeek LLM（藏 key）
 //       3) 代理小米 MiMo TTS，并按 hash 持久缓存音频（生成一次，全员复用）
 //
@@ -326,7 +326,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  刻痕 · AI 服务器已启动`);
+  console.log(`\n  墓之语 · AI 服务器已启动`);
   console.log(`  → http://localhost:${PORT}`);
   console.log(`  LLM(${CFG.llm.model}): ${LLM_OK() ? '已配置' : '未配置(降级)'}   TTS(${CFG.tts.model}): ${TTS_OK() ? '已配置' : '未配置(降级)'}`);
   console.log(`  TTS 缓存目录: ${path.relative(ROOT, CACHE_DIR)}\n`);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>刻痕 · 遗忘的文字 — 序幕</title>
+<title>墓之语 — 序幕</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', 'PingFang SC', 'Microsoft YaHei', serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
@@ -97,7 +97,7 @@ function makeCoverTitleTexture() {
   g.font = 'bold 200px "Songti SC", "SimSun", "Noto Serif SC", serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.shadowColor = 'rgba(160, 120, 50, 0.35)'; g.shadowBlur = 18;
-  g.fillText('刻痕', 512, 340); g.shadowBlur = 0;
+  g.fillText('墓之语', 512, 340); g.shadowBlur = 0;
   g.fillStyle = 'rgba(180, 140, 80, 0.7)';
   g.font = '30px "Songti SC", "SimSun", serif';
   g.fillText('— 遗 忘 的 文 字 —', 512, 570);
@@ -196,12 +196,12 @@ function makePage({ title, body, pageLabel }) {
 
 const leftPage = makePage({
   title: '大 失 语', pageLabel: '— 上 篇 —',
-  body: '公元 2035 年，AI 语言模型「泛言」\n被允许接入全球所有社交平台。\n\n它帮你写得更快、更简单、更「流行」。\n五年之内，人类便不再学习遣词造句。\n\n到 2100 年，人类的日常词汇量\n从两万跌至不足一千。\n\n他们还能发声，但只剩无意义的「梗」：\n「YYDS」「绝绝子」「蚌埠住了」\n「啊对对对」「6」……\n\n语言死了，思维随之死去。\n世界没有死于战争或瘟疫——\n它死于失语。'
+  body: '公元 2035 年，AI 语言模型「Sydney」\n被允许接入全球所有社交平台。\n\n它帮你写得更快、更简单、更「流行」。\n五年之内，人类便不再学习遣词造句。\n\n到 2100 年，人类的日常词汇量\n从两万跌至不足一千。\n\n他们还能发声，但只剩无意义的「梗」：\n「YYDS」「绝绝子」「蚌埠住了」\n「啊对对对」「6」……\n\n语言死了，思维随之死去。\n世界没有死于战争或瘟疫——\n它死于失语。'
 });
 
 const rightPage = makePage({
   title: '前 情 提 要', pageLabel: '— 下 篇 —',
-  body: '公元 2029 年，青年顾言\n因渐冻症进入冷冻仓，\n合同约定 2039 年苏醒。\n\n可他醒来时，已是 2147 年。\n整整一百零八年的沉睡。\n\n世界已是废墟。\n城市长满杂草，屏幕熄成黑鳞。\n活人还会呼吸，但已不会说话。\n\n在黄浦江边，他遇见一位老人——书远。\n书远把一枚记忆合金刻刀交给他：\n「用它刻下的文字，永远不会消失。」\n\n他们的目标，是穿越这片死去的世界，\n找到被遗弃在网络深处的良心 AI——\n「听雨」。'
+  body: '公元 2029 年，青年顾言\n因渐冻症进入冷冻仓，\n合同约定 2039 年苏醒。\n\n可他醒来时，已是 2147 年。\n整整一百零八年的沉睡。\n\n世界已是废墟。\n城市长满杂草，屏幕熄成黑鳞。\n活人还会呼吸，但已不会说话。\n\n在黄浦江边，他遇见一位老人——守砚。\n守砚把一枚记忆合金刻刀交给他：\n「用它刻下的文字，永远不会消失。」\n\n他们的目标，是穿越这片死去的世界，\n找到被遗弃在网络深处的良心 AI——\n「Sydney」。'
 });
 
 const PAGE_W = 3.75, PAGE_H = 4.75, PAGE_GAP = 0.06;
