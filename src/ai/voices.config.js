@@ -124,13 +124,3 @@ export function speakerVoice(name) {
   // 3) 兜底
   return { ...FALLBACK };
 }
-
-// 给 server.js / prewarm 用：列出全部会出现在请求里的 (model, voice) 组合
-export function listAllVoices() {
-  const set = new Map();
-  for (const k of Object.keys(STYLE)) {
-    const v = STYLE[k];
-    set.set(`${v.model}::${v.voice}`, { model: v.model, voice: v.voice, style: v.style });
-  }
-  return [...set.values()];
-}

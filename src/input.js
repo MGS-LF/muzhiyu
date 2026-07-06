@@ -215,22 +215,10 @@ export const input = {
   tick() {
     refreshCanvasCoord();
   },
-  mouseDown() {
-    return mouse.down;
-  },
   mousePressed() {
     const v = mouse.pressed;
     mouse.pressed = false;
     return v;
-  },
-  rightMouseDown() {
-    return mouse.rightDown;
-  },
-  mouseX() {
-    return mouse.canvasX;
-  },
-  mouseY() {
-    return mouse.canvasY;
   },
   mouseMovement() {
     const m = { x: mouse.movementX, y: mouse.movementY };
@@ -240,11 +228,5 @@ export const input = {
   },
   isPointerLocked() {
     return !!document.pointerLockElement;
-  },
-  requestPointerLock(el) {
-    if (el.requestPointerLock) el.requestPointerLock();
-  },
-  exitPointerLock() {
-    if (document.exitPointerLock) document.exitPointerLock();
   },
 };

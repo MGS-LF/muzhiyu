@@ -721,37 +721,8 @@ export function ensureEngraveInput(game) {
 }
 
 // ============================================================
-// 弹幕
+// 弹幕（已移除 drawBullets — 未使用）
 // ============================================================
-export function drawBullets(ctx, W2S, bullets) {
-  for (const b of bullets) {
-    const s = W2S(b.x, b.y);
-    const alpha = Math.min(1, b.life / 800);
-    // 拖尾
-    ctx.strokeStyle = `rgba(80,220,100,${alpha * 0.4})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(s.x - b.vx * 4, s.y - b.vy * 4);
-    ctx.lineTo(s.x, s.y);
-    ctx.stroke();
-    // 光晕
-    ctx.shadowColor = 'rgba(80,220,100,0.8)';
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = `rgba(80,220,100,${alpha * 0.25})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // 文字
-    ctx.fillStyle = `rgba(180,255,180,${alpha})`;
-    ctx.font = 'bold 10px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(b.text, s.x, s.y);
-    ctx.textBaseline = 'alphabetic';
-    ctx.textAlign = 'left';
-  }
-}
 
 // ============================================================
 // 粒子

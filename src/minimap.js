@@ -3,6 +3,8 @@
 //   1. 右上角实时迷你地图（显示当前场景的已探索区域/玩家/要石/NPC/目标/敌人）
 //   2. 战争迷雾：未探索区域灰雾覆盖，已探索区域保持可见
 // 探索记录：基于网格的位图（每格代表世界坐标的一个区块），持久化到 localStorage 按场景存储
+
+import { W, H } from './config.js';
 // 渲染：在 render.js 的 HUD 层之后调用 drawMinimap() 叠加
 
 const GRID_SIZE = 40; // 每格代表 40x40 像素的世界区域
@@ -28,24 +30,6 @@ export function markExplored(sceneId, x, y, radius = 80) {
     }
   }
 }
-
-// 检查世界坐标是否已探索
-export function isExplored(sceneId, x, y) {
-  const set = exploredCache[sceneId];
-  if (!set) return false;
-  const gx = Math.floor(x / GRID_SIZE);
-  const gy = Math.floor(y / GRID_SIZE);
-  return set.has(`${gx},${gy}`);
-}
-
-// 获取场景的探索覆盖率（0-1）
-export function exploredRatio(sceneId, sceneW, sceneH) {
-  const set = exploredCache[sceneId];
-  if (!set || !sceneW || !sceneH) return 0;
-  const total = Math.ceil(sceneW / GRID_SIZE) * Math.ceil(sceneH / GRID_SIZE);
-  return Math.min(1, set.size / total);
-}
-
 // 持久化（供存档系统调用）
 export function snapshotExplored() {
   const out = {};
@@ -62,12 +46,6 @@ export function restoreExplored(data) {
     exploredCache[sid] = new Set(data[sid]);
   }
 }
-
-// 重置（新游戏时）
-export function resetExplored() {
-  for (const sid in exploredCache) delete exploredCache[sid];
-}
-
 // ============================================================
 // 渲染：右上角小地图
 // ============================================================
@@ -77,7 +55,7 @@ export function drawMinimap(ctx, game, gameTime) {
   const cam = game.camera;
 
   // 小地图位置（右上角）
-  const mx = 1200 - MINIMAP_W - MINIMAP_MARGIN;
+  const mx = W - MINIMAP_W - MINIMAP_MARGIN;
   const my = MINIMAP_MARGIN;
   const mw = MINIMAP_W;
   const mh = MINIMAP_H;
@@ -157,8 +135,8 @@ export function drawMinimap(ctx, game, gameTime) {
   ctx.fill();
 
   // 相机视口框（黄色细框）
-  const viewW = 1200 * scale;
-  const viewH = 760 * scale;
+  const viewW = W * scale;
+  const viewH = H * scale;
   const vx = pp.x - viewW / 2;
   const vy = pp.y - viewH / 2;
   ctx.strokeStyle = 'rgba(255,220,100,0.25)';

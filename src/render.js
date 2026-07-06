@@ -41,8 +41,7 @@ import {
 } from './render/dialog.js';
 import { drawUIPanel, drawSaveMenu } from './render/panels.js';
 
-export { Camera, roundRect } from './render/util.js';
-export { drawBattle };
+export { Camera } from './render/util.js';
 
 // ============================================================
 // 主渲染

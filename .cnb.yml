@@ -4,5 +4,5 @@ main:
   - name: game-server
     description: 刻痕游戏服务器
     runtime: node
-    start: node server.js
+    start: node server/index.js
     port: 8080

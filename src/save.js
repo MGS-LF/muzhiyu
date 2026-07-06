@@ -104,15 +104,6 @@ export function listSaves() {
   return list;
 }
 
-// 删除指定槽位
-export function deleteSave(slot) {
-  const saves = loadAllSaves();
-  if (slot === AUTOSAVE_SLOT) saves.auto = null;
-  else if (typeof slot === 'number' && slot >= 1 && slot <= SLOT_COUNT)
-    saves.slots[slot - 1] = null;
-  return persist(saves);
-}
-
 // 将快照恢复到游戏实例
 // 注意：调用方需在恢复后调用 loadScene(sceneId, {x, y}) 重建场景
 export function restore(game, snap) {

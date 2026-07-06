@@ -32,8 +32,7 @@ const BGM_FILES = {
 // 场景/事件 ID -> BGM 曲目 ID 映射（见 README 的 BGM 说明）
 // 真实场景ID（来自 scenes.js）直接映射；事件用 __xxx__ 前缀避免冲突
 const SCENE_TO_BGM = {
-  // BGM-01 序章主题：3D序幕 + 金门标题
-  __intro__: 'bgm_01_prologue',
+  // BGM-01 序章主题：金门标题
   __title__: 'bgm_01_prologue',
   // BGM-02 战斗：普通战斗 + BOSS战
   __battle__: 'bgm_02_battle',
@@ -44,9 +43,8 @@ const SCENE_TO_BGM = {
   __ending_fire__: 'bgm_03_purify',
   // BGM-04 遇Sydney
   __meet_tingyu__: 'bgm_04_tingyu',
-  // BGM-05 黯淡结局：沉默/燃尽
+  // BGM-05 黯淡结局
   __ending_silence__: 'bgm_05_ending',
-  __ending_burnout__: 'bgm_05_ending',
   // BGM-06 虚空：冷冻中心/数据中心/记忆深渊/网络中枢
   freeze_center: 'bgm_06_void',
   data_center: 'bgm_06_void',
@@ -312,15 +310,6 @@ export function setMuted(m) {
 export function isMuted() {
   return muted;
 }
-export function setBgmVolume(v) {
-  bgmVolume = v;
-  if (bgmGain) bgmGain.gain.value = v;
-}
-export function setSfxVolume(v) {
-  sfxVolume = v;
-  if (sfxGain) sfxGain.gain.value = v;
-}
-
 // ---------- SFX 合成 ----------
 // 通用单音：频率/时长/波形/包络
 function tone(freq, dur, type = 'sine', vol = 1, attack = 0.005, release = 0.05) {
@@ -397,18 +386,7 @@ const SFX = {
     noiseBurst(0.12, 0.6, 800);
     toneSweep(220, 80, 0.15, 'sawtooth', 0.3);
   },
-  hurt: () => {
-    toneSweep(400, 100, 0.2, 'sawtooth', 0.5);
-    noiseBurst(0.08, 0.3, 500);
-  },
-  dash: () => toneSweep(800, 200, 0.15, 'sine', 0.3),
-  purify: () => {
-    tone(523, 0.15, 'sine', 0.3);
-    setTimeout(() => tone(659, 0.15, 'sine', 0.3), 80);
-    setTimeout(() => tone(784, 0.3, 'sine', 0.35), 160);
-  },
   bulletHit: () => tone(200, 0.05, 'square', 0.15),
-  footstep: () => tone(80 + Math.random() * 20, 0.04, 'sine', 0.08),
   save: () => {
     tone(523, 0.08, 'sine', 0.3);
     setTimeout(() => tone(659, 0.08, 'sine', 0.3), 70);
@@ -626,8 +604,4 @@ export function stopBGM(fadeDur = 0.8) {
     currentMp3El = null;
     currentMp3Gain = null;
   }
-}
-
-export function getCurrentBgmId() {
-  return currentBgmId;
 }

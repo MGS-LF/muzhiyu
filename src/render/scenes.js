@@ -788,66 +788,6 @@ export function drawStreetLamps(ctx, W2S, gameTime) {
   }
 }
 
-export function drawGengGhost(ctx, x, y, gameTime, alpha = 1) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  const t = gameTime * 0.005;
-  const float = Math.sin(t) * 4;
-  y += float;
-
-  ctx.shadowColor = 'rgba(80,220,100,0.8)';
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = 'rgba(80,220,100,0.12)';
-  ctx.beginPath();
-  ctx.ellipse(x, y - 4, 26, 32, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = 'rgba(80,220,100,0.35)';
-  ctx.beginPath();
-  ctx.moveTo(x - 4, y - 16);
-  ctx.lineTo(x - 18, y + 18);
-  ctx.lineTo(x + 18, y + 18);
-  ctx.lineTo(x + 4, y - 16);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(120,255,140,0.7)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(80,220,100,0.4)';
-  ctx.beginPath();
-  ctx.ellipse(x, y - 22, 16, 18, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(120,255,140,0.8)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(20,40,20,0.85)';
-  ctx.beginPath();
-  ctx.ellipse(x, y - 18, 12, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(220,255,220,0.8)';
-  for (let i = -3; i <= 3; i++) {
-    ctx.beginPath();
-    ctx.moveTo(x + i * 3 - 1, y - 21);
-    ctx.lineTo(x + i * 3, y - 17);
-    ctx.lineTo(x + i * 3 + 1, y - 21);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  ctx.fillStyle = `rgba(120,255,140,${0.4 + Math.sin(t * 3) * 0.2})`;
-  ctx.font = '8px serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('YYDS', x - 22, y - 8);
-  ctx.fillText('绝绝子', x + 24, y - 14);
-  ctx.fillText('蚌', x, y + 30);
-  ctx.textAlign = 'left';
-
-  ctx.restore();
-}
-
 export function drawKeystones(ctx, W2S, scene, activated, gameTime) {
   for (const it of scene.interactables.filter((i) => i.type === 'keystone')) {
     const s = W2S(it.x, it.y);

@@ -341,23 +341,4 @@ export function drawDamageOverlay(ctx, player, gameTime) {
 }
 
 // ============================================================
-// 死亡画面
-// ============================================================
-export function drawDeathScreen(ctx, gameTime) {
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(220,60,60,0.95)';
-  ctx.font = 'bold 36px serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('理性崩溃', W / 2, H / 2 - 30);
-  ctx.fillStyle = 'rgba(220,200,180,0.8)';
-  ctx.font = '14px serif';
-  ctx.fillText('你被烂梗的海洋吞没，失去了语言。', W / 2, H / 2 + 10);
-  const blink = 0.5 + Math.sin(gameTime * 0.005) * 0.5;
-  ctx.fillStyle = `rgba(255,220,140,${blink})`;
-  ctx.font = 'bold 16px serif';
-  ctx.fillText('▼ 按 E 在最近的要石醒来', W / 2, H / 2 + 60);
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-}
+// 死亡画面（已移除 drawDeathScreen — 未使用）

@@ -17,7 +17,6 @@ const DIFFICULTY_DEFS = {
       enemyHp: 0.7, // 敌人血量倍率
       sanDamage: 0.5, // 玩家受到的SAN伤害倍率
       enemyDamage: 0.6, // 敌人攻击伤害倍率
-      dropRate: 1.3, // 掉落倍率
       sanMax: 120, // SAN上限
       clarityMax: -1, // 宽恕所需调查次数减少1
     },
@@ -33,7 +32,6 @@ const DIFFICULTY_DEFS = {
       enemyHp: 1.0,
       sanDamage: 1.0,
       enemyDamage: 1.0,
-      dropRate: 1.0,
       sanMax: 100,
       clarityMax: 0,
     },
@@ -49,7 +47,6 @@ const DIFFICULTY_DEFS = {
       enemyHp: 1.3,
       sanDamage: 1.5,
       enemyDamage: 1.4,
-      dropRate: 0.8,
       sanMax: 80,
       clarityMax: 1,
     },
@@ -83,26 +80,11 @@ export function saveDifficulty(id) {
 export function getDifficultyDef(id) {
   return DIFFICULTY_DEFS[id] || DIFFICULTY_DEFS.normal;
 }
-
-// 获取所有难度（有序，供菜单展示）
-export function listDifficulties() {
-  return ORDER.map((id) => DIFFICULTY_DEFS[id]);
-}
-
-// 获取下一个难度（循环切换）
-export function nextDifficulty(id) {
-  const idx = ORDER.indexOf(id);
-  return ORDER[(idx + 1) % ORDER.length];
-}
-
 // 全局当前难度实例（游戏启动时设置，供 battle.js / game.js 读取）
 let _current = 'normal';
 export function setCurrent(id) {
   _current = id;
   saveDifficulty(id);
-}
-export function current() {
-  return _current;
 }
 export function currentDef() {
   return DIFFICULTY_DEFS[_current];

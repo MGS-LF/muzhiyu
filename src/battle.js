@@ -387,18 +387,6 @@ export class Battle {
     }
   }
 
-  // 道具
-  useItem() {
-    if (this.player.inventory.find((i) => i.id === 'old_page') || this.heartHp < this.heartMaxHp) {
-      this.heartHp = Math.min(this.heartMaxHp, this.heartHp + 30);
-      this.setEnemyText('顾言翻开旧书页，理性恢复 30。');
-    } else {
-      this.setEnemyText('没有可用的道具。');
-    }
-    this.phase = 'attack_resolve';
-    this.timer = 0;
-  }
-
   // 宽恕
   trySpare() {
     if (this.clarity >= this.clarityMax) {

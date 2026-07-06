@@ -1,5 +1,4 @@
 // 玩家 — 精致小人
-import { COLORS } from './config.js';
 import { PACE } from './pacing.js';
 
 export class Player {

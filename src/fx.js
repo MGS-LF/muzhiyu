@@ -2,6 +2,8 @@
 // 设计：单例状态，由 render.js 每帧消费并叠加到画面
 // 触发点：受伤(hit)、净化(purify)、场景切换(transition)、死亡(death)、低SAN(lowSan)
 
+import { W, H } from './config.js';
+
 const state = {
   // 屏幕震动 { intensity, duration, elapsed }
   shake: null,
@@ -39,12 +41,6 @@ export function transition(duration = 500, callback) {
 export function purifyWave(x, y, maxRadius = 600) {
   state.purifyWave = { radius: 0, maxRadius, x, y, alpha: 1 };
 }
-
-// ---------- 受伤边缘红光 ----------
-export function hurtVignette(duration = 400) {
-  state.hurtVignette = { alpha: 0.5, duration, elapsed: 0 };
-}
-
 // ---------- 设置持续扭曲强度（SAN低时调用）----------
 export function setDistortion(intensity) {
   state.distortion = Math.max(0, Math.min(1, intensity));
@@ -106,7 +102,7 @@ export function getShakeOffset() {
 }
 
 export function drawOverlay(ctx, gameTime) {
-  const { W, H } = { W: 1200, H: 760 };
+  // const { W, H } 已从 config.js 导入
 
   // 全屏闪光
   if (state.flash) {
@@ -180,12 +176,6 @@ export function drawOverlay(ctx, gameTime) {
     ctx.restore();
   }
 }
-
-// 查询：是否正在场景过渡中（过渡中禁止输入）
-export function isTransitioning() {
-  return state.transition !== null && state.transition.phase === 'out';
-}
-
 // 重置所有特效（场景切换/读档时）
 export function reset() {
   state.shake = null;
@@ -194,8 +184,4 @@ export function reset() {
   state.hurtVignette = null;
   state.distortion = 0;
   // transition 不重置（让过渡动画自然完成）
-}
-
-export function getDistortion() {
-  return state.distortion;
 }
