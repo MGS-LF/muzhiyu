@@ -5,14 +5,10 @@ import { isMuted } from './audio.js';
 import { drawMinimap } from './minimap.js';
 import { getDifficultyDef } from './difficulty.js';
 import { drawBattle } from './render/battle.js';
-import { drawCompose } from './render/compose.js';
-import { drawConverse, drawThinking } from './render/converse.js';
-import { drawEnding } from './render/ending.js';
-import { drawEnemies, drawEngraving, ensureEngraveInput, drawParticles } from './render/enemies.js';
-import { drawGates, drawObjectiveArrow, drawDamageOverlay } from './render/effects.js';
-import { drawFreezeCenter } from './render/scenes_freeze.js';
-import { drawStreet, drawKeystones } from './render/scenes_street.js';
 import {
+  drawFreezeCenter,
+  drawStreet,
+  drawKeystones,
   drawRiverside,
   drawSubway,
   drawAlley,
@@ -20,17 +16,29 @@ import {
   drawStadium,
   drawDataCenter,
   drawGenericScene,
-} from './render/scenes_places.js';
-import { drawInteractableMarkers } from './render/markers.js';
+} from './render/scenes.js';
 import {
   drawItems,
   drawCureNPCs,
   drawInteractHints,
   drawAtmosphere,
   drawLighting,
+  drawInteractableMarkers,
+  drawEnemies,
+  drawEngraving,
+  ensureEngraveInput,
+  drawParticles,
 } from './render/world.js';
-import { drawHUD } from './render/hud.js';
-import { drawDialog, drawHints, drawTutorial } from './render/dialog.js';
+import { drawHUD, drawGates, drawObjectiveArrow, drawDamageOverlay } from './render/hud.js';
+import {
+  drawDialog,
+  drawHints,
+  drawTutorial,
+  drawConverse,
+  drawThinking,
+  drawEnding,
+  drawCompose,
+} from './render/dialog.js';
 import { drawUIPanel, drawSaveMenu } from './render/panels.js';
 
 export { Camera, roundRect } from './render/util.js';

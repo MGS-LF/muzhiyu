@@ -405,10 +405,10 @@ export function mountStartMenu(game, { fromIntro } = {}) {
     if (!action) return;
     if (action === 'start') {
       localStorage.removeItem('keheng_new_game_plus');
-      window.location.href = 'intro_3d.html?from=menu';
+      window.location.href = 'intro_3d.html';
     } else if (action === 'ngplus') {
       localStorage.setItem('keheng_new_game_plus', '1');
-      window.location.href = 'intro_3d.html?from=menu&ngplus=1';
+      window.location.href = 'intro_3d.html';
     } else if (action === 'saves') {
       showView('saves');
     } else if (action === 'about') {

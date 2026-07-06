@@ -323,7 +323,8 @@ const FRAME_MS = 1000 / 50;
 function goGame() {
   if (finished) return;
   finished = true;
-  location.replace('index.html?from=intro&t=' + Date.now());
+  sessionStorage.setItem('keheng_from', 'intro');
+  location.replace('/');
 }
 
 function updateIntroUi(T) {

@@ -19,8 +19,11 @@ audio.preloadBGM();
 // 来自序幕（intro_3d.html）？序幕已经把"世界背景+前情提要+苏醒"演完了，
 // 主屏里再播一遍 wake 长对白就重复了。无感衔接：直接把 wake_done 置位，
 // 让 checkAutoTriggers 跳过开局叙述，玩家直接控制顾言。
-const FROM_INTRO = new URLSearchParams(location.search).get('from') === 'intro';
-if (FROM_INTRO) game.flags.wake_done = true;
+const FROM_INTRO = sessionStorage.getItem('keheng_from') === 'intro';
+if (FROM_INTRO) {
+  game.flags.wake_done = true;
+  sessionStorage.removeItem('keheng_from');
+}
 
 const NG_PLUS = localStorage.getItem('keheng_new_game_plus') === '1';
 if (NG_PLUS) {

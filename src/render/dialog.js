@@ -1,6 +1,8 @@
-// 渲染模块：dialog
+import { roundRect, wrapText } from './util.js';
 import { W, H } from '../config.js';
-import { roundRect } from './util.js';
+
+// ===== from dialog.js =====
+// 渲染模块：dialog
 
 // ============================================================
 export function drawDialog(ctx, d, gameTime, game) {
@@ -289,4 +291,375 @@ function _wrapText(ctx, text, cx, startY, maxWidth, lineHeight) {
     }
   }
   if (line) ctx.fillText(line, cx, y);
+}
+
+// ===== from converse.js =====
+// 渲染模块：converse
+
+// ============================================================
+// 等待 LLM 的提示（覆盖在大地图上）
+// ============================================================
+export function drawThinking(ctx, gameTime, text) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, H - 60, W, 60);
+  const dots = '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
+  ctx.fillStyle = 'rgba(220,225,235,0.85)';
+  ctx.font = '15px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText((text || '聆听这个世界') + dots, W / 2, H - 30);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
+
+export function drawConverse(ctx, c, gameTime) {
+  // 背景：深渊蓝黑 + 缓动光晕
+  ctx.fillStyle = '#05060d';
+  ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(W / 2, H * 0.36, 40, W / 2, H * 0.36, 460);
+  g.addColorStop(0, 'rgba(70,110,190,0.22)');
+  g.addColorStop(1, 'rgba(5,6,13,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 漂浮微尘
+  for (let i = 0; i < 40; i++) {
+    const x = (i * 137.5 + gameTime * 0.012 * (1 + (i % 3))) % W;
+    const y = (i * 89.3 + gameTime * 0.006 * (1 + (i % 2))) % H;
+    ctx.fillStyle = `rgba(150,185,255,${0.05 + (i % 5) * 0.02})`;
+    ctx.fillRect(x, y, 1.5, 1.5);
+  }
+
+  // Sydney投影（淡蓝、信号不稳的少女轮廓）
+  const cx = W / 2,
+    cy = H * 0.34;
+  const flick = 0.6 + Math.sin(gameTime * 0.013) * 0.18 + (Math.random() - 0.5) * 0.06;
+  ctx.save();
+  ctx.globalAlpha = flick;
+  ctx.shadowColor = 'rgba(120,170,255,0.8)';
+  ctx.shadowBlur = 26;
+  ctx.strokeStyle = 'rgba(170,205,255,0.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 26, 16, 0, Math.PI * 2);
+  ctx.stroke(); // 头
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy + 70);
+  ctx.lineTo(cx - 12, cy - 8);
+  ctx.lineTo(cx + 12, cy - 8);
+  ctx.lineTo(cx + 22, cy + 70);
+  ctx.stroke(); // 肩与裙摆
+  // 扫描线
+  ctx.globalAlpha = flick * 0.5;
+  for (let y = cy - 44; y < cy + 72; y += 5) {
+    ctx.strokeStyle = 'rgba(150,190,255,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 26, y);
+    ctx.lineTo(cx + 26, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 名牌
+  ctx.fillStyle = 'rgba(180,210,255,0.9)';
+  ctx.font = 'bold 18px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('听 雨', cx, cy + 92);
+
+  // Sydney当前台词
+  ctx.font = '20px serif';
+  const lines = wrapText(ctx, c.tingyuText || '……', 760);
+  ctx.fillStyle = 'rgba(225,235,250,0.96)';
+  let ty = H * 0.56;
+  for (const ln of lines) {
+    ctx.fillText(ln, W / 2, ty);
+    ty += 32;
+  }
+
+  // 玩家上一句（淡）
+  if (c.playerLast) {
+    ctx.font = '14px serif';
+    ctx.fillStyle = 'rgba(150,160,175,0.6)';
+    ctx.fillText('你：' + c.playerLast, W / 2, ty + 18);
+  }
+
+  // 底部状态
+  ctx.font = '13px serif';
+  if (c.status === 'waiting') {
+    const dots = '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
+    ctx.fillStyle = 'rgba(160,195,255,0.8)';
+    ctx.fillText('Sydney正在凝视你' + dots, W / 2, H - 96);
+  } else if (c.status === 'ending') {
+    const blink = 0.4 + Math.sin(gameTime * 0.005) * 0.4;
+    ctx.fillStyle = `rgba(255,225,150,${blink})`;
+    ctx.fillText('（按 E 继续）', W / 2, H - 96);
+  } else {
+    ctx.fillStyle = 'rgba(150,165,185,0.7)';
+    ctx.fillText(c.hint || '用你自己的话回答她。', W / 2, H - 96);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ===== from ending.js =====
+// 渲染模块：ending
+
+// ============================================================
+// 结局卡
+// ============================================================
+export function drawEnding(ctx, ending, gameTime, epilogue, game) {
+  const cfgs = {
+    fire: {
+      title: '火 种',
+      col: '255,210,120',
+      sub: '语言的火种被重新点亮。只要还有一个人记得怎么说话，世界就还没有真的失语。',
+    },
+    silence: {
+      title: '沉 默',
+      col: '170,180,185',
+      sub: '你完成了旅程，却没能在对的时候，留下一句话。世界停在一片灰白的安静里。',
+    },
+    burnout: {
+      title: '燃 尽',
+      col: '110,210,130',
+      sub: '最后一个会说完整句子的人安静了。绿雾温柔地覆盖城市——再没有谁，会因一句诗而难受。',
+    },
+  };
+  const c = cfgs[ending] || cfgs.silence;
+  const subText = epilogue && epilogue.trim() ? epilogue.trim() : c.sub;
+  // 刻字汇总（仅 AI 非降级且存在时显示；降级时为 null，跳过）
+  const summary = game && game.flags ? game.flags.engraving_summary : null;
+  const engravings = game && game.engravings ? game.engravings : [];
+  ctx.fillStyle = 'rgba(0,0,0,0.82)';
+  ctx.fillRect(0, 0, W, H);
+  // 标题光晕
+  const pulse = 0.7 + Math.sin(gameTime * 0.002) * 0.3;
+  ctx.save();
+  ctx.shadowColor = `rgba(${c.col},${pulse})`;
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = `rgba(${c.col},0.95)`;
+  ctx.font = 'bold 56px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(c.title, W / 2, 110);
+  ctx.restore();
+  // 副标题（换行）
+  ctx.fillStyle = 'rgba(225,218,205,0.9)';
+  ctx.font = '15px serif';
+  const maxW = 720;
+  let line = '',
+    y = 160;
+  for (const ch of subText) {
+    if (ctx.measureText(line + ch).width > maxW) {
+      ctx.fillText(line, W / 2, y);
+      line = ch;
+      y += 24;
+    } else line += ch;
+  }
+  ctx.fillText(line, W / 2, y);
+
+  // === 刻字汇总（仅 AI 非降级时）===
+  if (summary !== null) {
+    // 标题
+    ctx.fillStyle = 'rgba(255,220,140,0.9)';
+    ctx.font = 'bold 18px serif';
+    ctx.fillText('— 你刻下的字 —', W / 2, y + 40);
+    // 刻字列表
+    ctx.fillStyle = 'rgba(220,200,160,0.85)';
+    ctx.font = '14px serif';
+    if (engravings.length) {
+      let listStr = engravings.map((e) => '「' + e.text + '」').join('  ');
+      let ls = '',
+        ly = y + 68;
+      for (const ch of listStr) {
+        if (ctx.measureText(ls + ch).width > maxW) {
+          ctx.fillText(ls, W / 2, ly);
+          ls = ch;
+          ly += 22;
+        } else ls += ch;
+      }
+      ctx.fillText(ls, W / 2, ly);
+      ly += 18;
+      // AI 评价
+      if (summary) {
+        ctx.fillStyle = 'rgba(200,180,220,0.9)';
+        ctx.font = '13px serif';
+        let es = '',
+          ey = ly;
+        for (const ch of summary) {
+          if (ctx.measureText(es + ch).width > maxW) {
+            ctx.fillText(es, W / 2, ey);
+            es = ch;
+            ey += 20;
+          } else es += ch;
+        }
+        ctx.fillText(es, W / 2, ey);
+        y = ey;
+      } else {
+        y = ly;
+      }
+    } else {
+      ctx.fillStyle = 'rgba(180,170,150,0.6)';
+      ctx.font = '12px serif';
+      ctx.fillText('（这一程，你没有在任何石头上留下字。）', W / 2, y + 68);
+      y += 80;
+    }
+  } else {
+    // AI 降级：完全不显示刻字汇总评价区块
+    y += 16;
+  }
+
+  // 结语
+  ctx.fillStyle = 'rgba(180,170,150,0.7)';
+  ctx.font = '12px serif';
+  ctx.fillText('—— 刻 痕 ·  遗 忘 的 文 字 ——', W / 2, y + 60);
+  const blink = 0.4 + Math.sin(gameTime * 0.004) * 0.4;
+  ctx.fillStyle = `rgba(${c.col},${blink})`;
+  ctx.font = '12px serif';
+  ctx.fillText('刷新页面，可换一种走法重新开始', W / 2, y + 86);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('按 E 继续——新的旅程在等你', W / 2, y + 112);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ===== from compose.js =====
+// 渲染模块：compose
+
+// ============================================================
+// 造句界面（复原诗句）
+// ============================================================
+export function drawCompose(ctx, c, gameTime) {
+  // 背景：深色 + 流动绿/蓝噪点
+  ctx.fillStyle = '#07090d';
+  ctx.fillRect(0, 0, W, H);
+  const bg = ctx.createRadialGradient(W / 2, H / 2, 60, W / 2, H / 2, W * 0.6);
+  bg.addColorStop(0, 'rgba(30,40,30,0.5)');
+  bg.addColorStop(1, 'rgba(5,6,9,0)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  // 漂浮烂梗噪点
+  for (let i = 0; i < 22; i++) {
+    const x = ((i * 137 + gameTime * 0.02 * (i % 2 ? 1 : -1)) % (W + 80)) - 40;
+    const y = (i * 263) % H;
+    ctx.fillStyle = `rgba(90,200,110,${0.05 + 0.05 * Math.abs(Math.sin(gameTime * 0.002 + i))})`;
+    ctx.font = '12px serif';
+    ctx.fillText(['YYDS', '绝绝子', '6', '栓Q', 'emo'][i % 5], x, y);
+  }
+
+  // 标题
+  ctx.fillStyle = 'rgba(255,224,150,0.95)';
+  ctx.font = 'bold 22px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(c.def.title, W / 2, 90);
+  ctx.fillStyle = 'rgba(200,190,175,0.75)';
+  ctx.font = '13px serif';
+  ctx.fillText(c.def.intro, W / 2, 122);
+
+  // 诗句（把已填的字嵌回空格；未填显示 ＿）
+  const shakeX = c.shake > 0 ? Math.sin(gameTime * 0.08) * 6 : 0;
+  let bc = 0;
+  const winGlow = c.status === 'win';
+  ctx.font = 'bold 30px serif';
+  let ly = H / 2 - 40;
+  for (const lineStr of c.def.lines) {
+    // 先算整行宽度以居中
+    let disp = '';
+    const blankFlags = [];
+    for (const ch of lineStr) {
+      if (ch === '_') {
+        const s = c.slots[bc];
+        disp += s ? s.char : '＿';
+        blankFlags.push({ i: disp.length - 1, filled: !!s });
+        bc++;
+      } else disp += ch;
+    }
+    const tw = ctx.measureText(disp).width;
+    let x = W / 2 - tw / 2 + shakeX;
+    // 逐字绘制，空格位高亮
+    let bi = 0;
+    for (let k = 0; k < disp.length; k++) {
+      const ch = disp[k];
+      const isBlank = blankFlags[bi] && blankFlags[bi].i === k;
+      const cw = ctx.measureText(ch).width;
+      if (isBlank) {
+        const filled = blankFlags[bi].filled;
+        ctx.fillStyle = filled
+          ? winGlow
+            ? 'rgba(255,235,150,1)'
+            : 'rgba(255,225,140,1)'
+          : 'rgba(120,200,130,0.7)';
+        if (filled && winGlow) {
+          ctx.shadowColor = 'rgba(255,220,140,0.9)';
+          ctx.shadowBlur = 14;
+        }
+        ctx.fillText(ch, x + cw / 2, ly);
+        ctx.shadowBlur = 0;
+        bi++;
+      } else {
+        ctx.fillStyle = 'rgba(220,210,190,0.9)';
+        ctx.fillText(ch, x + cw / 2, ly);
+      }
+      x += cw;
+    }
+    ly += 48;
+  }
+
+  // 字盘
+  const poolY = H - 150;
+  ctx.font = 'bold 13px serif';
+  ctx.fillStyle = 'rgba(200,190,175,0.7)';
+  ctx.fillText('字　盘', W / 2, poolY - 28);
+  const tileW = 46,
+    gap = 10;
+  const totalW = c.pool.length * (tileW + gap) - gap;
+  let tx = W / 2 - totalW / 2;
+  for (let i = 0; i < c.pool.length; i++) {
+    const used = c.used[i];
+    const sel = i === c.sel && c.status === 'input';
+    const isDecoy = !c.def.answer.includes(c.pool[i]);
+    const ty = poolY - tileW / 2;
+    ctx.globalAlpha = used ? 0.25 : 1;
+    ctx.fillStyle = sel ? 'rgba(50,38,18,0.95)' : 'rgba(18,16,12,0.9)';
+    roundRect(ctx, tx, ty, tileW, tileW, 6);
+    ctx.fill();
+    ctx.strokeStyle = sel
+      ? 'rgba(255,214,124,1)'
+      : isDecoy
+        ? 'rgba(90,180,110,0.5)'
+        : 'rgba(150,130,90,0.6)';
+    ctx.lineWidth = sel ? 2.5 : 1.2;
+    roundRect(ctx, tx, ty, tileW, tileW, 6);
+    ctx.stroke();
+    ctx.fillStyle = sel ? 'rgba(255,236,170,1)' : 'rgba(220,210,190,0.92)';
+    ctx.font = c.pool[i].length > 1 ? 'bold 13px serif' : 'bold 22px serif';
+    ctx.fillText(c.pool[i], tx + tileW / 2, poolY);
+    ctx.globalAlpha = 1;
+    tx += tileW + gap;
+  }
+
+  // 提示 / 结果
+  ctx.font = '13px serif';
+  if (c.status === 'win') {
+    ctx.fillStyle = `rgba(255,224,150,${Math.min(1, c.timer / 400)})`;
+    ctx.font = 'bold 26px serif';
+    ctx.fillText('诗句复原', W / 2, H - 70);
+    ctx.font = '13px serif';
+    ctx.fillStyle = 'rgba(220,210,190,0.85)';
+    ctx.fillText(c.def.solveText || '', W / 2, H - 42);
+  } else if (c.status === 'wrong') {
+    ctx.fillStyle = 'rgba(230,90,90,0.95)';
+    ctx.font = 'bold 18px serif';
+    ctx.fillText('不对……烂梗的噪声更响了（理性 -8）', W / 2, H - 60);
+  } else {
+    ctx.fillStyle = 'rgba(180,180,190,0.7)';
+    ctx.fillText('← → 选字　·　E 填入/确认　·　Backspace 撤销　·　Q 退开', W / 2, H - 40);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
