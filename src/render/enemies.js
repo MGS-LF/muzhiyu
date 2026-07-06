@@ -34,7 +34,7 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
 
     // === 潜行怪视野扇形（精英怪）===
     if (e.visionRange) {
-      const vdir = e.visionDir !== undefined ? e.visionDir : (e.dir > 0 ? 0 : Math.PI);
+      const vdir = e.visionDir !== undefined ? e.visionDir : e.dir > 0 ? 0 : Math.PI;
       const half = e.visionHalfAngle || Math.PI / 3;
       // 用 W2S 缩放比换算视野半径到屏幕像素
       const edge = W2S(e.x + e.visionRange, e.y);
@@ -42,13 +42,15 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
       // 是否发现玩家（在视野内且无遮挡）
       let spotted = false;
       if (game) {
-        const pdx = game.player.x - e.x, pdy = game.player.y - e.y;
+        const pdx = game.player.x - e.x,
+          pdy = game.player.y - e.y;
         const pd = Math.hypot(pdx, pdy);
         if (pd < e.visionRange) {
           const pang = Math.atan2(pdy, pdx);
           let diff = Math.abs(pang - vdir);
           if (diff > Math.PI) diff = Math.PI * 2 - diff;
-          if (diff < half && !game._lineBlockedByScreen(e.x, e.y, game.player.x, game.player.y)) spotted = true;
+          if (diff < half && !game._lineBlockedByScreen(e.x, e.y, game.player.x, game.player.y))
+            spotted = true;
         }
       }
       const pulse = 0.5 + Math.sin(gameTime * 0.005) * 0.15;
@@ -131,18 +133,25 @@ export function drawEngraving(ctx, e, gameTime, game) {
   if (!e) return;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, W, H);
-  const cx = W / 2, cy = H / 2;
+  const cx = W / 2,
+    cy = H / 2;
   // 面板
-  const pw = 420, ph = e.mode === 'input' ? 220 : 360;
+  const pw = 420,
+    ph = e.mode === 'input' ? 220 : 360;
   ctx.fillStyle = 'rgba(20,16,10,0.95)';
-  roundRect(ctx, cx - pw / 2, cy - ph / 2, pw, ph, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(220,180,90,0.6)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, cx - pw / 2, cy - ph / 2, pw, ph, 8); ctx.stroke();
+  roundRect(ctx, cx - pw / 2, cy - ph / 2, pw, ph, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(220,180,90,0.6)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, cx - pw / 2, cy - ph / 2, pw, ph, 8);
+  ctx.stroke();
   // 标题
   ctx.fillStyle = 'rgba(255,220,140,0.95)';
-  ctx.font = 'bold 20px serif'; ctx.textAlign = 'center';
+  ctx.font = 'bold 20px serif';
+  ctx.textAlign = 'center';
   ctx.fillText(e.type === 'keystone' ? '在要石上刻字' : '在残碑上刻字', cx, cy - ph / 2 + 36);
-  ctx.fillStyle = 'rgba(200,170,110,0.6)'; ctx.font = '11px serif';
+  ctx.fillStyle = 'rgba(200,170,110,0.6)';
+  ctx.font = '11px serif';
   ctx.fillText('方向键选择预设，或选择"自定义"输入。Esc 取消', cx, cy - ph / 2 + 56);
 
   if (e.mode === 'select') {
@@ -170,29 +179,53 @@ export function drawEngraving(ctx, e, gameTime, game) {
 export function ensureEngraveInput(game) {
   const e = game.engraveState;
   if (!e || e.mode !== 'input') {
-    if (game._engraveInput && game._engraveInput.parentNode) { game._engraveInput.parentNode.removeChild(game._engraveInput); game._engraveInput = null; }
+    if (game._engraveInput && game._engraveInput.parentNode) {
+      game._engraveInput.parentNode.removeChild(game._engraveInput);
+      game._engraveInput = null;
+    }
     return;
   }
   if (game._engraveInput) return;
   const wrap = document.getElementById('wrap') || document.body;
   const el = document.createElement('input');
-  el.type = 'text'; el.maxLength = 12;
+  el.type = 'text';
+  el.maxLength = 12;
   el.placeholder = '刻下你想留的字…（回车确认，Esc 返回）';
   el.setAttribute('autocomplete', 'off');
   Object.assign(el.style, {
-    position: 'absolute', left: '50%', top: '52%', transform: 'translateX(-50%)',
-    width: '360px', padding: '12px 16px', fontSize: '18px', textAlign: 'center',
-    fontFamily: "'SimSun','Songti SC',serif", color: '#fff',
-    background: 'rgba(10,10,16,0.95)', border: '1px solid rgba(220,180,90,0.6)',
-    outline: 'none', borderRadius: '4px', zIndex: '20',
+    position: 'absolute',
+    left: '50%',
+    top: '52%',
+    transform: 'translateX(-50%)',
+    width: '360px',
+    padding: '12px 16px',
+    fontSize: '18px',
+    textAlign: 'center',
+    fontFamily: "'SimSun','Songti SC',serif",
+    color: '#fff',
+    background: 'rgba(10,10,16,0.95)',
+    border: '1px solid rgba(220,180,90,0.6)',
+    outline: 'none',
+    borderRadius: '4px',
+    zIndex: '20',
   });
   let composing = false;
-  el.addEventListener('compositionstart', () => { composing = true; });
-  el.addEventListener('compositionend', () => { composing = false; });
+  el.addEventListener('compositionstart', () => {
+    composing = true;
+  });
+  el.addEventListener('compositionend', () => {
+    composing = false;
+  });
   el.addEventListener('keydown', (ev) => {
     if (composing) return;
-    if (ev.key === 'Enter') { ev.preventDefault(); game._submitEngraveInput(); }
-    if (ev.key === 'Escape') { ev.preventDefault(); e.mode = 'select'; }
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      game._submitEngraveInput();
+    }
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      e.mode = 'select';
+    }
   });
   wrap.appendChild(el);
   game._engraveInput = el;

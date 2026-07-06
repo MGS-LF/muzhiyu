@@ -7,10 +7,10 @@ export const POEM_ULTIMATES = [
   {
     id: 'guanju',
     name: '关雎',
-    chars: ['洲', '逑'],           // 所需汉字（关雎：关关雎鸠...在河之洲...君子好逑）
-    damage: 80,                     // 大招伤害
-    color: '#ffd866',               // 金色
-    effect: 'purify_wave',          // 净化波特效
+    chars: ['洲', '逑'], // 所需汉字（关雎：关关雎鸠...在河之洲...君子好逑）
+    damage: 80, // 大招伤害
+    color: '#ffd866', // 金色
+    effect: 'purify_wave', // 净化波特效
     text: '关关雎鸠，在河之洲。窈窕淑女，君子好逑。',
     desc: '《关雎》·浩然正气',
   },
@@ -20,7 +20,7 @@ export const POEM_ULTIMATES = [
     chars: ['鹜', '天', '气', '形'], // 落霞与孤鹜齐飞...秋水共长天一色...气凌云...形胜地
     damage: 120,
     color: '#ffaa44',
-    effect: 'golden_birds',         // 金色飞鸟弹幕
+    effect: 'golden_birds', // 金色飞鸟弹幕
     text: '落霞与孤鹜齐飞，秋水共长天一色。',
     desc: '《滕王阁序》·天地浩然',
   },
@@ -30,7 +30,7 @@ export const POEM_ULTIMATES = [
     chars: ['天', '地', '气', '形'], // 天地有正气，杂然赋流形
     damage: 120,
     color: '#ff6644',
-    effect: 'fire_storm',           // 火焰风暴
+    effect: 'fire_storm', // 火焰风暴
     text: '天地有正气，杂然赋流形。',
     desc: '《正气歌》·浩然正气',
   },
@@ -40,7 +40,7 @@ export const POEM_ULTIMATES = [
     chars: ['岳', '星', '然', '冥'], // 衔远山，吞长江...星辰隐...冥然兀坐
     damage: 150,
     color: '#66ddff',
-    effect: 'ice_storm',            // 冰霜风暴
+    effect: 'ice_storm', // 冰霜风暴
     text: '庆历四年春，滕子京谪守巴陵郡。越明年，政通人和，百废具兴。',
     desc: '《岳阳楼记》·先忧后乐',
   },
@@ -50,7 +50,7 @@ export const POEM_ULTIMATES = [
     chars: ['岳', '星', '然', '冥', '月', '秋'], // 需集齐岳阳楼记(第三章)与月夜忆舍弟(第五章)全部碎片，方为终极
     damage: 200,
     color: '#ddaaff',
-    effect: 'void_collapse',        // 虚空坍缩
+    effect: 'void_collapse', // 虚空坍缩
     text: '星河旋落，岳色苍苍；万籁俱冥，吾心了然。',
     desc: '终极·太虚之力',
   },
@@ -61,7 +61,7 @@ export const POEM_ULTIMATES = [
     chars: ['河', '海'],
     damage: 130,
     color: '#ffcc66',
-    effect: 'golden_wave',          // 金色酒浪
+    effect: 'golden_wave', // 金色酒浪
     text: '君不见黄河之水天上来，奔流到海不复回。',
     desc: '《将进酒》·豪情万丈',
   },
@@ -71,7 +71,7 @@ export const POEM_ULTIMATES = [
     chars: ['山', '春'],
     damage: 130,
     color: '#88ee88',
-    effect: 'spring_bloom',         // 春日花开
+    effect: 'spring_bloom', // 春日花开
     text: '国破山河在，城春草木深。',
     desc: '《春望》·家国之情',
   },
@@ -81,7 +81,7 @@ export const POEM_ULTIMATES = [
     chars: ['月', '秋'],
     damage: 140,
     color: '#aaccff',
-    effect: 'moonlight',            // 月华如水
+    effect: 'moonlight', // 月华如水
     text: '今夜月明人尽望，不知秋思落谁家。',
     desc: '《月夜忆舍弟》·思念之光',
   },
@@ -100,10 +100,10 @@ export function canUseUltimate(collectedCharsAll, poem) {
 
 // 获取玩家当前可用的大招列表
 export function getAvailableUltimates(collectedCharsAll) {
-  return POEM_ULTIMATES.filter(p => canUseUltimate(collectedCharsAll, p));
+  return POEM_ULTIMATES.filter((p) => canUseUltimate(collectedCharsAll, p));
 }
 
 // 获取第一个可用的大招（快捷键 K 释放）
 export function getFirstAvailableUltimate(collectedCharsAll) {
-  return POEM_ULTIMATES.find(p => canUseUltimate(collectedCharsAll, p)) || null;
+  return POEM_ULTIMATES.find((p) => canUseUltimate(collectedCharsAll, p)) || null;
 }

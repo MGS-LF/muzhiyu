@@ -15,9 +15,12 @@ export function drawDialog(ctx, d, gameTime, game) {
       d.done = true;
     }
   }
-  const text = (line.t !== undefined) ? line.t.substring(0, d.charIdx) : '';
+  const text = line.t !== undefined ? line.t.substring(0, d.charIdx) : '';
 
-  const boxX = 80, boxY = H - 170, boxW = W - 160, boxH = 130;
+  const boxX = 80,
+    boxY = H - 170,
+    boxW = W - 160,
+    boxH = 130;
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(boxX + 4, boxY + 4, boxW, boxH);
   ctx.fillStyle = 'rgba(15,12,8,0.95)';
@@ -33,7 +36,8 @@ export function drawDialog(ctx, d, gameTime, game) {
   ctx.strokeStyle = 'rgba(180,140,80,0.5)';
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX + 16, boxY + 16, 60, 60);
-  const cx = boxX + 46, cy = boxY + 46;
+  const cx = boxX + 46,
+    cy = boxY + 46;
   ctx.fillStyle = 'rgba(180,140,80,0.4)';
   ctx.beginPath();
   ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
@@ -91,7 +95,9 @@ export function drawDialog(ctx, d, gameTime, game) {
 // 选项菜单（浮在对话框上方）
 export function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
   const opts = d.lines[d.idx].choice;
-  const ow = 460, oh = 30, gap = 6;
+  const ow = 460,
+    oh = 30,
+    gap = 6;
   const totalH = opts.length * (oh + gap);
   const ox = boxX + boxW - ow - 16;
   const oy = boxY - totalH - 8;
@@ -136,19 +142,22 @@ export function drawHints(ctx, hints) {
   for (let i = hints.length - 1; i >= 0; i--) {
     const h = hints[i];
     h.life -= 16;
-    if (h.life <= 0) { hints.splice(i, 1); continue; }
+    if (h.life <= 0) {
+      hints.splice(i, 1);
+      continue;
+    }
     const a = Math.min(1, h.life / 500);
     ctx.font = '12px serif';
     const w = ctx.measureText(h.t).width + 20;
     ctx.fillStyle = `rgba(0,0,0,${a * 0.6})`;
-    ctx.fillRect(W/2 - w/2, y - 12, w, 20);
+    ctx.fillRect(W / 2 - w / 2, y - 12, w, 20);
     ctx.strokeStyle = `rgba(255,210,120,${a * 0.6})`;
     ctx.lineWidth = 1;
-    ctx.strokeRect(W/2 - w/2, y - 12, w, 20);
+    ctx.strokeRect(W / 2 - w / 2, y - 12, w, 20);
     ctx.fillStyle = `rgba(255,230,160,${a})`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(h.t, W/2, y - 2);
+    ctx.fillText(h.t, W / 2, y - 2);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     y -= 26;
@@ -163,8 +172,10 @@ export function drawTutorial(ctx, gameTime, tutorial) {
   ctx.fillRect(0, 0, W, H);
 
   // 面板尺寸：加宽加高，适配 9 个快捷键 + 充足留白
-  const pw = 560, ph = 460;
-  const px = (W - pw) / 2, py = (H - ph) / 2;
+  const pw = 560,
+    ph = 460;
+  const px = (W - pw) / 2,
+    py = (H - ph) / 2;
 
   // 面板背景 + 双层边框
   ctx.fillStyle = 'rgba(15,12,8,0.97)';
@@ -203,12 +214,13 @@ export function drawTutorial(ctx, gameTime, tutorial) {
     { k: 'Shift', d: '奔跑' },
   ];
   const colW = (pw - 80) / 2; // 两列各占一半宽度（减去左右边距）
-  const rowH = 30;            // 行高加大
+  const rowH = 30; // 行高加大
   const startY = py + 110;
-  const keyBoxW = 80, keyBoxH = 24;
+  const keyBoxW = 80,
+    keyBoxH = 24;
 
   for (let i = 0; i < keys.length; i++) {
-    const col = i % 2;          // 0=左列, 1=右列
+    const col = i % 2; // 0=左列, 1=右列
     const row = Math.floor(i / 2);
     const kx = px + 40 + col * colW;
     const ky = startY + row * rowH;

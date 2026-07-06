@@ -12,9 +12,23 @@ import { drawEnemies, drawEngraving, ensureEngraveInput, drawParticles } from '.
 import { drawGates, drawObjectiveArrow, drawDamageOverlay } from './render/effects.js';
 import { drawFreezeCenter } from './render/scenes_freeze.js';
 import { drawStreet, drawKeystones } from './render/scenes_street.js';
-import { drawRiverside, drawSubway, drawAlley, drawHouse, drawStadium, drawDataCenter, drawGenericScene } from './render/scenes_places.js';
+import {
+  drawRiverside,
+  drawSubway,
+  drawAlley,
+  drawHouse,
+  drawStadium,
+  drawDataCenter,
+  drawGenericScene,
+} from './render/scenes_places.js';
 import { drawInteractableMarkers } from './render/markers.js';
-import { drawItems, drawCureNPCs, drawInteractHints, drawAtmosphere, drawLighting } from './render/world.js';
+import {
+  drawItems,
+  drawCureNPCs,
+  drawInteractHints,
+  drawAtmosphere,
+  drawLighting,
+} from './render/world.js';
 import { drawHUD } from './render/hud.js';
 import { drawDialog, drawHints, drawTutorial } from './render/dialog.js';
 import { drawUIPanel, drawSaveMenu } from './render/panels.js';
@@ -78,12 +92,17 @@ export function render(game, gameTime) {
   else if (scene.id === 'riverside') drawRiverside(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'subway') drawSubway(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'alley_district') drawAlley(ctx, W2S, scene, gameTime, game);
-  else if (scene.id === 'house_a' || scene.id === 'house_b') drawHouse(ctx, W2S, scene, gameTime, game);
+  else if (scene.id === 'house_a' || scene.id === 'house_b')
+    drawHouse(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'stadium') drawStadium(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'data_center') drawDataCenter(ctx, W2S, scene, gameTime, game);
   // 第五章新场景：复用通用渲染（props/walls/装饰物由通用层绘制）
-  else if (scene.id === 'ruined_library' || scene.id === 'network_nexus' ||
-           scene.id === 'memory_abyss' || scene.id === 'lost_village') {
+  else if (
+    scene.id === 'ruined_library' ||
+    scene.id === 'network_nexus' ||
+    scene.id === 'memory_abyss' ||
+    scene.id === 'lost_village'
+  ) {
     drawGenericScene(ctx, W2S, scene, gameTime, game);
   }
 
@@ -123,7 +142,8 @@ export function render(game, gameTime) {
   drawLighting(ctx, player, camera, scene.id);
 
   // 受伤红屏（只有真正受伤时）
-  if (game.player.hurtFlash && game.player.invulnerable > 0) drawDamageOverlay(ctx, player, gameTime);
+  if (game.player.hurtFlash && game.player.invulnerable > 0)
+    drawDamageOverlay(ctx, player, gameTime);
 
   drawHUD(ctx, player, game, objective);
 
@@ -181,9 +201,20 @@ export function render(game, gameTime) {
   }
 
   // 小地图（右上角，Tab 切换显示，非面板/对话/战斗时显示）
-  if (game._showMinimap && !game.uiPanel && !game.battle && !game.compose &&
-      !game.converse && !game.sidescroll && !game.level3d && !game._saveMenu &&
-      game.scene && !game.dialogState && !game.tutorial && !game.engraveState) {
+  if (
+    game._showMinimap &&
+    !game.uiPanel &&
+    !game.battle &&
+    !game.compose &&
+    !game.converse &&
+    !game.sidescroll &&
+    !game.level3d &&
+    !game._saveMenu &&
+    game.scene &&
+    !game.dialogState &&
+    !game.tutorial &&
+    !game.engraveState
+  ) {
     drawMinimap(ctx, game, gameTime);
   }
 

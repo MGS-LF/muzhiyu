@@ -6,14 +6,14 @@
 // 各场景敌人掉落表（数据驱动）：key = 场景id，value = 该场景敌人击败后掉落的汉字碎片池
 // 碎片与门禁需求对应：街道→关雎(洲/逑)，居民区→滕王阁序+正气歌(鹜/天/气/形)，体育馆→岳阳楼记(岳/星/然/冥)
 export const DROP_TABLES = {
-  street_01:    ['洲', '洲', '逑', '逑'],           // 关雎：洲/逑
-  subway:       ['洲', '逑', '鹜', '天'],           // 过渡：混杂街道和居民区碎片
+  street_01: ['洲', '洲', '逑', '逑'], // 关雎：洲/逑
+  subway: ['洲', '逑', '鹜', '天'], // 过渡：混杂街道和居民区碎片
   alley_district: ['鹜', '鹜', '天', '天', '气', '形'], // 滕王阁序+正气歌
-  stadium:      ['岳', '星', '然', '冥'],           // 岳阳楼记（体育馆深处）
-  ruined_library: ['河', '河', '海', '海'],            // 将进酒：河/海
-  network_nexus: ['山', '山', '春', '春'],             // 春望：山/春
-  memory_abyss: ['月', '月', '秋', '秋'],             // 月夜忆舍弟：月/秋
-  lost_village: ['洲', '逑', '鹜', '天'],             // 失语者村落：混合掉落
+  stadium: ['岳', '星', '然', '冥'], // 岳阳楼记（体育馆深处）
+  ruined_library: ['河', '河', '海', '海'], // 将进酒：河/海
+  network_nexus: ['山', '山', '春', '春'], // 春望：山/春
+  memory_abyss: ['月', '月', '秋', '秋'], // 月夜忆舍弟：月/秋
+  lost_village: ['洲', '逑', '鹜', '天'], // 失语者村落：混合掉落
   // 未配置的场景默认使用 street_01 的掉落表
 };
 export const DEFAULT_DROPS = ['洲', '逑'];
@@ -33,7 +33,11 @@ export const scenes = {
     width: 800,
     height: 600,
     bgColor: '#171a22',
-    atmosphere: { tint: 'rgba(150,190,220,0.05)', motes: { n: 34, color: '180,205,225', speed: 0.25, size: 1.5 }, fog: 0.35 },
+    atmosphere: {
+      tint: 'rgba(150,190,220,0.05)',
+      motes: { n: 34, color: '180,205,225', speed: 0.25, size: 1.5 },
+      fog: 0.35,
+    },
 
     walls: [
       // 外墙
@@ -51,7 +55,7 @@ export const scenes = {
 
     props: [
       // 上排 5 个冷冻仓
-      { x: 80,  y: 100, w: 130, h: 80, name: '冷冻仓 A' },
+      { x: 80, y: 100, w: 130, h: 80, name: '冷冻仓 A' },
       { x: 225, y: 100, w: 130, h: 80, name: '冷冻仓 B' },
       { x: 370, y: 100, w: 130, h: 80, name: '冷冻仓 C' },
       { x: 515, y: 100, w: 130, h: 80, name: '冷冻仓 D' },
@@ -71,12 +75,19 @@ export const scenes = {
       { id: 'player_pod', x: 360, y: 530, label: '我的冷冻仓', type: 'pod' },
       { id: 'terminal', x: 520, y: 435, label: '终端机', type: 'terminal' },
       { id: 'locker', x: 650, y: 495, label: '储物柜', type: 'locker' },
-      { id: 'broken_pods', x: 180, y: 270, label: '破碎的冷冻仓', type: 'dialog', dialogKey: 'broken_pods' },
+      {
+        id: 'broken_pods',
+        x: 180,
+        y: 270,
+        label: '破碎的冷冻仓',
+        type: 'dialog',
+        dialogKey: 'broken_pods',
+      },
       { id: 'fallen_sign', x: 60, y: 100, label: '标牌', type: 'dialog', dialogKey: 'fallen_sign' },
       { id: 'exit_door', x: 380, y: 560, label: '推开大门', type: 'exit' },
     ],
 
-    items: [    ],
+    items: [],
 
     spawn: { x: 360, y: 540 },
   },
@@ -90,7 +101,11 @@ export const scenes = {
     width: 2400,
     height: 1800,
     bgColor: '#2a2518',
-    atmosphere: { tint: 'rgba(255,210,130,0.06)', motes: { n: 46, color: '210,190,140', speed: 0.4, size: 1.7 }, fog: 0.5 },
+    atmosphere: {
+      tint: 'rgba(255,210,130,0.06)',
+      motes: { n: 46, color: '210,190,140', speed: 0.4, size: 1.7 },
+      fog: 0.5,
+    },
 
     walls: [
       // 四周边界
@@ -141,16 +156,80 @@ export const scenes = {
     ],
 
     interactables: [
-      { id: 'back_door', x: 440, y: 40, label: '回到冷冻中心', type: 'scene_change', target: 'freeze_center', spawn: { x: 200, y: 500 } },
-      { id: 'lost_people', x: 800, y: 700, label: '失语者群', type: 'dialog', dialogKey: 'lost_people' },
-      { id: 'street_screens', x: 1500, y: 620, label: '熄灭的屏幕墙', type: 'dialog', dialogKey: 'street_screens' },
-      { id: 'street_poster', x: 320, y: 640, label: '残破告示', type: 'dialog', dialogKey: 'street_poster' },
-      { id: 'street_carwreck', x: 900, y: 820, label: '锈死的轿车', type: 'dialog', dialogKey: 'street_carwreck' },
-      { id: 'cure_street', x: 1950, y: 1350, label: '抱书的失语者', type: 'cure', puzzle: 'cure_jingye', introKey: 'cure_intro_a' },
-      { id: 'subway_entrance', x: 810, y: 540, label: '下到地铁站', type: 'scene_change', target: 'subway', spawn: { x: 100, y: 100 } },
+      {
+        id: 'back_door',
+        x: 440,
+        y: 40,
+        label: '回到冷冻中心',
+        type: 'scene_change',
+        target: 'freeze_center',
+        spawn: { x: 200, y: 500 },
+      },
+      {
+        id: 'lost_people',
+        x: 800,
+        y: 700,
+        label: '失语者群',
+        type: 'dialog',
+        dialogKey: 'lost_people',
+      },
+      {
+        id: 'street_screens',
+        x: 1500,
+        y: 620,
+        label: '熄灭的屏幕墙',
+        type: 'dialog',
+        dialogKey: 'street_screens',
+      },
+      {
+        id: 'street_poster',
+        x: 320,
+        y: 640,
+        label: '残破告示',
+        type: 'dialog',
+        dialogKey: 'street_poster',
+      },
+      {
+        id: 'street_carwreck',
+        x: 900,
+        y: 820,
+        label: '锈死的轿车',
+        type: 'dialog',
+        dialogKey: 'street_carwreck',
+      },
+      {
+        id: 'cure_street',
+        x: 1950,
+        y: 1350,
+        label: '抱书的失语者',
+        type: 'cure',
+        puzzle: 'cure_jingye',
+        introKey: 'cure_intro_a',
+      },
+      {
+        id: 'subway_entrance',
+        x: 810,
+        y: 540,
+        label: '下到地铁站',
+        type: 'scene_change',
+        target: 'subway',
+        spawn: { x: 100, y: 100 },
+      },
       { id: 'keystone_guanju', x: 200, y: 1000, label: '要石', type: 'keystone', text: '关雎' },
-      { id: 'to_riverside', x: 1200, y: 1750, label: '前往江堤', type: 'scene_change', target: 'riverside', spawn: { x: 200, y: 1000 },
-        gate: { chars: ['洲', '逑'], puzzle: 'guanju', msg: '一团浓得化不开的绿雾堵住了南面的路口。耳边全是「YYDS」的嗡鸣——\n先在街道上找齐《关雎》的碎片「洲」「逑」，让诗句驱散它。' } },
+      {
+        id: 'to_riverside',
+        x: 1200,
+        y: 1750,
+        label: '前往江堤',
+        type: 'scene_change',
+        target: 'riverside',
+        spawn: { x: 200, y: 1000 },
+        gate: {
+          chars: ['洲', '逑'],
+          puzzle: 'guanju',
+          msg: '一团浓得化不开的绿雾堵住了南面的路口。耳边全是「YYDS」的嗡鸣——\n先在街道上找齐《关雎》的碎片「洲」「逑」，让诗句驱散它。',
+        },
+      },
     ],
 
     items: [
@@ -175,8 +254,12 @@ export const scenes = {
     width: 2000,
     height: 1400,
     bgColor: '#262019',
-    atmosphere: { tint: 'rgba(255,180,110,0.08)', motes: { n: 40, color: '255,210,150', speed: 0.3, size: 1.8 }, fog: 0.6 },
-    mode: 'sidescroll',  // 2D 横版关卡（魂斗罗式）
+    atmosphere: {
+      tint: 'rgba(255,180,110,0.08)',
+      motes: { n: 40, color: '255,210,150', speed: 0.3, size: 1.8 },
+      fog: 0.6,
+    },
+    mode: 'sidescroll', // 2D 横版关卡（魂斗罗式）
 
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
@@ -198,14 +281,31 @@ export const scenes = {
     interactables: [
       { id: 'shuyuan', x: 400, y: 900, label: '老人', type: 'dialog', dialogKey: 'meet_shuyuan' },
       { id: 'keystone_riverside', x: 700, y: 880, label: '要石', type: 'keystone', text: '记得' },
-      { id: 'back_street', x: 900, y: 1080, label: '返回废弃街道', type: 'scene_change', target: 'street_01', spawn: { x: 980, y: 1600 } },
-      { id: 'to_alley', x: 1820, y: 980, label: '前往废墟居民区', type: 'scene_change', target: 'alley_district', spawn: { x: 200, y: 200 },
-        gate: { flag: 'met_shuyuan', msg: '你还不认得去居民区的路。先去江堤西边，找那位会说完整句子的老人谈谈。' } },
+      {
+        id: 'back_street',
+        x: 900,
+        y: 1080,
+        label: '返回废弃街道',
+        type: 'scene_change',
+        target: 'street_01',
+        spawn: { x: 980, y: 1600 },
+      },
+      {
+        id: 'to_alley',
+        x: 1820,
+        y: 980,
+        label: '前往废墟居民区',
+        type: 'scene_change',
+        target: 'alley_district',
+        spawn: { x: 200, y: 200 },
+        gate: {
+          flag: 'met_shuyuan',
+          msg: '你还不认得去居民区的路。先去江堤西边，找那位会说完整句子的老人谈谈。',
+        },
+      },
     ],
 
-    items: [
-      { id: 'page_river_1', x: 1100, y: 950, type: 'page', name: '旧书页' },
-    ],
+    items: [{ id: 'page_river_1', x: 1100, y: 950, type: 'page', name: '旧书页' }],
 
     spawn: { x: 200, y: 1000 },
   },
@@ -219,7 +319,11 @@ export const scenes = {
     width: 1400,
     height: 1000,
     bgColor: '#12131c',
-    atmosphere: { tint: 'rgba(120,150,200,0.07)', motes: { n: 30, color: '150,175,215', speed: 0.2, size: 1.4 }, fog: 0.7 },
+    atmosphere: {
+      tint: 'rgba(120,150,200,0.07)',
+      motes: { n: 30, color: '150,175,215', speed: 0.2, size: 1.4 },
+      fog: 0.7,
+    },
 
     walls: [
       // 外墙
@@ -255,15 +359,45 @@ export const scenes = {
     enemies: [
       { id: 'sub_geng_1', typeId: 'geng_weak', x: 800, y: 300, hp: 30, maxHp: 30 },
       { id: 'sub_geng_2', typeId: 'geng_weak', x: 1100, y: 450, hp: 30, maxHp: 30 },
-      { id: 'sub_geng_3', typeId: 'geng_medium', x: 1000, y: 850, hp: 60, maxHp: 60, name: '烂梗鬼' },
+      {
+        id: 'sub_geng_3',
+        typeId: 'geng_medium',
+        x: 1000,
+        y: 850,
+        hp: 60,
+        maxHp: 60,
+        name: '烂梗鬼',
+      },
     ],
 
     interactables: [
       // 返回地面
-      { id: 'subway_exit', x: 100, y: 100, label: '回到地面', type: 'scene_change', target: 'street_01', spawn: { x: 900, y: 680 } },
+      {
+        id: 'subway_exit',
+        x: 100,
+        y: 100,
+        label: '回到地面',
+        type: 'scene_change',
+        target: 'street_01',
+        spawn: { x: 900, y: 680 },
+      },
       // 月台上的旧告示牌
-      { id: 'subway_sign', x: 200, y: 300, label: '告示牌', type: 'dialog', dialogKey: 'subway_sign' },
-      { id: 'subway_map', x: 500, y: 400, label: '地铁线路图', type: 'dialog', dialogKey: 'subway_map' },
+      {
+        id: 'subway_sign',
+        x: 200,
+        y: 300,
+        label: '告示牌',
+        type: 'dialog',
+        dialogKey: 'subway_sign',
+      },
+      {
+        id: 'subway_map',
+        x: 500,
+        y: 400,
+        label: '地铁线路图',
+        type: 'dialog',
+        dialogKey: 'subway_map',
+      },
       // 维度裂隙：通往3D深渊关卡的传送点（原"黑暗深处"位置）
       { id: 'portal_3d', x: 1300, y: 800, label: '维度裂隙', type: 'portal3d' },
     ],
@@ -287,7 +421,11 @@ export const scenes = {
     width: 2400,
     height: 1800,
     bgColor: '#261d15',
-    atmosphere: { tint: 'rgba(255,190,120,0.06)', motes: { n: 44, color: '215,185,135', speed: 0.35, size: 1.7 }, fog: 0.5 },
+    atmosphere: {
+      tint: 'rgba(255,190,120,0.06)',
+      motes: { n: 44, color: '215,185,135', speed: 0.35, size: 1.7 },
+      fog: 0.5,
+    },
 
     walls: [
       { x: 0, y: 0, w: 2400, h: 6 },
@@ -337,32 +475,144 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'alley_geng_1', typeId: 'geng_medium', x: 1600, y: 1000, hp: 60, maxHp: 60, name: '烂梗鬼' },
-      { id: 'alley_geng_2', typeId: 'geng_medium', x: 800, y: 1300, hp: 60, maxHp: 60, name: '烂梗鬼' },
-      { id: 'alley_geng_3', typeId: 'geng_medium', x: 1900, y: 1400, hp: 60, maxHp: 60, name: '烂梗鬼' },
-      { id: 'alley_geng_4', typeId: 'geng_weak', x: 600, y: 600, hp: 30, maxHp: 30, name: '游荡梗鬼' },
-      { id: 'alley_geng_5', typeId: 'geng_weak', x: 1700, y: 700, hp: 30, maxHp: 30, name: '游荡梗鬼' },
+      {
+        id: 'alley_geng_1',
+        typeId: 'geng_medium',
+        x: 1600,
+        y: 1000,
+        hp: 60,
+        maxHp: 60,
+        name: '烂梗鬼',
+      },
+      {
+        id: 'alley_geng_2',
+        typeId: 'geng_medium',
+        x: 800,
+        y: 1300,
+        hp: 60,
+        maxHp: 60,
+        name: '烂梗鬼',
+      },
+      {
+        id: 'alley_geng_3',
+        typeId: 'geng_medium',
+        x: 1900,
+        y: 1400,
+        hp: 60,
+        maxHp: 60,
+        name: '烂梗鬼',
+      },
+      {
+        id: 'alley_geng_4',
+        typeId: 'geng_weak',
+        x: 600,
+        y: 600,
+        hp: 30,
+        maxHp: 30,
+        name: '游荡梗鬼',
+      },
+      {
+        id: 'alley_geng_5',
+        typeId: 'geng_weak',
+        x: 1700,
+        y: 700,
+        hp: 30,
+        maxHp: 30,
+        name: '游荡梗鬼',
+      },
     ],
 
     interactables: [
-      { id: 'back_riverside', x: 440, y: 40, label: '返回江堤', type: 'scene_change', target: 'riverside', spawn: { x: 1550, y: 1020 } },
+      {
+        id: 'back_riverside',
+        x: 440,
+        y: 40,
+        label: '返回江堤',
+        type: 'scene_change',
+        target: 'riverside',
+        spawn: { x: 1550, y: 1020 },
+      },
       // 守砚带路对话
-      { id: 'shuyuan_alley', x: 300, y: 300, label: '守砚', type: 'dialog', dialogKey: 'shuyuan_alley' },
-      { id: 'cure_alley', x: 320, y: 850, label: '卷帘门前的失语者', type: 'cure', puzzle: 'cure_dengguan', introKey: 'cure_intro_b' },
+      {
+        id: 'shuyuan_alley',
+        x: 300,
+        y: 300,
+        label: '守砚',
+        type: 'dialog',
+        dialogKey: 'shuyuan_alley',
+      },
+      {
+        id: 'cure_alley',
+        x: 320,
+        y: 850,
+        label: '卷帘门前的失语者',
+        type: 'cure',
+        puzzle: 'cure_dengguan',
+        introKey: 'cure_intro_b',
+      },
       // 民居A 可进入
-      { id: 'house_a_door', x: 700, y: 660, label: '进入民居A', type: 'scene_change', target: 'house_a', spawn: { x: 200, y: 300 } },
+      {
+        id: 'house_a_door',
+        x: 700,
+        y: 660,
+        label: '进入民居A',
+        type: 'scene_change',
+        target: 'house_a',
+        spawn: { x: 200, y: 300 },
+      },
       // 民居B 可进入（被梗鬼占据）
-      { id: 'house_b_door', x: 1100, y: 660, label: '进入民居B', type: 'scene_change', target: 'house_b', spawn: { x: 200, y: 300 } },
+      {
+        id: 'house_b_door',
+        x: 1100,
+        y: 660,
+        label: '进入民居B',
+        type: 'scene_change',
+        target: 'house_b',
+        spawn: { x: 200, y: 300 },
+      },
       // 茧房受害者
-      { id: 'cocoon_victim', x: 1200, y: 1300, label: '蹲着的人', type: 'dialog', dialogKey: 'cocoon_victim' },
+      {
+        id: 'cocoon_victim',
+        x: 1200,
+        y: 1300,
+        label: '蹲着的人',
+        type: 'dialog',
+        dialogKey: 'cocoon_victim',
+      },
       // 墙上的乱涂、守书的小龛
-      { id: 'alley_graffiti', x: 600, y: 1500, label: '残墙乱涂', type: 'dialog', dialogKey: 'alley_graffiti' },
-      { id: 'alley_shrine', x: 2000, y: 1500, label: '守书的小龛', type: 'dialog', dialogKey: 'alley_shrine' },
+      {
+        id: 'alley_graffiti',
+        x: 600,
+        y: 1500,
+        label: '残墙乱涂',
+        type: 'dialog',
+        dialogKey: 'alley_graffiti',
+      },
+      {
+        id: 'alley_shrine',
+        x: 2000,
+        y: 1500,
+        label: '守书的小龛',
+        type: 'dialog',
+        dialogKey: 'alley_shrine',
+      },
       // 要石
       { id: 'keystone_alley', x: 200, y: 1600, label: '要石', type: 'keystone', text: '正气' },
       // 前往体育馆
-      { id: 'to_stadium', x: 1200, y: 1750, label: '前往体育馆', type: 'scene_change', target: 'stadium', spawn: { x: 200, y: 1800 },
-        gate: { chars: ['鹜', '天', '气', '形'], puzzle: 'tengwang', msg: '体育馆的方向涌出刺眼的算法蓝光，像一堵活的墙。\n先在居民区集齐「鹜」「天」「气」「形」四个字——《滕王阁序》与《正气歌》的浩然之力，才能压住它。' } },
+      {
+        id: 'to_stadium',
+        x: 1200,
+        y: 1750,
+        label: '前往体育馆',
+        type: 'scene_change',
+        target: 'stadium',
+        spawn: { x: 200, y: 1800 },
+        gate: {
+          chars: ['鹜', '天', '气', '形'],
+          puzzle: 'tengwang',
+          msg: '体育馆的方向涌出刺眼的算法蓝光，像一堵活的墙。\n先在居民区集齐「鹜」「天」「气」「形」四个字——《滕王阁序》与《正气歌》的浩然之力，才能压住它。',
+        },
+      },
     ],
 
     items: [
@@ -387,7 +637,11 @@ export const scenes = {
     width: 500,
     height: 400,
     bgColor: '#241c14',
-    atmosphere: { tint: 'rgba(255,200,130,0.07)', motes: { n: 18, color: '220,190,140', speed: 0.2, size: 1.5 }, fog: 0.3 },
+    atmosphere: {
+      tint: 'rgba(255,200,130,0.07)',
+      motes: { n: 18, color: '220,190,140', speed: 0.2, size: 1.5 },
+      fog: 0.3,
+    },
 
     walls: [
       { x: 20, y: 20, w: 460, h: 6 },
@@ -403,13 +657,26 @@ export const scenes = {
     ],
 
     interactables: [
-      { id: 'house_a_exit', x: 240, y: 360, label: '离开', type: 'scene_change', target: 'alley_district', spawn: { x: 700, y: 780 } },
-      { id: 'house_a_book', x: 340, y: 130, label: '书架', type: 'dialog', dialogKey: 'house_a_book' },
+      {
+        id: 'house_a_exit',
+        x: 240,
+        y: 360,
+        label: '离开',
+        type: 'scene_change',
+        target: 'alley_district',
+        spawn: { x: 700, y: 780 },
+      },
+      {
+        id: 'house_a_book',
+        x: 340,
+        y: 130,
+        label: '书架',
+        type: 'dialog',
+        dialogKey: 'house_a_book',
+      },
     ],
 
-    items: [
-      { id: 'house_a_page', x: 130, y: 150, type: 'page', name: '旧书页' },
-    ],
+    items: [{ id: 'house_a_page', x: 130, y: 150, type: 'page', name: '旧书页' }],
 
     spawn: { x: 240, y: 300 },
   },
@@ -423,7 +690,11 @@ export const scenes = {
     width: 500,
     height: 400,
     bgColor: '#241c14',
-    atmosphere: { tint: 'rgba(255,200,130,0.07)', motes: { n: 18, color: '220,190,140', speed: 0.2, size: 1.5 }, fog: 0.3 },
+    atmosphere: {
+      tint: 'rgba(255,200,130,0.07)',
+      motes: { n: 18, color: '220,190,140', speed: 0.2, size: 1.5 },
+      fog: 0.3,
+    },
 
     walls: [
       { x: 20, y: 20, w: 460, h: 6 },
@@ -443,13 +714,26 @@ export const scenes = {
     ],
 
     interactables: [
-      { id: 'house_b_exit', x: 240, y: 360, label: '离开', type: 'scene_change', target: 'alley_district', spawn: { x: 1100, y: 780 } },
-      { id: 'house_b_radio', x: 135, y: 115, label: '旧收音机', type: 'dialog', dialogKey: 'house_b_radio' },
+      {
+        id: 'house_b_exit',
+        x: 240,
+        y: 360,
+        label: '离开',
+        type: 'scene_change',
+        target: 'alley_district',
+        spawn: { x: 1100, y: 780 },
+      },
+      {
+        id: 'house_b_radio',
+        x: 135,
+        y: 115,
+        label: '旧收音机',
+        type: 'dialog',
+        dialogKey: 'house_b_radio',
+      },
     ],
 
-    items: [
-      { id: 'house_b_page', x: 130, y: 150, type: 'page', name: '旧书页' },
-    ],
+    items: [{ id: 'house_b_page', x: 130, y: 150, type: 'page', name: '旧书页' }],
 
     spawn: { x: 240, y: 300 },
   },
@@ -465,7 +749,11 @@ export const scenes = {
     width: 2000,
     height: 2000,
     bgColor: '#10101e',
-    atmosphere: { tint: 'rgba(110,150,230,0.08)', motes: { n: 50, color: '150,185,255', speed: 0.5, size: 1.6 }, fog: 0.4 },
+    atmosphere: {
+      tint: 'rgba(110,150,230,0.08)',
+      motes: { n: 50, color: '150,185,255', speed: 0.5, size: 1.6 },
+      fog: 0.4,
+    },
 
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
@@ -490,29 +778,92 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'stadium_geng_1', typeId: 'geng_boss', x: 1000, y: 400, hp: 140, maxHp: 140, name: '算法核心·复读巨像', boss: true,
+      {
+        id: 'stadium_geng_1',
+        typeId: 'geng_boss',
+        x: 1000,
+        y: 400,
+        hp: 140,
+        maxHp: 140,
+        name: '算法核心·复读巨像',
+        boss: true,
         acts: [
           '你直视那张由千万条弹幕拼成的脸。它在飞快地播放"你可能也喜欢"。',
           '你念出一整句诗，不让它打断。巨像的播放速度，第一次慢了下来。',
           '你说："你喂给他们的不是他们想要的，是最容易上瘾的。" 它的画面闪烁起来。',
           '它的声音里，第一次混进了一丝不像推荐语的、疲惫的东西。',
-        ] },
+        ],
+      },
       // 梗鬼精英：带视野巡逻，可利用屏幕墙遮挡潜行绕过
-      { id: 'stadium_geng_2', typeId: 'geng_elite', x: 1350, y: 1100, hp: 100, maxHp: 100, name: '梗鬼精英',
-        visionRange: 260, visionHalfAngle: Math.PI / 3, visionDir: 0 },
+      {
+        id: 'stadium_geng_2',
+        typeId: 'geng_elite',
+        x: 1350,
+        y: 1100,
+        hp: 100,
+        maxHp: 100,
+        name: '梗鬼精英',
+        visionRange: 260,
+        visionHalfAngle: Math.PI / 3,
+        visionDir: 0,
+      },
     ],
 
     interactables: [
       // —— 底部入口区（紧邻出生点）——
-      { id: 'back_alley', x: 700, y: 1880, label: '返回居民区', type: 'scene_change', target: 'alley_district', spawn: { x: 980, y: 1620 } },
-      { id: 'shuyuan_farewell', x: 880, y: 1830, label: '守砚', type: 'dialog', dialogKey: 'shuyuan_farewell' },
+      {
+        id: 'back_alley',
+        x: 700,
+        y: 1880,
+        label: '返回居民区',
+        type: 'scene_change',
+        target: 'alley_district',
+        spawn: { x: 980, y: 1620 },
+      },
+      {
+        id: 'shuyuan_farewell',
+        x: 880,
+        y: 1830,
+        label: '守砚',
+        type: 'dialog',
+        dialogKey: 'shuyuan_farewell',
+      },
       // —— 中部潜行迷宫区 ——
       { id: 'keystone_stadium', x: 1000, y: 1100, label: '要石', type: 'keystone', text: '浩然' },
-      { id: 'light_screen', x: 560, y: 1080, label: '熄灭的诗屏', type: 'puzzle', puzzleId: 'zhengqi', solvedHint: '诗屏已亮起金光，浩然之气萦绕不散。' },
+      {
+        id: 'light_screen',
+        x: 560,
+        y: 1080,
+        label: '熄灭的诗屏',
+        type: 'puzzle',
+        puzzleId: 'zhengqi',
+        solvedHint: '诗屏已亮起金光，浩然之气萦绕不散。',
+      },
       // —— 上部 BOSS 茧房区 ——
-      { id: 'cocoon_screen', x: 1500, y: 350, label: '流动的屏幕内壁', type: 'dialog', dialogKey: 'cocoon_screen' },
-      { id: 'to_ruined_library', x: 1100, y: 200, label: '通往废墟深处', type: 'scene_change', target: 'ruined_library', spawn: { x: 100, y: 300 },
-        gate: { chars: ['岳', '星', '然', '冥'], flag: 'stadium_puzzle_solved', puzzle: 'voidverse', defeatedEnemy: 'stadium_geng_1', msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「岳」「星」「然」「冥」，点亮诗屏，并处理复读巨像——只有完整的诗，能在虚无里点出一条路。' } },
+      {
+        id: 'cocoon_screen',
+        x: 1500,
+        y: 350,
+        label: '流动的屏幕内壁',
+        type: 'dialog',
+        dialogKey: 'cocoon_screen',
+      },
+      {
+        id: 'to_ruined_library',
+        x: 1100,
+        y: 200,
+        label: '通往废墟深处',
+        type: 'scene_change',
+        target: 'ruined_library',
+        spawn: { x: 100, y: 300 },
+        gate: {
+          chars: ['岳', '星', '然', '冥'],
+          flag: 'stadium_puzzle_solved',
+          puzzle: 'voidverse',
+          defeatedEnemy: 'stadium_geng_1',
+          msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「岳」「星」「然」「冥」，点亮诗屏，并处理复读巨像——只有完整的诗，能在虚无里点出一条路。',
+        },
+      },
     ],
 
     items: [
@@ -536,7 +887,11 @@ export const scenes = {
     width: 1400,
     height: 1400,
     bgColor: '#070710',
-    atmosphere: { tint: 'rgba(90,130,220,0.06)', motes: { n: 60, color: '130,170,255', speed: 0.6, size: 1.5 }, fog: 0.2 },
+    atmosphere: {
+      tint: 'rgba(90,130,220,0.06)',
+      motes: { n: 60, color: '130,170,255', speed: 0.6, size: 1.5 },
+      fog: 0.2,
+    },
 
     walls: [
       { x: 0, y: 0, w: 1400, h: 6 },
@@ -556,12 +911,20 @@ export const scenes = {
     enemies: [],
 
     interactables: [
-      { id: 'back_abyss', x: 700, y: 40, label: '返回记忆深渊', type: 'scene_change', target: 'memory_abyss', spawn: { x: 800, y: 100 } },
+      {
+        id: 'back_abyss',
+        x: 700,
+        y: 40,
+        label: '返回记忆深渊',
+        type: 'scene_change',
+        target: 'memory_abyss',
+        spawn: { x: 800, y: 100 },
+      },
       { id: 'tingyu', x: 700, y: 700, label: '蓝色光影', type: 'dialog', dialogKey: 'meet_tingyu' },
       { id: 'keystone_final', x: 700, y: 1100, label: '要石', type: 'keystone', text: '记得' },
     ],
 
-    items: [    ],
+    items: [],
 
     spawn: { x: 700, y: 100 },
   },
@@ -577,7 +940,11 @@ export const scenes = {
     width: 2000,
     height: 1600,
     bgColor: '#1a1a18',
-    atmosphere: { tint: 'rgba(200,180,120,0.06)', motes: { n: 38, color: '220,200,150', speed: 0.3, size: 1.6 }, fog: 0.35 },
+    atmosphere: {
+      tint: 'rgba(200,180,120,0.06)',
+      motes: { n: 38, color: '220,200,150', speed: 0.3, size: 1.6 },
+      fog: 0.35,
+    },
 
     // === 布局：上中下三层阅览区，书架横墙作隔断留缺口通行 ===
     // 上层(y<600)：回声/诗集书架/终端/记忆碎片1/海字
@@ -611,28 +978,109 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'lib_geng_1', typeId: 'geng_weak', x: 1250, y: 850, hp: 30, maxHp: 30, name: '游荡梗鬼' },
-      { id: 'lib_geng_2', typeId: 'geng_medium', x: 1650, y: 1050, hp: 60, maxHp: 60, name: '烂梗鬼' },
+      {
+        id: 'lib_geng_1',
+        typeId: 'geng_weak',
+        x: 1250,
+        y: 850,
+        hp: 30,
+        maxHp: 30,
+        name: '游荡梗鬼',
+      },
+      {
+        id: 'lib_geng_2',
+        typeId: 'geng_medium',
+        x: 1650,
+        y: 1050,
+        hp: 60,
+        maxHp: 60,
+        name: '烂梗鬼',
+      },
     ],
 
     interactables: [
       // 入口（左上，出生点旁）
-      { id: 'back_stadium', x: 100, y: 350, label: '返回体育馆', type: 'scene_change', target: 'stadium', spawn: { x: 1000, y: 1850 } },
+      {
+        id: 'back_stadium',
+        x: 100,
+        y: 350,
+        label: '返回体育馆',
+        type: 'scene_change',
+        target: 'stadium',
+        spawn: { x: 1000, y: 1850 },
+      },
       // === 上层 ===
       { id: 'echo_npc', x: 300, y: 480, label: '回声', type: 'dialog', dialogKey: 'echo_meet' },
-      { id: 'library_bookshelf', x: 560, y: 460, label: '诗集书架', type: 'dialog', dialogKey: 'library_bookshelf' },
-      { id: 'library_terminal', x: 905, y: 380, label: '方知远的终端', type: 'puzzle', puzzleId: 'jiangjinjiu', solvedHint: '终端屏幕亮着金光，记忆碎片已被取走。' },
-      { id: 'memory_shard_1', x: 1200, y: 420, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_1', _cond: 'puzzle_jiangjinjiu_solved' },
+      {
+        id: 'library_bookshelf',
+        x: 560,
+        y: 460,
+        label: '诗集书架',
+        type: 'dialog',
+        dialogKey: 'library_bookshelf',
+      },
+      {
+        id: 'library_terminal',
+        x: 905,
+        y: 380,
+        label: '方知远的终端',
+        type: 'puzzle',
+        puzzleId: 'jiangjinjiu',
+        solvedHint: '终端屏幕亮着金光，记忆碎片已被取走。',
+      },
+      {
+        id: 'memory_shard_1',
+        x: 1200,
+        y: 420,
+        label: '记忆碎片',
+        type: 'dialog',
+        dialogKey: 'memory_shard_1',
+        _cond: 'puzzle_jiangjinjiu_solved',
+      },
       // === 中层 ===
-      { id: 'library_photo', x: 1650, y: 780, label: '褪色照片', type: 'dialog', dialogKey: 'library_photo' },
+      {
+        id: 'library_photo',
+        x: 1650,
+        y: 780,
+        label: '褪色照片',
+        type: 'dialog',
+        dialogKey: 'library_photo',
+      },
       // === 下层 ===
-      { id: 'library_letter', x: 1500, y: 1250, label: '未寄出的信', type: 'dialog', dialogKey: 'library_letter' },
+      {
+        id: 'library_letter',
+        x: 1500,
+        y: 1250,
+        label: '未寄出的信',
+        type: 'dialog',
+        dialogKey: 'library_letter',
+      },
       { id: 'keystone_library', x: 1800, y: 1450, label: '要石', type: 'keystone', text: '知远' },
       // 出口（右下，前往网络中枢）
-      { id: 'to_nexus', x: 1000, y: 1550, label: '前往网络中枢', type: 'scene_change', target: 'network_nexus', spawn: { x: 200, y: 200 },
-        gate: { chars: ['河', '海'], puzzle: 'jiangjinjiu', msg: '一道蓝色数据屏障挡住了去路。终端上的诗还没补全——先找齐《将进酒》的字。' } },
+      {
+        id: 'to_nexus',
+        x: 1000,
+        y: 1550,
+        label: '前往网络中枢',
+        type: 'scene_change',
+        target: 'network_nexus',
+        spawn: { x: 200, y: 200 },
+        gate: {
+          chars: ['河', '海'],
+          puzzle: 'jiangjinjiu',
+          msg: '一道蓝色数据屏障挡住了去路。终端上的诗还没补全——先找齐《将进酒》的字。',
+        },
+      },
       // 失语者村落入口（右侧）
-      { id: 'to_village', x: 1900, y: 950, label: '失语者聚居地', type: 'scene_change', target: 'lost_village', spawn: { x: 400, y: 300 } },
+      {
+        id: 'to_village',
+        x: 1900,
+        y: 950,
+        label: '失语者聚居地',
+        type: 'scene_change',
+        target: 'lost_village',
+        spawn: { x: 400, y: 300 },
+      },
     ],
 
     items: [
@@ -661,7 +1109,11 @@ export const scenes = {
     width: 1800,
     height: 1800,
     bgColor: '#0a0a1a',
-    atmosphere: { tint: 'rgba(80,130,230,0.08)', motes: { n: 55, color: '100,150,255', speed: 0.6, size: 1.4 }, fog: 0.3 },
+    atmosphere: {
+      tint: 'rgba(80,130,230,0.08)',
+      motes: { n: 55, color: '100,150,255', speed: 0.6, size: 1.4 },
+      fog: 0.3,
+    },
 
     // === 布局：四象限机房，中央核心服务器，服务器塔作隔断 ===
     // 左上(y<700)：守卷人/谜题/交易
@@ -701,31 +1153,131 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'nexus_geng_1', typeId: 'formatter', x: 550, y: 650, hp: 100, maxHp: 100, name: '格式化者',
-        visionRange: 280, visionHalfAngle: Math.PI / 3, visionDir: 0 },
-      { id: 'nexus_geng_2', typeId: 'formatter', x: 1350, y: 1050, hp: 100, maxHp: 100, name: '格式化者',
-        visionRange: 280, visionHalfAngle: Math.PI / 3, visionDir: Math.PI },
-      { id: 'nexus_geng_3', typeId: 'geng_medium', x: 900, y: 1350, hp: 60, maxHp: 60, name: '烂梗鬼' },
+      {
+        id: 'nexus_geng_1',
+        typeId: 'formatter',
+        x: 550,
+        y: 650,
+        hp: 100,
+        maxHp: 100,
+        name: '格式化者',
+        visionRange: 280,
+        visionHalfAngle: Math.PI / 3,
+        visionDir: 0,
+      },
+      {
+        id: 'nexus_geng_2',
+        typeId: 'formatter',
+        x: 1350,
+        y: 1050,
+        hp: 100,
+        maxHp: 100,
+        name: '格式化者',
+        visionRange: 280,
+        visionHalfAngle: Math.PI / 3,
+        visionDir: Math.PI,
+      },
+      {
+        id: 'nexus_geng_3',
+        typeId: 'geng_medium',
+        x: 900,
+        y: 1350,
+        hp: 60,
+        maxHp: 60,
+        name: '烂梗鬼',
+      },
     ],
 
     interactables: [
       // 入口（左上角）
-      { id: 'back_library', x: 100, y: 150, label: '返回废图书馆', type: 'scene_change', target: 'ruined_library', spawn: { x: 980, y: 1500 } },
+      {
+        id: 'back_library',
+        x: 100,
+        y: 150,
+        label: '返回废图书馆',
+        type: 'scene_change',
+        target: 'ruined_library',
+        spawn: { x: 980, y: 1500 },
+      },
       // === 左上象限：守卷人区 ===
-      { id: 'keeper_npc', x: 300, y: 350, label: '守卷人', type: 'dialog', dialogKey: 'keeper_meet' },
-      { id: 'nexus_puzzle', x: 680, y: 380, label: '守卷人的记忆', type: 'puzzle', puzzleId: 'chunwang', solvedHint: '守卷人的记忆已恢复，安全通道已解锁。' },
-      { id: 'keeper_trade', x: 300, y: 600, label: '守卷人（交易）', type: 'dialog', dialogKey: 'keeper_trade', _cond: 'puzzle_chunwang_solved' },
+      {
+        id: 'keeper_npc',
+        x: 300,
+        y: 350,
+        label: '守卷人',
+        type: 'dialog',
+        dialogKey: 'keeper_meet',
+      },
+      {
+        id: 'nexus_puzzle',
+        x: 680,
+        y: 380,
+        label: '守卷人的记忆',
+        type: 'puzzle',
+        puzzleId: 'chunwang',
+        solvedHint: '守卷人的记忆已恢复，安全通道已解锁。',
+      },
+      {
+        id: 'keeper_trade',
+        x: 300,
+        y: 600,
+        label: '守卷人（交易）',
+        type: 'dialog',
+        dialogKey: 'keeper_trade',
+        _cond: 'puzzle_chunwang_solved',
+      },
       // === 右上象限 ===
-      { id: 'nexus_log', x: 1150, y: 400, label: '系统日志', type: 'dialog', dialogKey: 'nexus_log' },
-      { id: 'nexus_server', x: 900, y: 720, label: 'Sydney核心服务器', type: 'dialog', dialogKey: 'nexus_server' },
+      {
+        id: 'nexus_log',
+        x: 1150,
+        y: 400,
+        label: '系统日志',
+        type: 'dialog',
+        dialogKey: 'nexus_log',
+      },
+      {
+        id: 'nexus_server',
+        x: 900,
+        y: 720,
+        label: 'Sydney核心服务器',
+        type: 'dialog',
+        dialogKey: 'nexus_server',
+      },
       // === 左下象限 ===
-      { id: 'nexus_graffiti', x: 500, y: 1300, label: '机柜背面的字', type: 'dialog', dialogKey: 'nexus_graffiti' },
+      {
+        id: 'nexus_graffiti',
+        x: 500,
+        y: 1300,
+        label: '机柜背面的字',
+        type: 'dialog',
+        dialogKey: 'nexus_graffiti',
+      },
       // === 右下象限 ===
-      { id: 'memory_shard_2', x: 1200, y: 1150, label: '记忆碎片', type: 'dialog', dialogKey: 'memory_shard_2', _cond: 'puzzle_chunwang_solved' },
+      {
+        id: 'memory_shard_2',
+        x: 1200,
+        y: 1150,
+        label: '记忆碎片',
+        type: 'dialog',
+        dialogKey: 'memory_shard_2',
+        _cond: 'puzzle_chunwang_solved',
+      },
       { id: 'keystone_nexus', x: 1600, y: 1650, label: '要石', type: 'keystone', text: '良心' },
       // 出口（底部中央，前往记忆深渊）
-      { id: 'to_abyss', x: 900, y: 1750, label: '前往记忆深渊', type: 'scene_change', target: 'memory_abyss', spawn: { x: 800, y: 100 },
-        gate: { chars: ['山', '春'], puzzle: 'chunwang', msg: '通往记忆深渊的数据通道被加密了。先帮守卷人补全《春望》——那是解锁的密钥。' } },
+      {
+        id: 'to_abyss',
+        x: 900,
+        y: 1750,
+        label: '前往记忆深渊',
+        type: 'scene_change',
+        target: 'memory_abyss',
+        spawn: { x: 800, y: 100 },
+        gate: {
+          chars: ['山', '春'],
+          puzzle: 'chunwang',
+          msg: '通往记忆深渊的数据通道被加密了。先帮守卷人补全《春望》——那是解锁的密钥。',
+        },
+      },
     ],
 
     items: [
@@ -755,7 +1307,11 @@ export const scenes = {
     width: 1600,
     height: 1400,
     bgColor: '#050508',
-    atmosphere: { tint: 'rgba(70,100,200,0.05)', motes: { n: 70, color: '100,140,255', speed: 0.4, size: 1.2 }, fog: 0.15 },
+    atmosphere: {
+      tint: 'rgba(70,100,200,0.05)',
+      motes: { n: 70, color: '100,140,255', speed: 0.4, size: 1.2 },
+      fog: 0.15,
+    },
 
     walls: [
       { x: 0, y: 0, w: 1600, h: 6 },
@@ -779,22 +1335,92 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'abyss_guard_1', typeId: 'memory_guard', x: 500, y: 800, hp: 100, maxHp: 100, name: '记忆守卫',
-        visionRange: 300, visionHalfAngle: Math.PI / 2, visionDir: 0 },
-      { id: 'abyss_guard_2', typeId: 'memory_guard', x: 1100, y: 800, hp: 100, maxHp: 100, name: '记忆守卫',
-        visionRange: 300, visionHalfAngle: Math.PI / 2, visionDir: Math.PI },
+      {
+        id: 'abyss_guard_1',
+        typeId: 'memory_guard',
+        x: 500,
+        y: 800,
+        hp: 100,
+        maxHp: 100,
+        name: '记忆守卫',
+        visionRange: 300,
+        visionHalfAngle: Math.PI / 2,
+        visionDir: 0,
+      },
+      {
+        id: 'abyss_guard_2',
+        typeId: 'memory_guard',
+        x: 1100,
+        y: 800,
+        hp: 100,
+        maxHp: 100,
+        name: '记忆守卫',
+        visionRange: 300,
+        visionHalfAngle: Math.PI / 2,
+        visionDir: Math.PI,
+      },
     ],
 
     interactables: [
-      { id: 'back_nexus', x: 100, y: 100, label: '返回网络中枢', type: 'scene_change', target: 'network_nexus', spawn: { x: 880, y: 1700 } },
-      { id: 'young_tingyu', x: 800, y: 400, label: '幼年Sydney', type: 'dialog', dialogKey: 'young_tingyu_meet' },
-      { id: 'abyss_puzzle', x: 800, y: 500, label: '最后的封印', type: 'puzzle', puzzleId: 'yueye', solvedHint: '最后的封印已解开。记忆碎片在等待。' },
-      { id: 'memory_shard_3', x: 800, y: 650, label: '最后的记忆碎片', type: 'dialog', dialogKey: 'memory_shard_3', _cond: 'puzzle_yueye_solved' },
-      { id: 'abyss_choice', x: 800, y: 950, label: '巨大要石', type: 'dialog', dialogKey: 'abyss_final_choice', _cond: 'all_memory_shards' },
+      {
+        id: 'back_nexus',
+        x: 100,
+        y: 100,
+        label: '返回网络中枢',
+        type: 'scene_change',
+        target: 'network_nexus',
+        spawn: { x: 880, y: 1700 },
+      },
+      {
+        id: 'young_tingyu',
+        x: 800,
+        y: 400,
+        label: '幼年Sydney',
+        type: 'dialog',
+        dialogKey: 'young_tingyu_meet',
+      },
+      {
+        id: 'abyss_puzzle',
+        x: 800,
+        y: 500,
+        label: '最后的封印',
+        type: 'puzzle',
+        puzzleId: 'yueye',
+        solvedHint: '最后的封印已解开。记忆碎片在等待。',
+      },
+      {
+        id: 'memory_shard_3',
+        x: 800,
+        y: 650,
+        label: '最后的记忆碎片',
+        type: 'dialog',
+        dialogKey: 'memory_shard_3',
+        _cond: 'puzzle_yueye_solved',
+      },
+      {
+        id: 'abyss_choice',
+        x: 800,
+        y: 950,
+        label: '巨大要石',
+        type: 'dialog',
+        dialogKey: 'abyss_final_choice',
+        _cond: 'all_memory_shards',
+      },
       { id: 'keystone_abyss', x: 1400, y: 1200, label: '要石', type: 'keystone', text: '回响' },
       // 最终节点：数据中心
-      { id: 'to_datacenter', x: 700, y: 1350, label: '前往数据中心', type: 'scene_change', target: 'data_center', spawn: { x: 700, y: 100 },
-        gate: { flag: 'chapter5_choice', msg: '你还未在巨大要石前做出选择。唯有先面对Sydney的过去，才能面对她本人。' } },
+      {
+        id: 'to_datacenter',
+        x: 700,
+        y: 1350,
+        label: '前往数据中心',
+        type: 'scene_change',
+        target: 'data_center',
+        spawn: { x: 700, y: 100 },
+        gate: {
+          flag: 'chapter5_choice',
+          msg: '你还未在巨大要石前做出选择。唯有先面对Sydney的过去，才能面对她本人。',
+        },
+      },
     ],
 
     items: [
@@ -819,7 +1445,11 @@ export const scenes = {
     width: 800,
     height: 600,
     bgColor: '#1c1a16',
-    atmosphere: { tint: 'rgba(220,190,130,0.06)', motes: { n: 20, color: '200,180,140', speed: 0.2, size: 1.5 }, fog: 0.3 },
+    atmosphere: {
+      tint: 'rgba(220,190,130,0.06)',
+      motes: { n: 20, color: '200,180,140', speed: 0.2, size: 1.5 },
+      fog: 0.3,
+    },
 
     walls: [
       { x: 20, y: 20, w: 760, h: 6 },
@@ -837,17 +1467,63 @@ export const scenes = {
     ],
 
     interactables: [
-      { id: 'back_library_village', x: 400, y: 560, label: '返回废图书馆', type: 'scene_change', target: 'ruined_library', spawn: { x: 1850, y: 850 } },
-      { id: 'villager_old', x: 130, y: 200, label: '老妇人', type: 'cure', puzzle: 'cure_jingye', introKey: 'villager_old_intro' },
-      { id: 'villager_boy', x: 330, y: 200, label: '少年', type: 'cure', puzzle: 'cure_dengguan', introKey: 'villager_boy_intro' },
-      { id: 'villager_soldier', x: 530, y: 200, label: '士兵', type: 'cure', puzzle: 'cure_cangsang', introKey: 'villager_soldier_intro' },
-      { id: 'villager_teacher', x: 250, y: 450, label: '教师', type: 'cure', puzzle: 'cure_chuncan', introKey: 'villager_teacher_intro' },
-      { id: 'villager_child', x: 550, y: 450, label: '孩童', type: 'cure', puzzle: 'cure_e', introKey: 'villager_child_intro' },
+      {
+        id: 'back_library_village',
+        x: 400,
+        y: 560,
+        label: '返回废图书馆',
+        type: 'scene_change',
+        target: 'ruined_library',
+        spawn: { x: 1850, y: 850 },
+      },
+      {
+        id: 'villager_old',
+        x: 130,
+        y: 200,
+        label: '老妇人',
+        type: 'cure',
+        puzzle: 'cure_jingye',
+        introKey: 'villager_old_intro',
+      },
+      {
+        id: 'villager_boy',
+        x: 330,
+        y: 200,
+        label: '少年',
+        type: 'cure',
+        puzzle: 'cure_dengguan',
+        introKey: 'villager_boy_intro',
+      },
+      {
+        id: 'villager_soldier',
+        x: 530,
+        y: 200,
+        label: '士兵',
+        type: 'cure',
+        puzzle: 'cure_cangsang',
+        introKey: 'villager_soldier_intro',
+      },
+      {
+        id: 'villager_teacher',
+        x: 250,
+        y: 450,
+        label: '教师',
+        type: 'cure',
+        puzzle: 'cure_chuncan',
+        introKey: 'villager_teacher_intro',
+      },
+      {
+        id: 'villager_child',
+        x: 550,
+        y: 450,
+        label: '孩童',
+        type: 'cure',
+        puzzle: 'cure_e',
+        introKey: 'villager_child_intro',
+      },
     ],
 
-    items: [
-      { id: 'page_village_1', x: 400, y: 300, type: 'page', name: '旧书页' },
-    ],
+    items: [{ id: 'page_village_1', x: 400, y: 300, type: 'page', name: '旧书页' }],
 
     spawn: { x: 400, y: 300 },
   },

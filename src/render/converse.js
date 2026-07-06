@@ -39,7 +39,8 @@ export function drawConverse(ctx, c, gameTime) {
   }
 
   // Sydney投影（淡蓝、信号不稳的少女轮廓）
-  const cx = W / 2, cy = H * 0.34;
+  const cx = W / 2,
+    cy = H * 0.34;
   const flick = 0.6 + Math.sin(gameTime * 0.013) * 0.18 + (Math.random() - 0.5) * 0.06;
   ctx.save();
   ctx.globalAlpha = flick;
@@ -47,17 +48,24 @@ export function drawConverse(ctx, c, gameTime) {
   ctx.shadowBlur = 26;
   ctx.strokeStyle = 'rgba(170,205,255,0.85)';
   ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(cx, cy - 26, 16, 0, Math.PI * 2); ctx.stroke(); // 头
   ctx.beginPath();
-  ctx.moveTo(cx - 22, cy + 70); ctx.lineTo(cx - 12, cy - 8);
-  ctx.lineTo(cx + 12, cy - 8); ctx.lineTo(cx + 22, cy + 70);
+  ctx.arc(cx, cy - 26, 16, 0, Math.PI * 2);
+  ctx.stroke(); // 头
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy + 70);
+  ctx.lineTo(cx - 12, cy - 8);
+  ctx.lineTo(cx + 12, cy - 8);
+  ctx.lineTo(cx + 22, cy + 70);
   ctx.stroke(); // 肩与裙摆
   // 扫描线
   ctx.globalAlpha = flick * 0.5;
   for (let y = cy - 44; y < cy + 72; y += 5) {
     ctx.strokeStyle = 'rgba(150,190,255,0.25)';
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(cx - 26, y); ctx.lineTo(cx + 26, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 26, y);
+    ctx.lineTo(cx + 26, y);
+    ctx.stroke();
   }
   ctx.restore();
 
@@ -72,7 +80,10 @@ export function drawConverse(ctx, c, gameTime) {
   const lines = wrapText(ctx, c.tingyuText || '……', 760);
   ctx.fillStyle = 'rgba(225,235,250,0.96)';
   let ty = H * 0.56;
-  for (const ln of lines) { ctx.fillText(ln, W / 2, ty); ty += 32; }
+  for (const ln of lines) {
+    ctx.fillText(ln, W / 2, ty);
+    ty += 32;
+  }
 
   // 玩家上一句（淡）
   if (c.playerLast) {

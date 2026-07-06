@@ -35,6 +35,6 @@ const START_TUTORIAL = {
 export function createStartTutorial() {
   return {
     ...START_TUTORIAL,
-    keys: START_TUTORIAL.keys.map(key => ({ ...key })),
+    keys: START_TUTORIAL.keys.map((key) => ({ ...key })),
   };
 }

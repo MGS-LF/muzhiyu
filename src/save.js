@@ -108,7 +108,8 @@ export function listSaves() {
 export function deleteSave(slot) {
   const saves = loadAllSaves();
   if (slot === AUTOSAVE_SLOT) saves.auto = null;
-  else if (typeof slot === 'number' && slot >= 1 && slot <= SLOT_COUNT) saves.slots[slot - 1] = null;
+  else if (typeof slot === 'number' && slot >= 1 && slot <= SLOT_COUNT)
+    saves.slots[slot - 1] = null;
   return persist(saves);
 }
 
@@ -141,7 +142,8 @@ export function restore(game, snap) {
     game.solvedPuzzles = new Set(snap.solvedPuzzles || []);
     game.completedQuests = new Set(snap.completedQuests || []);
     game.visitedScenes = new Set(snap.visitedScenes || []);
-    if (snap.engravings) game.engravings = Array.isArray(snap.engravings) ? snap.engravings.slice() : [];
+    if (snap.engravings)
+      game.engravings = Array.isArray(snap.engravings) ? snap.engravings.slice() : [];
     game.gameTime = snap.gameTime || 0;
 
     // 难度与探索区域
@@ -180,10 +182,19 @@ export function summarize(snap) {
   const pad = (n) => String(n).padStart(2, '0');
   const timeStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   const sceneNames = {
-    freeze_center: '冷冻中心', street_01: '废弃街道', riverside: '江堤',
-    subway: '地铁站', alley_district: '居民区', house_a: '民居A', house_b: '民居B',
-    stadium: '体育馆', ruined_library: '废图书馆', network_nexus: '网络中枢',
-    memory_abyss: '记忆深渊', lost_village: '失语者聚居地', data_center: '数据中心',
+    freeze_center: '冷冻中心',
+    street_01: '废弃街道',
+    riverside: '江堤',
+    subway: '地铁站',
+    alley_district: '居民区',
+    house_a: '民居A',
+    house_b: '民居B',
+    stadium: '体育馆',
+    ruined_library: '废图书馆',
+    network_nexus: '网络中枢',
+    memory_abyss: '记忆深渊',
+    lost_village: '失语者聚居地',
+    data_center: '数据中心',
   };
   return {
     scene: sceneNames[snap.sceneId] || snap.sceneId,

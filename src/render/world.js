@@ -123,10 +123,10 @@ export function drawInteractHints(ctx, W2S, scene, player, collected, gameTime) 
     const text = 'E · ' + label;
     const w = ctx.measureText(text).width + 16;
     ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(s.x - w/2, s.y - 38, w, 18);
+    ctx.fillRect(s.x - w / 2, s.y - 38, w, 18);
     ctx.strokeStyle = 'rgba(255,220,140,0.7)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(s.x - w/2, s.y - 38, w, 18);
+    ctx.strokeRect(s.x - w / 2, s.y - 38, w, 18);
     ctx.fillStyle = `rgba(255,220,140,${0.9 + pulse * 0.1})`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -152,7 +152,7 @@ export function drawAtmosphere(ctx, scene, gameTime, camera) {
   if (cfg.fog) {
     const f = cfg.fog;
     const top = ctx.createLinearGradient(0, 0, 0, H * 0.34);
-    top.addColorStop(0, `rgba(${c},${0.10 * f})`);
+    top.addColorStop(0, `rgba(${c},${0.1 * f})`);
     top.addColorStop(1, `rgba(${c},0)`);
     ctx.fillStyle = top;
     ctx.fillRect(0, 0, W, H * 0.34);
@@ -167,12 +167,12 @@ export function drawAtmosphere(ctx, scene, gameTime, camera) {
     const m = cfg.motes;
     const speed = m.speed || 0.3;
     for (let i = 0; i < m.n; i++) {
-      const hx = (i * 73 % 100) / 100;
-      const hy = (i * 149 % 100) / 100;
+      const hx = ((i * 73) % 100) / 100;
+      const hy = ((i * 149) % 100) / 100;
       const phase = gameTime * 0.001 * speed + i;
       let x = hx * (W + 100) - 50 + Math.sin(phase) * 25 - camera.x * 0.03;
-      let y = (hy * (H + 100) + gameTime * 0.012 * speed) % (H + 100) - 50;
-      x = ((x % (W + 100)) + (W + 100)) % (W + 100) - 50;
+      let y = ((hy * (H + 100) + gameTime * 0.012 * speed) % (H + 100)) - 50;
+      x = (((x % (W + 100)) + (W + 100)) % (W + 100)) - 50;
       const twk = 0.35 + Math.abs(Math.sin(phase * 1.7)) * 0.65;
       const sz = m.size * (0.5 + (i % 4) * 0.2);
       ctx.fillStyle = `rgba(${m.color},${0.14 * twk})`;
@@ -187,12 +187,30 @@ export function drawAtmosphere(ctx, scene, gameTime, camera) {
 // 光照（更明亮：柔和暗角 + 玩家暖光叠加）
 // ============================================================
 export function drawLighting(ctx, player, camera, sceneId) {
-  let r = 320, dark = 0.5, warm = 0.10;
-  if (sceneId === 'freeze_center') { r = 380; dark = 0.42; warm = 0.06; }
-  else if (sceneId === 'subway') { r = 250; dark = 0.66; warm = 0.10; }
-  else if (sceneId === 'stadium') { r = 300; dark = 0.6; warm = 0.07; }
-  else if (sceneId === 'data_center') { r = 240; dark = 0.72; warm = 0.05; }
-  else if (sceneId === 'house_a' || sceneId === 'house_b') { r = 340; dark = 0.45; warm = 0.12; }
+  let r = 320,
+    dark = 0.5,
+    warm = 0.1;
+  if (sceneId === 'freeze_center') {
+    r = 380;
+    dark = 0.42;
+    warm = 0.06;
+  } else if (sceneId === 'subway') {
+    r = 250;
+    dark = 0.66;
+    warm = 0.1;
+  } else if (sceneId === 'stadium') {
+    r = 300;
+    dark = 0.6;
+    warm = 0.07;
+  } else if (sceneId === 'data_center') {
+    r = 240;
+    dark = 0.72;
+    warm = 0.05;
+  } else if (sceneId === 'house_a' || sceneId === 'house_b') {
+    r = 340;
+    dark = 0.45;
+    warm = 0.12;
+  }
   const s = camera.worldToScreen(player.x, player.y);
   // 柔和暗角
   const grad = ctx.createRadialGradient(s.x, s.y, r * 0.45, s.x, s.y, r * 1.5);

@@ -1,12 +1,13 @@
 {
+  "_comment": "请将本文件复制为 ai_keys.local.json 并填入真实密钥。不要直接修改此示例文件，也不要提交真实密钥。",
   "llm": {
-    "baseUrl": "https://api.xiaomimimo.com/v1/",
-    "apiKey": "sk-cqrjgrika0u9hgqikxbcn9ydylnpgjubkdaxaw3jnb1rl5ul",
-    "model": "mimo-v2.5"
+    "baseUrl": "https://api.deepseek.com",
+    "apiKey": "在此填入你的 LLM API Key",
+    "model": "deepseek-chat"
   },
   "tts": {
-    "baseUrl": "https://api.xiaomimimo.com/v1/",
-    "apiKey": "sk-cqrjgrika0u9hgqikxbcn9ydylnpgjubkdaxaw3jnb1rl5ul",
+    "baseUrl": "https://token-plan-cn.xiaomimimo.com/v1",
+    "apiKey": "在此填入你的 TTS API Key",
     "model": "mimo-v2.5-tts",
     "defaultVoice": "Chloe",
     "sampleRate": 24000

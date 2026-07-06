@@ -12,7 +12,7 @@
 // -------- 工具：基于预置音色 + prompt 微调 --------
 const STYLE = {
   // 旁白用低音男性预置音色（白桦），再压一句让语调更沉
-  '系统': {
+  系统: {
     model: 'mimo-v2.5-tts',
     voice: '白桦',
     style:
@@ -21,7 +21,7 @@ const STYLE = {
   },
 
   // 顾言 = 苏打（青年男性），疲惫但清醒
-  '顾言': {
+  顾言: {
     model: 'mimo-v2.5-tts',
     voice: '苏打',
     style:
@@ -30,7 +30,7 @@ const STYLE = {
   },
 
   // 终端机 = voicedesign 自己造一个金属感女声
-  '终端机': {
+  终端机: {
     model: 'mimo-v2.5-tts-voicedesign',
     voice: 'mimo_default',
     style:
@@ -39,7 +39,7 @@ const STYLE = {
   },
 
   // 守砚 = 白桦（苍老男声），再压 prompt 让它更老
-  '守砚': {
+  守砚: {
     model: 'mimo-v2.5-tts',
     voice: '白桦',
     style:
@@ -48,7 +48,7 @@ const STYLE = {
   },
 
   // Sydney = 冰糖（清冷少女），叠加哀伤
-  'Sydney': {
+  Sydney: {
     model: 'mimo-v2.5-tts',
     voice: '冰糖',
     style:
@@ -57,7 +57,7 @@ const STYLE = {
   },
 
   // 梗鬼 = voicedesign 造一个刺耳、亢奋的失真人声
-  '梗鬼': {
+  梗鬼: {
     model: 'mimo-v2.5-tts-voicedesign',
     voice: 'mimo_default',
     style:
@@ -66,7 +66,7 @@ const STYLE = {
   },
 
   // 路边被茧捕获的男人 = Milo（成年男声），压得涣散
-  '男人': {
+  男人: {
     model: 'mimo-v2.5-tts',
     voice: 'Milo',
     style:
@@ -75,7 +75,7 @@ const STYLE = {
   },
 
   // 失语者 = voicedesign 造空洞机械声
-  '失语者': {
+  失语者: {
     model: 'mimo-v2.5-tts-voicedesign',
     voice: 'mimo_default',
     style:
@@ -84,7 +84,7 @@ const STYLE = {
   },
 
   // 手账 = 茉莉（温柔女声），怀旧哽咽
-  '手账': {
+  手账: {
     model: 'mimo-v2.5-tts',
     voice: '茉莉',
     style:
@@ -93,7 +93,7 @@ const STYLE = {
   },
 
   // 路人A/B/C（空壳复读机）= voicedesign 造
-  '路人': {
+  路人: {
     model: 'mimo-v2.5-tts-voicedesign',
     voice: 'mimo_default',
     style:
@@ -117,9 +117,9 @@ export function speakerVoice(name) {
   if (STYLE[s]) return { ...STYLE[s] };
 
   // 2) 前缀/包含匹配
-  if (s.startsWith('路人'))  return { ...STYLE['路人'] };
-  if (s.includes('失语'))    return { ...STYLE['失语者'] };
-  if (s.includes('梗鬼'))    return { ...STYLE['梗鬼'] };
+  if (s.startsWith('路人')) return { ...STYLE['路人'] };
+  if (s.includes('失语')) return { ...STYLE['失语者'] };
+  if (s.includes('梗鬼')) return { ...STYLE['梗鬼'] };
 
   // 3) 兜底
   return { ...FALLBACK };

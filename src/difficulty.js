@@ -12,14 +12,14 @@ const DIFFICULTY_DEFS = {
     name: '简单',
     desc: '弹幕稀疏，敌人较弱，适合体验剧情',
     mul: {
-      bulletSpeed: 0.7,    // 弹幕速度倍率
-      bulletCount: 0.6,    // 弹幕数量倍率
-      enemyHp: 0.7,        // 敌人血量倍率
-      sanDamage: 0.5,      // 玩家受到的SAN伤害倍率
-      enemyDamage: 0.6,    // 敌人攻击伤害倍率
-      dropRate: 1.3,       // 掉落倍率
-      sanMax: 120,         // SAN上限
-      clarityMax: -1,      // 宽恕所需调查次数减少1
+      bulletSpeed: 0.7, // 弹幕速度倍率
+      bulletCount: 0.6, // 弹幕数量倍率
+      enemyHp: 0.7, // 敌人血量倍率
+      sanDamage: 0.5, // 玩家受到的SAN伤害倍率
+      enemyDamage: 0.6, // 敌人攻击伤害倍率
+      dropRate: 1.3, // 掉落倍率
+      sanMax: 120, // SAN上限
+      clarityMax: -1, // 宽恕所需调查次数减少1
     },
     color: '#66dd66',
   },
@@ -64,13 +64,19 @@ export function loadDifficulty() {
   try {
     const id = localStorage.getItem(DIFF_KEY);
     if (id && DIFFICULTY_DEFS[id]) return id;
-  } catch (e) {}
+  } catch (e) {
+    /* ignore */
+  }
   return 'normal';
 }
 
 // 保存难度选择
 export function saveDifficulty(id) {
-  try { localStorage.setItem(DIFF_KEY, id); } catch (e) {}
+  try {
+    localStorage.setItem(DIFF_KEY, id);
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 // 获取难度定义
@@ -80,7 +86,7 @@ export function getDifficultyDef(id) {
 
 // 获取所有难度（有序，供菜单展示）
 export function listDifficulties() {
-  return ORDER.map(id => DIFFICULTY_DEFS[id]);
+  return ORDER.map((id) => DIFFICULTY_DEFS[id]);
 }
 
 // 获取下一个难度（循环切换）
@@ -91,7 +97,16 @@ export function nextDifficulty(id) {
 
 // 全局当前难度实例（游戏启动时设置，供 battle.js / game.js 读取）
 let _current = 'normal';
-export function setCurrent(id) { _current = id; saveDifficulty(id); }
-export function current() { return _current; }
-export function currentDef() { return DIFFICULTY_DEFS[_current]; }
-export function currentMul() { return DIFFICULTY_DEFS[_current].mul; }
+export function setCurrent(id) {
+  _current = id;
+  saveDifficulty(id);
+}
+export function current() {
+  return _current;
+}
+export function currentDef() {
+  return DIFFICULTY_DEFS[_current];
+}
+export function currentMul() {
+  return DIFFICULTY_DEFS[_current].mul;
+}

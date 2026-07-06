@@ -2,13 +2,13 @@
 // 同源调用服务器的 /api/*；探活失败则全部降级（不配音、不调 LLM）。
 
 export const AI = {
-  ready: false,        // 探活完成
-  enabled: false,      // 服务器在线
-  llm: false,          // LLM 可用
-  tts: false,          // TTS 可用
-  sampleRate: 24000,   // PCM 采样率（由 /api/health 校准）
-  autoplay: true,      // 语音播完自动推进对话
-  apiBase: '',         // 同源
+  ready: false, // 探活完成
+  enabled: false, // 服务器在线
+  llm: false, // LLM 可用
+  tts: false, // TTS 可用
+  sampleRate: 24000, // PCM 采样率（由 /api/health 校准）
+  autoplay: true, // 语音播完自动推进对话
+  apiBase: '', // 同源
 };
 
 export async function initAI() {

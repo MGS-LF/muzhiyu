@@ -27,11 +27,20 @@ export function extractJSON(text) {
   // 优先 ```json ... ``` 代码块
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fence ? fence[1] : text;
-  try { return JSON.parse(candidate); } catch {}
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    /* ignore */
+  }
   // 退而求其次：截取第一个 { 到最后一个 }
-  const a = candidate.indexOf('{'), b = candidate.lastIndexOf('}');
+  const a = candidate.indexOf('{'),
+    b = candidate.lastIndexOf('}');
   if (a >= 0 && b > a) {
-    try { return JSON.parse(candidate.slice(a, b + 1)); } catch {}
+    try {
+      return JSON.parse(candidate.slice(a, b + 1));
+    } catch {
+      /* ignore */
+    }
   }
   return null;
 }

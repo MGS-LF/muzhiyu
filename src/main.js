@@ -47,4 +47,6 @@ if (FROM_INTRO && NG_PLUS) {
   setTimeout(() => game.showHint('二周目：刻字记录与上次旅程的倾向已继承，敌人也更危险。'), 500);
 }
 
-console.log('[墓之语] 启动' + (FROM_INTRO ? '（接序幕）' : '') + `（难度：${difficulty.currentDef().name}）`);
+console.log(
+  '[墓之语] 启动' + (FROM_INTRO ? '（接序幕）' : '') + `（难度：${difficulty.currentDef().name}）`
+);

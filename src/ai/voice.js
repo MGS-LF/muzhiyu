@@ -6,7 +6,7 @@ import { AI } from './config.js';
 class VoicePlayer {
   constructor() {
     this.ctx = null;
-    this.token = 0;          // 每次 speak 自增；用于丢弃被抢断的旧回调
+    this.token = 0; // 每次 speak 自增；用于丢弃被抢断的旧回调
     this.playing = false;
     this.sources = [];
     this.nextStartTime = 0;
@@ -16,7 +16,7 @@ class VoicePlayer {
     this.finishedFired = false;
     this.onEnded = null;
     this.abort = null;
-    this.leftover = null;    // 跨 chunk 的半个 Int16 字节
+    this.leftover = null; // 跨 chunk 的半个 Int16 字节
   }
 
   _ensureCtx() {
@@ -28,7 +28,9 @@ class VoicePlayer {
     return this.ctx;
   }
 
-  isBusy() { return this.playing; }
+  isBusy() {
+    return this.playing;
+  }
 
   // 停止/抢断：掐断网络与所有已排期音频，不触发 onEnded
   stop() {
@@ -36,8 +38,23 @@ class VoicePlayer {
     this.playing = false;
     this.streamDone = true;
     this.finishedFired = true;
-    if (this.abort) { try { this.abort.abort(); } catch {} this.abort = null; }
-    for (const s of this.sources) { try { s.onended = null; s.stop(); s.disconnect(); } catch {} }
+    if (this.abort) {
+      try {
+        this.abort.abort();
+      } catch {
+        /* ignore */
+      }
+      this.abort = null;
+    }
+    for (const s of this.sources) {
+      try {
+        s.onended = null;
+        s.stop();
+        s.disconnect();
+      } catch {
+        /* ignore */
+      }
+    }
     this.sources = [];
     this.nextStartTime = 0;
     this.scheduled = 0;
@@ -48,8 +65,10 @@ class VoicePlayer {
 
   // 念一句。onEnded 在自然播完时触发（被抢断/失败不触发）。
   speak(text, { voice, style, model } = {}, onEnded) {
-    if (!AI.tts || !text || !text.trim()) { return; }
-    this.stop();                 // 先掐掉上一句
+    if (!AI.tts || !text || !text.trim()) {
+      return;
+    }
+    this.stop(); // 先掐掉上一句
     const myToken = ++this.token;
     this.playing = true;
     this.streamDone = false;
@@ -59,7 +78,7 @@ class VoicePlayer {
     this.ended = 0;
     this.nextStartTime = 0;
     this.leftover = null;
-    const ctx = this._ensureCtx();
+    this._ensureCtx();
 
     this.abort = new AbortController();
     fetch(AI.apiBase + '/api/tts', {
@@ -67,25 +86,27 @@ class VoicePlayer {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, voice, style, model }),
       signal: this.abort.signal,
-    }).then(async (resp) => {
-      if (!resp.ok || !resp.body) throw new Error('tts http ' + resp.status);
-      const sr = Number(resp.headers.get('X-Sample-Rate')) || AI.sampleRate || 24000;
-      const reader = resp.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (myToken !== this.token) return;       // 已被抢断
-        if (done) break;
-        if (value && value.length) this._enqueue(value, sr, myToken);
-      }
-      this.streamDone = true;
-      this._maybeFinish(myToken);
-    }).catch((e) => {
-      if (myToken !== this.token) return;          // 抢断引发的 abort，忽略
-      // 失败：不自动续播，交由玩家手动按 E（保持不卡死）
-      console.warn('[voice] 播放失败，降级为手动推进：', e.message);
-      this.playing = false;
-      this.streamDone = true;
-    });
+    })
+      .then(async (resp) => {
+        if (!resp.ok || !resp.body) throw new Error('tts http ' + resp.status);
+        const sr = Number(resp.headers.get('X-Sample-Rate')) || AI.sampleRate || 24000;
+        const reader = resp.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (myToken !== this.token) return; // 已被抢断
+          if (done) break;
+          if (value && value.length) this._enqueue(value, sr, myToken);
+        }
+        this.streamDone = true;
+        this._maybeFinish(myToken);
+      })
+      .catch((e) => {
+        if (myToken !== this.token) return; // 抢断引发的 abort，忽略
+        // 失败：不自动续播，交由玩家手动按 E（保持不卡死）
+        console.warn('[voice] 播放失败，降级为手动推进：', e.message);
+        this.playing = false;
+        this.streamDone = true;
+      });
   }
 
   // 把一段 PCM 字节排期播放
@@ -94,8 +115,10 @@ class VoicePlayer {
     let buf = bytes;
     if (this.leftover) {
       const merged = new Uint8Array(this.leftover.length + bytes.length);
-      merged.set(this.leftover, 0); merged.set(bytes, this.leftover.length);
-      buf = merged; this.leftover = null;
+      merged.set(this.leftover, 0);
+      merged.set(bytes, this.leftover.length);
+      buf = merged;
+      this.leftover = null;
     }
     const usableLen = buf.length - (buf.length % 2);
     if (usableLen < buf.length) this.leftover = buf.slice(usableLen);
@@ -116,7 +139,10 @@ class VoicePlayer {
     src.buffer = audioBuf;
     src.connect(ctx.destination);
 
-    const startAt = Math.max(this.nextStartTime, ctx.currentTime + (this.scheduled === 0 ? 0.08 : 0.005));
+    const startAt = Math.max(
+      this.nextStartTime,
+      ctx.currentTime + (this.scheduled === 0 ? 0.08 : 0.005)
+    );
     src.start(startAt);
     this.nextStartTime = startAt + audioBuf.duration;
     this.scheduled++;

@@ -64,12 +64,15 @@ export function update(dt) {
     const tr = state.transition;
     tr.elapsed += dt;
     const p = Math.min(1, tr.elapsed / tr.duration);
-    tr.alpha = tr.phase === 'out' ? p : (1 - p);
+    tr.alpha = tr.phase === 'out' ? p : 1 - p;
     if (p >= 1) {
       if (tr.phase === 'out') {
         tr.phase = 'in';
         tr.elapsed = 0;
-        if (tr.callback) { tr.callback(); tr.callback = null; }
+        if (tr.callback) {
+          tr.callback();
+          tr.callback = null;
+        }
       } else {
         state.transition = null;
       }
@@ -193,4 +196,6 @@ export function reset() {
   // transition 不重置（让过渡动画自然完成）
 }
 
-export function getDistortion() { return state.distortion; }
+export function getDistortion() {
+  return state.distortion;
+}

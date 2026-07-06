@@ -16,7 +16,7 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, Math.min(skyH, H));
 
   // 远景天际线
-  for (const b of scene.props.filter(p => p.name === '高楼')) {
+  for (const b of scene.props.filter((p) => p.name === '高楼')) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#2a2826';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -60,15 +60,16 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.lineWidth = 1;
   for (let i = 0; i < 14; i++) {
     const wx = (i * 173 + 37) % scene.width;
-    const wy = 430 + (i * 23) % 100;
+    const wy = 430 + ((i * 23) % 100);
     const p = W2S(wx, wy);
     if (p.x < -40 || p.x > W + 40) continue;
-    let cx = p.x, cy = p.y;
+    let cx = p.x,
+      cy = p.y;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     for (let s = 0; s < 5; s++) {
-      cx += 8 + (i + s) % 6;
-      cy += 4 + (i * 3 + s) % 7;
+      cx += 8 + ((i + s) % 6);
+      cy += 4 + ((i * 3 + s) % 7);
       ctx.lineTo(cx, cy);
     }
     ctx.stroke();
@@ -90,10 +91,11 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.lineWidth = 1;
   for (let i = 0; i < 50; i++) {
     const wx = (i * 41 + 17) % scene.width;
-    const wy = 424 + (i * 11) % 8;
+    const wy = 424 + ((i * 11) % 8);
     const p = W2S(wx, wy);
     if (p.x < -20 || p.x > W + 20) continue;
-    const gx = p.x, gy = p.y;
+    const gx = p.x,
+      gy = p.y;
     const sway = Math.sin(gameTime * 0.002 + i) * 2;
     ctx.beginPath();
     ctx.moveTo(gx, gy);
@@ -110,7 +112,7 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   // 落叶（固定世界坐标）
   for (let i = 0; i < 30; i++) {
     const wx = (i * 67 + 29) % scene.width;
-    const wy = 424 + (i * 19) % 108;
+    const wy = 424 + ((i * 19) % 108);
     const p = W2S(wx, wy);
     if (p.x < -10 || p.x > W + 10) continue;
     ctx.save();
@@ -122,13 +124,13 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   }
 
   // 地铁站入口
-  const subway = scene.props.find(p => p.name === '地铁站入口');
+  const subway = scene.props.find((p) => p.name === '地铁站入口');
   if (subway) {
-    const s = W2S(subway.x + subway.w/2, subway.y + subway.h/2);
+    const s = W2S(subway.x + subway.w / 2, subway.y + subway.h / 2);
     ctx.fillStyle = '#5a5550';
-    ctx.fillRect(s.x - subway.w/2, s.y - subway.h/2, subway.w, subway.h);
+    ctx.fillRect(s.x - subway.w / 2, s.y - subway.h / 2, subway.w, subway.h);
     ctx.fillStyle = '#6a655e';
-    ctx.fillRect(s.x - subway.w/2, s.y - subway.h/2, subway.w, 8);
+    ctx.fillRect(s.x - subway.w / 2, s.y - subway.h / 2, subway.w, 8);
     ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(s.x - 50, s.y - 5, 100, subway.h);
     ctx.strokeStyle = '#3a3530';
@@ -140,21 +142,21 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
       ctx.stroke();
     }
     ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(s.x - 30, s.y - subway.h/2 - 18, 60, 14);
+    ctx.fillRect(s.x - 30, s.y - subway.h / 2 - 18, 60, 14);
     ctx.fillStyle = 'rgba(220,200,140,0.9)';
     ctx.font = '9px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('METRO', s.x, s.y - subway.h/2 - 8);
+    ctx.fillText('METRO', s.x, s.y - subway.h / 2 - 8);
     ctx.textAlign = 'left';
   }
 
   // 废弃车辆
-  for (const car of scene.props.filter(p => p.name === '废弃车辆')) {
+  for (const car of scene.props.filter((p) => p.name === '废弃车辆')) {
     drawAbandonedCar(ctx, W2S, car, gameTime);
   }
 
   // 碎石堆
-  for (const rubble of scene.props.filter(p => p.name === '碎石堆')) {
+  for (const rubble of scene.props.filter((p) => p.name === '碎石堆')) {
     drawRubble(ctx, W2S, rubble);
   }
 
@@ -173,71 +175,72 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
 }
 
 export function drawAbandonedCar(ctx, W2S, car, gameTime) {
-  const s = W2S(car.x + car.w/2, car.y + car.h/2);
-  const w = car.w, h = car.h;
+  const s = W2S(car.x + car.w / 2, car.y + car.h / 2);
+  const w = car.w,
+    h = car.h;
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath();
-  ctx.ellipse(s.x, s.y + h/2 + 4, w * 0.7, 4, 0, 0, Math.PI * 2);
+  ctx.ellipse(s.x, s.y + h / 2 + 4, w * 0.7, 4, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#5a3a2a';
-  roundRect(ctx, s.x - w/2, s.y - h/2, w, h, 3);
+  roundRect(ctx, s.x - w / 2, s.y - h / 2, w, h, 3);
   ctx.fill();
   ctx.fillStyle = '#3a2018';
-  roundRect(ctx, s.x - w/2 + 6, s.y - h/2 - 6, w - 12, 8, 3);
+  roundRect(ctx, s.x - w / 2 + 6, s.y - h / 2 - 6, w - 12, 8, 3);
   ctx.fill();
   ctx.fillStyle = '#1a1a1c';
-  ctx.fillRect(s.x - w/2 + 4, s.y - h/2 - 4, w - 8, 6);
+  ctx.fillRect(s.x - w / 2 + 4, s.y - h / 2 - 4, w - 8, 6);
   ctx.strokeStyle = 'rgba(200,200,200,0.4)';
   ctx.lineWidth = 0.5;
   ctx.beginPath();
-  ctx.moveTo(s.x - w/2 + 6, s.y - h/2 - 4);
-  ctx.lineTo(s.x, s.y - h/2 + 2);
-  ctx.lineTo(s.x + 6, s.y - h/2 - 3);
+  ctx.moveTo(s.x - w / 2 + 6, s.y - h / 2 - 4);
+  ctx.lineTo(s.x, s.y - h / 2 + 2);
+  ctx.lineTo(s.x + 6, s.y - h / 2 - 3);
   ctx.stroke();
   ctx.fillStyle = 'rgba(140,60,30,0.4)';
   ctx.beginPath();
-  ctx.ellipse(s.x - w/4, s.y + h/4, 8, 4, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(s.x - w / 4, s.y + h / 4, 8, 4, 0.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(s.x + w/4, s.y - h/4, 6, 3, -0.4, 0, Math.PI * 2);
+  ctx.ellipse(s.x + w / 4, s.y - h / 4, 6, 3, -0.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = '#1a0e08';
   ctx.lineWidth = 1;
-  roundRect(ctx, s.x - w/2, s.y - h/2, w, h, 3);
+  roundRect(ctx, s.x - w / 2, s.y - h / 2, w, h, 3);
   ctx.stroke();
-  roundRect(ctx, s.x - w/2 + 6, s.y - h/2 - 6, w - 12, 8, 3);
+  roundRect(ctx, s.x - w / 2 + 6, s.y - h / 2 - 6, w - 12, 8, 3);
   ctx.stroke();
   ctx.fillStyle = '#0a0a0a';
-  for (const off of [-w/2 + 6, w/2 - 6]) {
+  for (const off of [-w / 2 + 6, w / 2 - 6]) {
     ctx.beginPath();
-    ctx.arc(s.x + off, s.y + h/2 + 2, 5, 0, Math.PI * 2);
+    ctx.arc(s.x + off, s.y + h / 2 + 2, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#2a2a2a';
     ctx.beginPath();
-    ctx.arc(s.x + off, s.y + h/2 + 2, 2.5, 0, Math.PI * 2);
+    ctx.arc(s.x + off, s.y + h / 2 + 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#0a0a0a';
   }
 }
 
 export function drawRubble(ctx, W2S, rubble) {
-  const s = W2S(rubble.x + rubble.w/2, rubble.y + rubble.h/2);
+  const s = W2S(rubble.x + rubble.w / 2, rubble.y + rubble.h / 2);
   ctx.fillStyle = '#4a4540';
   ctx.beginPath();
-  ctx.moveTo(s.x - rubble.w/2, s.y + rubble.h/2);
-  ctx.lineTo(s.x - rubble.w/2 + 5, s.y - 5);
-  ctx.lineTo(s.x - rubble.w/4, s.y - rubble.h/3);
-  ctx.lineTo(s.x + rubble.w/6, s.y - rubble.h/2);
-  ctx.lineTo(s.x + rubble.w/3, s.y - rubble.h/4);
-  ctx.lineTo(s.x + rubble.w/2 - 5, s.y - 3);
-  ctx.lineTo(s.x + rubble.w/2, s.y + rubble.h/2);
+  ctx.moveTo(s.x - rubble.w / 2, s.y + rubble.h / 2);
+  ctx.lineTo(s.x - rubble.w / 2 + 5, s.y - 5);
+  ctx.lineTo(s.x - rubble.w / 4, s.y - rubble.h / 3);
+  ctx.lineTo(s.x + rubble.w / 6, s.y - rubble.h / 2);
+  ctx.lineTo(s.x + rubble.w / 3, s.y - rubble.h / 4);
+  ctx.lineTo(s.x + rubble.w / 2 - 5, s.y - 3);
+  ctx.lineTo(s.x + rubble.w / 2, s.y + rubble.h / 2);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = '#1a1816';
   ctx.lineWidth = 1;
   ctx.stroke();
   for (let i = 0; i < 6; i++) {
-    const rx = s.x - rubble.w/2 + 8 + i * 11;
+    const rx = s.x - rubble.w / 2 + 8 + i * 11;
     const ry = s.y - 5 + (i % 3) * 4;
     ctx.fillStyle = i % 2 ? '#5a554e' : '#3a3530';
     ctx.beginPath();
@@ -385,7 +388,7 @@ export function drawGengGhost(ctx, x, y, gameTime, alpha = 1) {
 }
 
 export function drawKeystones(ctx, W2S, scene, activated, gameTime) {
-  for (const it of scene.interactables.filter(i => i.type === 'keystone')) {
+  for (const it of scene.interactables.filter((i) => i.type === 'keystone')) {
     const s = W2S(it.x, it.y);
     const active = activated.has(it.id);
     const glow = active ? 0.5 + Math.sin(gameTime * 0.004) * 0.3 : 0.15;

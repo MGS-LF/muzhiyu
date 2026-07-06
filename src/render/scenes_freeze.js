@@ -19,18 +19,20 @@ export function drawFreezeCenter(ctx, W2S, scene, gameTime, game) {
 export function drawTileFloor(ctx, W2S, scene, base, line, step) {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, W, H);
-  const offY = (W2S(0, 0).y % step + step) % step;
+  const offY = ((W2S(0, 0).y % step) + step) % step;
   ctx.strokeStyle = line;
   ctx.lineWidth = 1;
   for (let y = -offY; y < H; y += step) {
     ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
     ctx.stroke();
   }
-  const offX = (W2S(0, 0).x % step + step) % step;
+  const offX = ((W2S(0, 0).x % step) + step) % step;
   for (let x = -offX; x < W; x += step) {
     ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
     ctx.stroke();
   }
   // 地面污渍（固定世界坐标，人物移动时保持静止）
@@ -52,7 +54,7 @@ export function drawCeilingLightStrips(ctx, W2S, gameTime) {
     const y = 24;
     const s = W2S(x, y);
     const flicker = Math.sin(gameTime * 0.005 + i) * 0.3;
-    const broken = (i === 2) && Math.sin(gameTime * 0.01) > 0.7;
+    const broken = i === 2 && Math.sin(gameTime * 0.01) > 0.7;
     const a = broken ? 0.15 : 0.5 + flicker * 0.4;
     ctx.fillStyle = `rgba(240,230,200,${a})`;
     ctx.fillRect(s.x - 60, s.y - 5, 120, 8);
@@ -91,17 +93,20 @@ export function drawRoomWalls(ctx, W2S, scene) {
 }
 
 export function drawPlayerPod(ctx, W2S, gameTime) {
-  const cx = 360, cy = 440, w = 80, h = 130;
+  const cx = 360,
+    cy = 440,
+    w = 80,
+    h = 130;
   const s = W2S(cx, cy);
 
   // 机械底座
   ctx.fillStyle = '#2a2a2e';
-  ctx.fillRect(s.x - w/2 - 6, s.y - 4, w + 12, 18);
+  ctx.fillRect(s.x - w / 2 - 6, s.y - 4, w + 12, 18);
   ctx.fillStyle = '#4a4a4e';
-  ctx.fillRect(s.x - w/2 - 6, s.y - 4, w + 12, 4);
+  ctx.fillRect(s.x - w / 2 - 6, s.y - 4, w + 12, 4);
   ctx.strokeStyle = '#1a1a1c';
   ctx.lineWidth = 1.5;
-  ctx.strokeRect(s.x - w/2 - 6, s.y - 4, w + 12, 18);
+  ctx.strokeRect(s.x - w / 2 - 6, s.y - 4, w + 12, 18);
   ctx.fillStyle = '#1a1a1c';
   for (let i = -2; i <= 2; i++) {
     ctx.fillRect(s.x + i * 14 - 2, s.y + 4, 4, 6);
@@ -115,21 +120,21 @@ export function drawPlayerPod(ctx, W2S, gameTime) {
   podGrad.addColorStop(0.4, 'rgba(180,210,220,0.25)');
   podGrad.addColorStop(1, 'rgba(120,160,180,0.18)');
   ctx.fillStyle = podGrad;
-  roundRect(ctx, s.x - w/2, podTop, w, podH, 8);
+  roundRect(ctx, s.x - w / 2, podTop, w, podH, 8);
   ctx.fill();
   ctx.strokeStyle = 'rgba(180,200,220,0.8)';
   ctx.lineWidth = 2;
-  roundRect(ctx, s.x - w/2, podTop, w, podH, 8);
+  roundRect(ctx, s.x - w / 2, podTop, w, podH, 8);
   ctx.stroke();
 
   // 玻璃高光
   ctx.strokeStyle = 'rgba(255,255,255,0.5)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(s.x - w/2 + 8, podTop + 8);
-  ctx.lineTo(s.x - w/2 + 8, podTop + 20);
-  ctx.moveTo(s.x - w/2 + 8, podTop + 8);
-  ctx.lineTo(s.x - w/2 + 22, podTop + 8);
+  ctx.moveTo(s.x - w / 2 + 8, podTop + 8);
+  ctx.lineTo(s.x - w / 2 + 8, podTop + 20);
+  ctx.moveTo(s.x - w / 2 + 8, podTop + 8);
+  ctx.lineTo(s.x - w / 2 + 22, podTop + 8);
   ctx.stroke();
 
   // 仓内人影
@@ -163,10 +168,10 @@ export function drawPlayerPod(ctx, W2S, gameTime) {
     const fy = podTop + 8 + i * 14;
     const fl = 6 + ((i * 7) % 14);
     ctx.beginPath();
-    ctx.moveTo(s.x - w/2 + 2, fy);
-    ctx.lineTo(s.x - w/2 + 2 + fl, fy);
-    ctx.moveTo(s.x + w/2 - 2, fy + 4);
-    ctx.lineTo(s.x + w/2 - 2 - fl, fy + 4);
+    ctx.moveTo(s.x - w / 2 + 2, fy);
+    ctx.lineTo(s.x - w / 2 + 2 + fl, fy);
+    ctx.moveTo(s.x + w / 2 - 2, fy + 4);
+    ctx.lineTo(s.x + w / 2 - 2 - fl, fy + 4);
     ctx.stroke();
   }
 
@@ -176,7 +181,7 @@ export function drawPlayerPod(ctx, W2S, gameTime) {
   ctx.shadowColor = `rgba(80,220,140,${pulse * 0.8})`;
   ctx.shadowBlur = 8 * pulse;
   ctx.beginPath();
-  ctx.arc(s.x + w/2 - 8, s.y - 14, 3, 0, Math.PI * 2);
+  ctx.arc(s.x + w / 2 - 8, s.y - 14, 3, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
@@ -190,46 +195,49 @@ export function drawPlayerPod(ctx, W2S, gameTime) {
 
 export function drawOtherPods(ctx, W2S, scene, gameTime) {
   const topRow = [
-    { x: 80, w: 130 }, { x: 225, w: 130 }, { x: 370, w: 130 },
-    { x: 515, w: 130 }, { x: 660, w: 100 }
+    { x: 80, w: 130 },
+    { x: 225, w: 130 },
+    { x: 370, w: 130 },
+    { x: 515, w: 130 },
+    { x: 660, w: 100 },
   ];
   for (let i = 0; i < topRow.length; i++) {
     const pod = topRow[i];
-    const s = W2S(pod.x + pod.w/2, 140);
+    const s = W2S(pod.x + pod.w / 2, 140);
     const h = 80;
     // 底座
     ctx.fillStyle = '#222226';
-    ctx.fillRect(s.x - pod.w/2 - 4, s.y - 4, pod.w + 8, 14);
+    ctx.fillRect(s.x - pod.w / 2 - 4, s.y - 4, pod.w + 8, 14);
     ctx.strokeStyle = '#111114';
     ctx.lineWidth = 1;
-    ctx.strokeRect(s.x - pod.w/2 - 4, s.y - 4, pod.w + 8, 14);
+    ctx.strokeRect(s.x - pod.w / 2 - 4, s.y - 4, pod.w + 8, 14);
     // 玻璃
     const top = s.y - h + 10;
     const grad = ctx.createLinearGradient(0, top, 0, s.y - 4);
     grad.addColorStop(0, 'rgba(120,150,170,0.18)');
     grad.addColorStop(1, 'rgba(80,110,130,0.15)');
     ctx.fillStyle = grad;
-    roundRect(ctx, s.x - pod.w/2, top, pod.w, h - 14, 6);
+    roundRect(ctx, s.x - pod.w / 2, top, pod.w, h - 14, 6);
     ctx.fill();
     ctx.strokeStyle = 'rgba(140,170,190,0.5)';
     ctx.lineWidth = 1.5;
-    roundRect(ctx, s.x - pod.w/2, top, pod.w, h - 14, 6);
+    roundRect(ctx, s.x - pod.w / 2, top, pod.w, h - 14, 6);
     ctx.stroke();
     // 霜
     ctx.strokeStyle = 'rgba(180,200,220,0.3)';
     ctx.lineWidth = 1;
     for (let k = 0; k < 4; k++) {
       const fy = top + 6 + k * 12;
-      const fl = 8 + (k * 11) % 18;
+      const fl = 8 + ((k * 11) % 18);
       ctx.beginPath();
-      ctx.moveTo(s.x - pod.w/2 + 3, fy);
-      ctx.lineTo(s.x - pod.w/2 + 3 + fl, fy);
+      ctx.moveTo(s.x - pod.w / 2 + 3, fy);
+      ctx.lineTo(s.x - pod.w / 2 + 3 + fl, fy);
       ctx.stroke();
     }
     // 灯（灭）
     ctx.fillStyle = '#1a1a1e';
     ctx.beginPath();
-    ctx.arc(s.x + pod.w/2 - 8, s.y - 9, 2.5, 0, Math.PI * 2);
+    ctx.arc(s.x + pod.w / 2 - 8, s.y - 9, 2.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
@@ -245,18 +253,18 @@ export function drawOtherPods(ctx, W2S, scene, gameTime) {
   // 损坏的冷冻仓
   for (const [i, x] of [410, 565].entries()) {
     const pod = { x, w: 140, h: 100 };
-    const s = W2S(pod.x + pod.w/2, 270);
+    const s = W2S(pod.x + pod.w / 2, 270);
     ctx.fillStyle = '#1a1a1c';
-    ctx.fillRect(s.x - pod.w/2 - 4, s.y - 4, pod.w + 8, 14);
+    ctx.fillRect(s.x - pod.w / 2 - 4, s.y - 4, pod.w + 8, 14);
     const top = s.y - pod.h + 14;
     ctx.fillStyle = 'rgba(20,15,18,0.6)';
-    roundRect(ctx, s.x - pod.w/2, top, pod.w, pod.h - 18, 6);
+    roundRect(ctx, s.x - pod.w / 2, top, pod.w, pod.h - 18, 6);
     ctx.fill();
     // 红色碎裂
     ctx.strokeStyle = 'rgba(120,40,40,0.7)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(s.x - pod.w/2 + 10, top + 5);
+    ctx.moveTo(s.x - pod.w / 2 + 10, top + 5);
     ctx.lineTo(s.x + 5, top + 20);
     ctx.lineTo(s.x - 10, top + 40);
     ctx.lineTo(s.x + 15, top + 55);
@@ -266,7 +274,7 @@ export function drawOtherPods(ctx, W2S, scene, gameTime) {
     ctx.strokeStyle = 'rgba(80,220,120,0.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(s.x - pod.w/2 + 30, top + 12);
+    ctx.moveTo(s.x - pod.w / 2 + 30, top + 12);
     ctx.lineTo(s.x + 20, top + 30);
     ctx.lineTo(s.x + 35, top + 50);
     ctx.stroke();
@@ -274,35 +282,36 @@ export function drawOtherPods(ctx, W2S, scene, gameTime) {
     ctx.strokeStyle = 'rgba(80,60,60,0.5)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(s.x - pod.w/2, top + 8);
-    ctx.lineTo(s.x - pod.w/2, s.y - 4);
-    ctx.lineTo(s.x + pod.w/2, s.y - 4);
-    ctx.lineTo(s.x + pod.w/2, top + 8);
+    ctx.moveTo(s.x - pod.w / 2, top + 8);
+    ctx.lineTo(s.x - pod.w / 2, s.y - 4);
+    ctx.lineTo(s.x + pod.w / 2, s.y - 4);
+    ctx.lineTo(s.x + pod.w / 2, top + 8);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(s.x - pod.w/2 + 20, top);
-    ctx.lineTo(s.x - pod.w/2 + 8, top + 8);
-    ctx.lineTo(s.x - pod.w/2 + 14, top + 18);
+    ctx.moveTo(s.x - pod.w / 2 + 20, top);
+    ctx.lineTo(s.x - pod.w / 2 + 8, top + 8);
+    ctx.lineTo(s.x - pod.w / 2 + 14, top + 18);
     ctx.stroke();
   }
 }
 
 export function drawTerminal(ctx, W2S, scene, gameTime) {
-  const it = scene.props.find(p => p.name === '终端机');
+  const it = scene.props.find((p) => p.name === '终端机');
   if (!it) return;
-  const cx = it.x + it.w/2;
-  const cy = it.y + it.h/2;
+  const cx = it.x + it.w / 2;
+  const cy = it.y + it.h / 2;
   const s = W2S(cx, cy);
-  const w = it.w, h = it.h;
+  const w = it.w,
+    h = it.h;
 
   // 桌子
   ctx.fillStyle = '#3a3530';
-  ctx.fillRect(s.x - w/2 - 6, s.y - 4, w + 12, h + 8);
+  ctx.fillRect(s.x - w / 2 - 6, s.y - 4, w + 12, h + 8);
   ctx.fillStyle = '#4a4540';
-  ctx.fillRect(s.x - w/2 - 6, s.y - 4, w + 12, 3);
+  ctx.fillRect(s.x - w / 2 - 6, s.y - 4, w + 12, 3);
   ctx.strokeStyle = '#1a1815';
   ctx.lineWidth = 1;
-  ctx.strokeRect(s.x - w/2 - 6, s.y - 4, w + 12, h + 8);
+  ctx.strokeRect(s.x - w / 2 - 6, s.y - 4, w + 12, h + 8);
 
   // 主机
   ctx.fillStyle = '#2a2a2e';
@@ -317,7 +326,7 @@ export function drawTerminal(ctx, W2S, scene, gameTime) {
   ctx.fillRect(s.x - 8, s.y + 2, 2, 2);
 
   // CRT 显示器
-  const monTop = s.y - h/2 - 32;
+  const monTop = s.y - h / 2 - 32;
   ctx.fillStyle = '#1a1a1c';
   roundRect(ctx, s.x - 30, monTop, 60, 30, 4);
   ctx.fill();
@@ -425,7 +434,10 @@ export function drawLockerArea(ctx, W2S, gameTime) {
 }
 
 export function drawExitDoor(ctx, W2S, gameTime, game) {
-  const doorX = 270, doorY = 580, doorW = 210, doorH = 14;
+  const doorX = 270,
+    doorY = 580,
+    doorW = 210,
+    doorH = 14;
   const s = W2S(doorX, doorY);
   ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(s.x - 4, s.y - 4, doorW + 8, doorH + 8);
@@ -440,8 +452,8 @@ export function drawExitDoor(ctx, W2S, gameTime, game) {
   ctx.fillRect(s.x, s.y + doorH, doorW, 60);
   const glow = 0.4 + Math.sin(gameTime * 0.003) * 0.3;
   ctx.fillStyle = `rgba(220,180,80,${glow})`;
-  ctx.fillRect(s.x + doorW/2 - 4, s.y + 3, 8, 8);
+  ctx.fillRect(s.x + doorW / 2 - 4, s.y + 3, 8, 8);
   ctx.strokeStyle = 'rgba(120,90,40,0.8)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(s.x + doorW/2 - 4, s.y + 3, 8, 8);
+  ctx.strokeRect(s.x + doorW / 2 - 4, s.y + 3, 8, 8);
 }

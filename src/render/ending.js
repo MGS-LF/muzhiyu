@@ -6,12 +6,24 @@ import { W, H } from '../config.js';
 // ============================================================
 export function drawEnding(ctx, ending, gameTime, epilogue, game) {
   const cfgs = {
-    fire: { title: '火 种', col: '255,210,120', sub: '语言的火种被重新点亮。只要还有一个人记得怎么说话，世界就还没有真的失语。' },
-    silence: { title: '沉 默', col: '170,180,185', sub: '你完成了旅程，却没能在对的时候，留下一句话。世界停在一片灰白的安静里。' },
-    burnout: { title: '燃 尽', col: '110,210,130', sub: '最后一个会说完整句子的人安静了。绿雾温柔地覆盖城市——再没有谁，会因一句诗而难受。' },
+    fire: {
+      title: '火 种',
+      col: '255,210,120',
+      sub: '语言的火种被重新点亮。只要还有一个人记得怎么说话，世界就还没有真的失语。',
+    },
+    silence: {
+      title: '沉 默',
+      col: '170,180,185',
+      sub: '你完成了旅程，却没能在对的时候，留下一句话。世界停在一片灰白的安静里。',
+    },
+    burnout: {
+      title: '燃 尽',
+      col: '110,210,130',
+      sub: '最后一个会说完整句子的人安静了。绿雾温柔地覆盖城市——再没有谁，会因一句诗而难受。',
+    },
   };
   const c = cfgs[ending] || cfgs.silence;
-  const subText = (epilogue && epilogue.trim()) ? epilogue.trim() : c.sub;
+  const subText = epilogue && epilogue.trim() ? epilogue.trim() : c.sub;
   // 刻字汇总（仅 AI 非降级且存在时显示；降级时为 null，跳过）
   const summary = game && game.flags ? game.flags.engraving_summary : null;
   const engravings = game && game.engravings ? game.engravings : [];
@@ -32,10 +44,14 @@ export function drawEnding(ctx, ending, gameTime, epilogue, game) {
   ctx.fillStyle = 'rgba(225,218,205,0.9)';
   ctx.font = '15px serif';
   const maxW = 720;
-  let line = '', y = 160;
+  let line = '',
+    y = 160;
   for (const ch of subText) {
-    if (ctx.measureText(line + ch).width > maxW) { ctx.fillText(line, W / 2, y); line = ch; y += 24; }
-    else line += ch;
+    if (ctx.measureText(line + ch).width > maxW) {
+      ctx.fillText(line, W / 2, y);
+      line = ch;
+      y += 24;
+    } else line += ch;
   }
   ctx.fillText(line, W / 2, y);
 
@@ -49,11 +65,15 @@ export function drawEnding(ctx, ending, gameTime, epilogue, game) {
     ctx.fillStyle = 'rgba(220,200,160,0.85)';
     ctx.font = '14px serif';
     if (engravings.length) {
-      let listStr = engravings.map(e => '「' + e.text + '」').join('  ');
-      let ls = '', ly = y + 68;
+      let listStr = engravings.map((e) => '「' + e.text + '」').join('  ');
+      let ls = '',
+        ly = y + 68;
       for (const ch of listStr) {
-        if (ctx.measureText(ls + ch).width > maxW) { ctx.fillText(ls, W / 2, ly); ls = ch; ly += 22; }
-        else ls += ch;
+        if (ctx.measureText(ls + ch).width > maxW) {
+          ctx.fillText(ls, W / 2, ly);
+          ls = ch;
+          ly += 22;
+        } else ls += ch;
       }
       ctx.fillText(ls, W / 2, ly);
       ly += 18;
@@ -61,10 +81,14 @@ export function drawEnding(ctx, ending, gameTime, epilogue, game) {
       if (summary) {
         ctx.fillStyle = 'rgba(200,180,220,0.9)';
         ctx.font = '13px serif';
-        let es = '', ey = ly;
+        let es = '',
+          ey = ly;
         for (const ch of summary) {
-          if (ctx.measureText(es + ch).width > maxW) { ctx.fillText(es, W / 2, ey); es = ch; ey += 20; }
-          else es += ch;
+          if (ctx.measureText(es + ch).width > maxW) {
+            ctx.fillText(es, W / 2, ey);
+            es = ch;
+            ey += 20;
+          } else es += ch;
         }
         ctx.fillText(es, W / 2, ey);
         y = ey;

@@ -7,7 +7,7 @@ import { W, H } from './config.js';
 
 // === 物理参数 ===
 const GRAVITY = 0.55;
-const MOVE_SPD = 2.5;   // 江堤区域专属移速（低于大地图，仅本关卡生效）
+const MOVE_SPD = 2.5; // 江堤区域专属移速（低于大地图，仅本关卡生效）
 const CLIMB_SPD = 2.0;
 const GROUND_Y = 624;
 const LEVEL_W = 3400;
@@ -18,16 +18,16 @@ const KNIFE_DMG = 34;
 // === 跳跃参数（轻跳 / 重跳）===
 // 轻跳：起跳快、滞空短、高度低 —— 适用于精准平台跳跃
 // 重跳：起跳慢、滞空长、高度高 —— 适用于跨越江堤较大间距或高度差
-const JUMP_LIGHT_V = -10.0;   // 轻跳初速度（绝对值小 → 跳得低）
-const JUMP_HEAVY_V = -14.5;   // 重跳初速度（绝对值大 → 跳得高）
-const JUMP_LIGHT_HOLD = 140;  // 轻跳蓄力时间（ms）—— 短按即起跳
-const JUMP_HEAVY_HOLD = 280;  // 重跳蓄力时间（ms）—— 长按蓄力后起跳
+const JUMP_LIGHT_V = -10.0; // 轻跳初速度（绝对值小 → 跳得低）
+const JUMP_HEAVY_V = -14.5; // 重跳初速度（绝对值大 → 跳得高）
+const JUMP_LIGHT_HOLD = 140; // 轻跳蓄力时间（ms）—— 短按即起跳
+const JUMP_HEAVY_HOLD = 280; // 重跳蓄力时间（ms）—— 长按蓄力后起跳
 // 上升期持续按住跳跃键 → 重力降低，延长滞空（重跳延长效果更强）
-const JUMP_MAX_VY = 16;        // 下落最大速度
+const JUMP_MAX_VY = 16; // 下落最大速度
 
 // 段落分界
-const SEG1_END = 1100;  // 前段结束
-const SEG2_END = 2300;  // 中段结束
+const SEG1_END = 1100; // 前段结束
+const SEG2_END = 2300; // 中段结束
 
 // 老人交付小刀的对白
 const KNIFE_DIALOG = [
@@ -63,17 +63,24 @@ export class SideScrollLevel {
     this.game = game;
     // 玩家（横版）
     this.p = {
-      x: 90, y: GROUND_Y, vx: 0, vy: 0,
-      w: 14, h: 30, onGround: true,
-      facing: 1, walkCycle: 0,
-      attacking: 0, attackCD: 0,
+      x: 90,
+      y: GROUND_Y,
+      vx: 0,
+      vy: 0,
+      w: 14,
+      h: 30,
+      onGround: true,
+      facing: 1,
+      walkCycle: 0,
+      attacking: 0,
+      attackCD: 0,
       hasKnife: !!game.flags.sidescroll_knife,
       hurt: 0,
       onLadder: false,
       // === 跳跃状态机 ===
-      jumpCharge: 0,      // 蓄力计时（>0 表示正在蓄力）
-      jumpHolding: false,  // 跳跃键是否仍按住（用于可变重力延长滞空）
-      jumpType: null,      // 'light' | 'heavy' | null（当前跳跃类型）
+      jumpCharge: 0, // 蓄力计时（>0 表示正在蓄力）
+      jumpHolding: false, // 跳跃键是否仍按住（用于可变重力延长滞空）
+      jumpType: null, // 'light' | 'heavy' | null（当前跳跃类型）
     };
     this.cameraX = 0;
 
@@ -145,7 +152,12 @@ export class SideScrollLevel {
 
     // === 探索元素 ===
     // 返回传送点（老人旁边的光圈）
-    this.returnPortal = { x: 120, y: GROUND_Y, active: !!game.flags.sidescroll_lantern, cooldown: 0 };
+    this.returnPortal = {
+      x: 120,
+      y: GROUND_Y,
+      active: !!game.flags.sidescroll_lantern,
+      cooldown: 0,
+    };
     // 隐藏书页（散落，拾取恢复 SAN）
     this.pages = [
       { x: 600, y: 410, taken: false },
@@ -158,7 +170,8 @@ export class SideScrollLevel {
     // 注意：必须有 id 字段，供 game.activatedKeystones 和 _commitEngraving 使用
     this.keystone = {
       id: 'keystone_riverside',
-      x: 1900, y: GROUND_Y,
+      x: 1900,
+      y: GROUND_Y,
       activated: !!game.activatedKeystones?.has('keystone_riverside'),
       engraved: game.flags.riverside_engraved || null,
     };
@@ -169,10 +182,24 @@ export class SideScrollLevel {
   _mkGeng(x, y, range) {
     // 地面行走型梗鬼（超级玛丽式）：脚踩地面/平台，巡逻 + 重力 + 可踩踏
     return {
-      x, baseX: x, y: GROUND_Y, vy: 0, vx: 0.7, dir: 1, range,
-      w: 18, h: 22, onGround: true, walkPhase: Math.random() * 6,
-      hp: 60, maxHp: 60, alive: true, t: Math.random() * 6,
-      hitFlash: 0, hurtKick: 0, stompCD: 0,
+      x,
+      baseX: x,
+      y: GROUND_Y,
+      vy: 0,
+      vx: 0.7,
+      dir: 1,
+      range,
+      w: 18,
+      h: 22,
+      onGround: true,
+      walkPhase: Math.random() * 6,
+      hp: 60,
+      maxHp: 60,
+      alive: true,
+      t: Math.random() * 6,
+      hitFlash: 0,
+      hurtKick: 0,
+      stompCD: 0,
     };
   }
 
@@ -200,7 +227,9 @@ export class SideScrollLevel {
         this.returnPortal.active = true;
         this.game.flags.sidescroll_lantern = true;
         this.game.startDialog(RETURN_DIALOG, '守砚', () => {
-          this.game.showHint('空格跳跃踩踏梗鬼 · 鼠标左键挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石');
+          this.game.showHint(
+            '空格跳跃踩踏梗鬼 · 鼠标左键挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石'
+          );
         });
       });
       return;
@@ -212,9 +241,12 @@ export class SideScrollLevel {
     // === 要石交互（中段）—— 优先于返回传送点，避免 e 键被抢 ===
     // 注意：不强制要求 onGround，因为物理更新在后面，落地帧的 onGround 还是旧值
     // 只要玩家在要石附近（水平距离 < 46，垂直距离 < 50）且不在梯子上即可
-    if (input.wasPressed('e') && !p.onLadder &&
-        Math.abs(p.x - this.keystone.x) < 46 &&
-        Math.abs(p.y - this.keystone.y) < 50) {
+    if (
+      input.wasPressed('e') &&
+      !p.onLadder &&
+      Math.abs(p.x - this.keystone.x) < 46 &&
+      Math.abs(p.y - this.keystone.y) < 50
+    ) {
       if (!this.keystone.activated) {
         this.keystone.activated = true;
         this.game.activatedKeystones.add('keystone_riverside');
@@ -256,7 +288,12 @@ export class SideScrollLevel {
       if (Math.abs(p.x - lad.x) < 16 && p.y > lad.yTop - 10 && p.y < lad.yBottom + 10) {
         onLadderZone = true;
         // 按 W 或 S 在梯子上
-        if (input.isDown('w') || input.isDown('s') || input.isDown('arrowup') || input.isDown('arrowdown')) {
+        if (
+          input.isDown('w') ||
+          input.isDown('s') ||
+          input.isDown('arrowup') ||
+          input.isDown('arrowdown')
+        ) {
           p.onLadder = true;
           break;
         }
@@ -274,7 +311,8 @@ export class SideScrollLevel {
     if (input.isDown('d') || input.isDown('arrowright')) mx += 1;
 
     // 跳跃键状态（每帧消费一次 wasPressed，避免重复消费 bug）
-    const jumpPressed = input.wasPressed(' ') || input.wasPressed('w') || input.wasPressed('arrowup');
+    const jumpPressed =
+      input.wasPressed(' ') || input.wasPressed('w') || input.wasPressed('arrowup');
     const jumpDown = input.isDown(' ') || input.isDown('w') || input.isDown('arrowup');
 
     if (p.onLadder) {
@@ -358,7 +396,7 @@ export class SideScrollLevel {
       let g = GRAVITY;
       if (p.vy < 0 && p.jumpHolding) {
         // 重跳延长系数 0.55，轻跳 0.75（重跳滞空更长）
-        const extendMul = p.jumpType === 'heavy' ? 0.55 : (p.jumpType === 'medium' ? 0.65 : 0.75);
+        const extendMul = p.jumpType === 'heavy' ? 0.55 : p.jumpType === 'medium' ? 0.65 : 0.75;
         g = GRAVITY * extendMul;
       }
       p.vy += g;
@@ -371,16 +409,23 @@ export class SideScrollLevel {
     if (p.x > LEVEL_W - 16) p.x = LEVEL_W - 16;
     // 地面
     p.onGround = false;
-    if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.onGround = true; }
+    if (p.y >= GROUND_Y) {
+      p.y = GROUND_Y;
+      p.vy = 0;
+      p.onGround = true;
+    }
     // 平台碰撞（仅从上方落下时，梯子上时穿透）
     if (!p.onLadder) {
       for (const pl of this.platforms) {
-        const px1 = p.x - p.w / 2, px2 = p.x + p.w / 2;
+        const px1 = p.x - p.w / 2,
+          px2 = p.x + p.w / 2;
         if (px2 > pl.x && px1 < pl.x + pl.w) {
           const feet = p.y;
           const prevFeet = p.y - p.vy;
           if (p.vy >= 0 && prevFeet <= pl.y + 2 && feet >= pl.y) {
-            p.y = pl.y; p.vy = 0; p.onGround = true;
+            p.y = pl.y;
+            p.vy = 0;
+            p.onGround = true;
           }
         }
       }
@@ -403,19 +448,32 @@ export class SideScrollLevel {
         if (e.x > e.baseX + e.range) e.dir = -1;
         else if (e.x < e.baseX - e.range) e.dir = 1;
       }
-      if (e.x < 16) { e.x = 16; e.dir = 1; }
-      if (e.x > LEVEL_W - 16) { e.x = LEVEL_W - 16; e.dir = -1; }
+      if (e.x < 16) {
+        e.x = 16;
+        e.dir = 1;
+      }
+      if (e.x > LEVEL_W - 16) {
+        e.x = LEVEL_W - 16;
+        e.dir = -1;
+      }
       // 重力 + 地面 / 平台碰撞
       e.vy += GRAVITY;
       if (e.vy > 16) e.vy = 16;
       e.y += e.vy;
       e.onGround = false;
-      if (e.y >= GROUND_Y) { e.y = GROUND_Y; e.vy = 0; e.onGround = true; }
+      if (e.y >= GROUND_Y) {
+        e.y = GROUND_Y;
+        e.vy = 0;
+        e.onGround = true;
+      }
       for (const pl of this.platforms) {
         if (e.x + e.w / 2 > pl.x && e.x - e.w / 2 < pl.x + pl.w) {
-          const feet = e.y, prevFeet = e.y - e.vy;
+          const feet = e.y,
+            prevFeet = e.y - e.vy;
           if (e.vy >= 0 && prevFeet <= pl.y + 2 && feet >= pl.y) {
-            e.y = pl.y; e.vy = 0; e.onGround = true;
+            e.y = pl.y;
+            e.vy = 0;
+            e.onGround = true;
           }
         }
       }
@@ -423,16 +481,24 @@ export class SideScrollLevel {
       // 踩踏判定
       const headTop = e.y - e.h;
       const prevFeet = p.y - p.vy;
-      const horizOverlap = Math.abs(e.x - p.x) < (e.w / 2 + p.w / 2);
-      if (e.stompCD <= 0 && p.vy > 0 && horizOverlap && prevFeet <= headTop + 4 && p.y >= headTop - 2) {
+      const horizOverlap = Math.abs(e.x - p.x) < e.w / 2 + p.w / 2;
+      if (
+        e.stompCD <= 0 &&
+        p.vy > 0 &&
+        horizOverlap &&
+        prevFeet <= headTop + 4 &&
+        p.y >= headTop - 2
+      ) {
         e.alive = false;
         e.stompCD = 9999;
         p.vy = JUMP_LIGHT_V * 0.65; // 踩踏后轻弹（用轻跳速度，手感更利落）
         p.jumpType = 'light';
         p.onGround = false;
         this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
-        if (!this._stompHint) { this._stompHint = true; this.game.showHint('踩中梗鬼！从上方落下可踩死地面行走的梗鬼'); }
-        else this.game.showHint('踩中！理性 +6');
+        if (!this._stompHint) {
+          this._stompHint = true;
+          this.game.showHint('踩中梗鬼！从上方落下可踩死地面行走的梗鬼');
+        } else this.game.showHint('踩中！理性 +6');
         continue;
       }
 
@@ -443,7 +509,10 @@ export class SideScrollLevel {
         p.vx = -p.facing * 4;
         this.game.player.invulnerable = 500;
         this.game.player.hurtFlash = true;
-        if (this.game.player.san <= 0) { this._onDeath(); return; }
+        if (this.game.player.san <= 0) {
+          this._onDeath();
+          return;
+        }
       }
     }
 
@@ -468,7 +537,8 @@ export class SideScrollLevel {
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const ecy = e.y - e.h / 2;
-      const dx = e.x - hx, dy = ecy - hy;
+      const dx = e.x - hx,
+        dy = ecy - hy;
       if (Math.hypot(dx, dy) < KNIFE_REACH && (Math.sign(dx) === p.facing || Math.abs(dx) < 14)) {
         e.hp -= KNIFE_DMG;
         e.hitFlash = 120;
@@ -491,8 +561,12 @@ export class SideScrollLevel {
     this.done = true;
   }
 
-  isDone() { return this.done; }
-  getIntent() { return this.intent; }
+  isDone() {
+    return this.done;
+  }
+  getIntent() {
+    return this.intent;
+  }
   getExitTarget() {
     return { target: 'alley_district', spawn: { x: 200, y: 200 } };
   }
@@ -508,7 +582,8 @@ export class SideScrollLevel {
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
     // 落日
-    const sunX = 820 - cam * 0.2, sunY = 300;
+    const sunX = 820 - cam * 0.2,
+      sunY = 300;
     if (sunX > -80 && sunX < W + 80) {
       const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 90);
       sg.addColorStop(0, 'rgba(255,200,120,0.95)');
@@ -517,19 +592,23 @@ export class SideScrollLevel {
       ctx.fillStyle = sg;
       ctx.fillRect(sunX - 90, sunY - 90, 180, 180);
       ctx.fillStyle = 'rgba(255,220,150,0.95)';
-      ctx.beginPath(); ctx.arc(sunX, sunY, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 26, 0, Math.PI * 2);
+      ctx.fill();
     }
     // 远景对岸
     ctx.fillStyle = 'rgba(15,10,8,0.85)';
     for (let i = 0; i < 10; i++) {
       const bx = i * 280 - cam * 0.4;
-      const bw = 80 + (i * 37) % 60, bh = 180 + (i * 53) % 120;
+      const bw = 80 + ((i * 37) % 60),
+        bh = 180 + ((i * 53) % 120);
       ctx.fillRect(bx, GROUND_Y - bh - 60, bw, bh);
     }
     // 江水
     const waterY = GROUND_Y + 8;
     const wg = ctx.createLinearGradient(0, waterY, 0, H);
-    wg.addColorStop(0, '#3a3024'); wg.addColorStop(1, '#1a1814');
+    wg.addColorStop(0, '#3a3024');
+    wg.addColorStop(1, '#1a1814');
     ctx.fillStyle = wg;
     ctx.fillRect(0, waterY, W, H - waterY);
     // 江水波纹
@@ -540,14 +619,17 @@ export class SideScrollLevel {
       ctx.beginPath();
       for (let x = 0; x < W; x += 8) {
         const wy = y + Math.sin((x + t * 20) * 0.04 + y) * 2;
-        if (x === 0) ctx.moveTo(x, wy); else ctx.lineTo(x, wy);
+        if (x === 0) ctx.moveTo(x, wy);
+        else ctx.lineTo(x, wy);
       }
       ctx.stroke();
     }
     if (sunX > -80 && sunX < W + 80) {
       const rg = ctx.createLinearGradient(0, waterY, 0, waterY + 120);
-      rg.addColorStop(0, 'rgba(255,200,120,0.3)'); rg.addColorStop(1, 'rgba(255,200,120,0)');
-      ctx.fillStyle = rg; ctx.fillRect(sunX - 50, waterY, 100, 120);
+      rg.addColorStop(0, 'rgba(255,200,120,0.3)');
+      rg.addColorStop(1, 'rgba(255,200,120,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(sunX - 50, waterY, 100, 120);
     }
 
     // === 段落分界标记（地面颜色变化）===
@@ -569,8 +651,10 @@ export class SideScrollLevel {
       const wx = (i * 53 + 11) % LEVEL_W;
       const sx = wx - cam;
       if (sx < -10 || sx > W + 10) continue;
-      const sy = GROUND_Y + 6 + (i * 7) % 6;
-      ctx.beginPath(); ctx.arc(sx, sy, 2 + (i % 2), 0, Math.PI * 2); ctx.fill();
+      const sy = GROUND_Y + 6 + ((i * 7) % 6);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 2 + (i % 2), 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // === 平台 ===
@@ -581,12 +665,17 @@ export class SideScrollLevel {
       ctx.fillRect(sx, pl.y, pl.w, pl.h);
       ctx.fillStyle = '#4a4540';
       ctx.fillRect(sx, pl.y, pl.w, 3);
-      ctx.strokeStyle = '#2a2520'; ctx.lineWidth = 1;
+      ctx.strokeStyle = '#2a2520';
+      ctx.lineWidth = 1;
       ctx.strokeRect(sx, pl.y, pl.w, pl.h);
-      ctx.strokeStyle = '#5a6a30'; ctx.lineWidth = 1;
+      ctx.strokeStyle = '#5a6a30';
+      ctx.lineWidth = 1;
       for (let gx = sx + 6; gx < sx + pl.w - 4; gx += 10) {
         const sway = Math.sin(this.gameTime * 0.002 + gx) * 1.5;
-        ctx.beginPath(); ctx.moveTo(gx, pl.y); ctx.quadraticCurveTo(gx + sway, pl.y - 6, gx + sway * 2, pl.y - 10); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(gx, pl.y);
+        ctx.quadraticCurveTo(gx + sway, pl.y - 6, gx + sway * 2, pl.y - 10);
+        ctx.stroke();
       }
     }
 
@@ -596,19 +685,31 @@ export class SideScrollLevel {
       if (sx < -20 || sx > W + 20) continue;
       const h = lad.yBottom - lad.yTop;
       // 两根立柱
-      ctx.strokeStyle = '#6a5a3a'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(sx - 7, lad.yBottom); ctx.lineTo(sx - 7, lad.yTop); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(sx + 7, lad.yBottom); ctx.lineTo(sx + 7, lad.yTop); ctx.stroke();
+      ctx.strokeStyle = '#6a5a3a';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(sx - 7, lad.yBottom);
+      ctx.lineTo(sx - 7, lad.yTop);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(sx + 7, lad.yBottom);
+      ctx.lineTo(sx + 7, lad.yTop);
+      ctx.stroke();
       // 横档
-      ctx.strokeStyle = '#7a6a4a'; ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#7a6a4a';
+      ctx.lineWidth = 1.8;
       for (let yy = lad.yBottom - 12; yy > lad.yTop; yy -= 14) {
-        ctx.beginPath(); ctx.moveTo(sx - 7, yy); ctx.lineTo(sx + 7, yy); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(sx - 7, yy);
+        ctx.lineTo(sx + 7, yy);
+        ctx.stroke();
       }
       // 顶部提示
       if (Math.abs(this.p.x - lad.x) < 20) {
         const pulse = 0.6 + Math.sin(gameTime * 0.006) * 0.3;
         ctx.fillStyle = `rgba(255,220,140,${pulse})`;
-        ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
+        ctx.font = 'bold 9px serif';
+        ctx.textAlign = 'center';
         ctx.fillText('W 攀爬', sx, lad.yTop - 6);
         ctx.textAlign = 'left';
       }
@@ -621,10 +722,16 @@ export class SideScrollLevel {
       if (sx < -20 || sx > W + 20) continue;
       const by = GROUND_Y + 4;
       const sway = Math.sin(this.gameTime * 0.002 + i) * 3;
-      ctx.strokeStyle = '#6a6a30'; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(sx, by); ctx.quadraticCurveTo(sx + sway * 0.5, by - 16, sx + sway, by - 34); ctx.stroke();
+      ctx.strokeStyle = '#6a6a30';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(sx, by);
+      ctx.quadraticCurveTo(sx + sway * 0.5, by - 16, sx + sway, by - 34);
+      ctx.stroke();
       ctx.fillStyle = '#8a7a40';
-      ctx.beginPath(); ctx.ellipse(sx + sway, by - 36, 2.5, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(sx + sway, by - 36, 2.5, 5, 0.2, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // === 老人 NPC ===
@@ -635,7 +742,8 @@ export class SideScrollLevel {
         if (!this.npc.talked) {
           const pulse = 0.6 + Math.sin(gameTime * 0.005) * 0.3;
           ctx.fillStyle = `rgba(255,220,140,${pulse})`;
-          ctx.font = 'bold 11px serif'; ctx.textAlign = 'center';
+          ctx.font = 'bold 11px serif';
+          ctx.textAlign = 'center';
           ctx.fillText('E · 老人', sx, this.npc.y - 56);
           ctx.textAlign = 'left';
         }
@@ -651,15 +759,21 @@ export class SideScrollLevel {
         g.addColorStop(0, `rgba(255,220,140,${0.45 * pulse + 0.2})`);
         g.addColorStop(1, 'rgba(255,200,100,0)');
         ctx.fillStyle = g;
-        ctx.beginPath(); ctx.ellipse(sx, GROUND_Y - 2, 36, 14, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(sx, GROUND_Y - 2, 36, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = `rgba(255,230,160,${0.6 + pulse * 0.3})`;
-        ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
-        ctx.beginPath(); ctx.ellipse(sx, GROUND_Y - 2, 22, 9, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.ellipse(sx, GROUND_Y - 2, 22, 9, 0, 0, Math.PI * 2);
+        ctx.stroke();
         ctx.setLineDash([]);
         const near = Math.abs(this.p.x - this.returnPortal.x) < 46;
         if (near) {
           ctx.fillStyle = `rgba(255,235,160,${0.85 + pulse * 0.15})`;
-          ctx.font = 'bold 11px serif'; ctx.textAlign = 'center';
+          ctx.font = 'bold 11px serif';
+          ctx.textAlign = 'center';
           ctx.fillText('E · 返回街道', sx, GROUND_Y - 30);
           ctx.textAlign = 'left';
         }
@@ -675,12 +789,14 @@ export class SideScrollLevel {
       const g = ctx.createRadialGradient(sx, pg.y + bob, 0, sx, pg.y + bob, 14);
       g.addColorStop(0, 'rgba(255,220,140,0.4)');
       g.addColorStop(1, 'rgba(255,220,140,0)');
-      ctx.fillStyle = g; ctx.fillRect(sx - 14, pg.y + bob - 14, 28, 28);
+      ctx.fillStyle = g;
+      ctx.fillRect(sx - 14, pg.y + bob - 14, 28, 28);
       ctx.fillStyle = '#d4b86a';
       ctx.fillRect(sx - 5, pg.y + bob - 7, 10, 13);
       ctx.fillStyle = '#e8cc88';
       ctx.fillRect(sx - 5, pg.y + bob - 7, 10, 3);
-      ctx.strokeStyle = '#806020'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = '#806020';
+      ctx.lineWidth = 0.5;
       ctx.strokeRect(sx - 5, pg.y + bob - 7, 10, 13);
     }
 
@@ -695,31 +811,40 @@ export class SideScrollLevel {
           const g = ctx.createRadialGradient(sx, GROUND_Y - 16, 0, sx, GROUND_Y - 16, 40);
           g.addColorStop(0, `rgba(255,220,140,${0.3 * pulse})`);
           g.addColorStop(1, 'rgba(255,220,140,0)');
-          ctx.fillStyle = g; ctx.fillRect(sx - 40, GROUND_Y - 56, 80, 60);
+          ctx.fillStyle = g;
+          ctx.fillRect(sx - 40, GROUND_Y - 56, 80, 60);
         }
         // 石体
         ctx.fillStyle = ks.activated ? '#8a7a58' : '#4a4540';
         ctx.beginPath();
-        ctx.moveTo(sx - 12, GROUND_Y); ctx.lineTo(sx - 10, GROUND_Y - 38);
-        ctx.lineTo(sx + 10, GROUND_Y - 40); ctx.lineTo(sx + 12, GROUND_Y);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#2a2520'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.moveTo(sx - 12, GROUND_Y);
+        ctx.lineTo(sx - 10, GROUND_Y - 38);
+        ctx.lineTo(sx + 10, GROUND_Y - 40);
+        ctx.lineTo(sx + 12, GROUND_Y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#2a2520';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
         // 刻字
         if (ks.engraved) {
           ctx.fillStyle = `rgba(255,230,160,${0.8 + Math.sin(gameTime * 0.003) * 0.2})`;
-          ctx.font = 'bold 11px serif'; ctx.textAlign = 'center';
+          ctx.font = 'bold 11px serif';
+          ctx.textAlign = 'center';
           ctx.fillText(ks.engraved, sx, GROUND_Y - 18);
           ctx.textAlign = 'left';
         } else {
           ctx.fillStyle = `rgba(180,160,120,${0.4 + pulse * 0.3})`;
-          ctx.font = '9px serif'; ctx.textAlign = 'center';
+          ctx.font = '9px serif';
+          ctx.textAlign = 'center';
           ctx.fillText('要石', sx, GROUND_Y - 20);
           ctx.textAlign = 'left';
         }
         // 提示
         if (Math.abs(this.p.x - ks.x) < 40) {
           ctx.fillStyle = `rgba(255,220,140,${0.8 + pulse * 0.2})`;
-          ctx.font = 'bold 10px serif'; ctx.textAlign = 'center';
+          ctx.font = 'bold 10px serif';
+          ctx.textAlign = 'center';
           ctx.fillText(ks.activated ? 'E · 刻字' : 'E · 激活要石', sx, GROUND_Y - 50);
           ctx.textAlign = 'left';
         }
@@ -746,9 +871,11 @@ export class SideScrollLevel {
         g.addColorStop(0, 'rgba(255,225,150,0)');
         g.addColorStop(0.6, `rgba(255,225,150,${pulse * 0.25})`);
         g.addColorStop(1, `rgba(255,225,150,${pulse * 0.5})`);
-        ctx.fillStyle = g; ctx.fillRect(sx - 30, 0, 60, GROUND_Y);
+        ctx.fillStyle = g;
+        ctx.fillRect(sx - 30, 0, 60, GROUND_Y);
         ctx.fillStyle = `rgba(255,230,160,${0.6 + pulse * 0.3})`;
-        ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
+        ctx.font = 'bold 12px serif';
+        ctx.textAlign = 'center';
         ctx.fillText('→ 居民区', sx, GROUND_Y - 60);
         ctx.textAlign = 'left';
       }
@@ -765,47 +892,92 @@ export class SideScrollLevel {
     const y = sy + bob;
     // 阴影
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(sx, sy + 2, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + 2, 10, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
     // 腿
-    const legSwing = p.onLadder ? Math.sin(p.walkCycle * 2) * 3 : (p.onGround && p.vx !== 0 ? Math.sin(p.walkCycle * 2) * 6 : (p.onGround ? 0 : 4));
-    ctx.strokeStyle = '#3a4858'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(sx - 3, y - 6); ctx.lineTo(sx - 4 + legSwing, y + 10); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(sx + 3, y - 6); ctx.lineTo(sx + 4 - legSwing, y + 10); ctx.stroke();
+    const legSwing = p.onLadder
+      ? Math.sin(p.walkCycle * 2) * 3
+      : p.onGround && p.vx !== 0
+        ? Math.sin(p.walkCycle * 2) * 6
+        : p.onGround
+          ? 0
+          : 4;
+    ctx.strokeStyle = '#3a4858';
+    ctx.lineWidth = 3.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx - 3, y - 6);
+    ctx.lineTo(sx - 4 + legSwing, y + 10);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx + 3, y - 6);
+    ctx.lineTo(sx + 4 - legSwing, y + 10);
+    ctx.stroke();
     // 躯干
     ctx.fillStyle = '#5a6878';
     ctx.beginPath();
-    ctx.moveTo(sx - 5, y - 18); ctx.lineTo(sx - 6, y - 4); ctx.lineTo(sx + 6, y - 4); ctx.lineTo(sx + 5, y - 18);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#3a4858'; ctx.fillRect(sx - 6, y - 10, 12, 1.5);
+    ctx.moveTo(sx - 5, y - 18);
+    ctx.lineTo(sx - 6, y - 4);
+    ctx.lineTo(sx + 6, y - 4);
+    ctx.lineTo(sx + 5, y - 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#3a4858';
+    ctx.fillRect(sx - 6, y - 10, 12, 1.5);
     // 头
     ctx.fillStyle = '#e8c9a0';
-    ctx.beginPath(); ctx.arc(sx + p.facing * 1, y - 23, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx + p.facing * 1, y - 23, 5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#2a2018';
-    ctx.beginPath(); ctx.arc(sx + p.facing * 1, y - 25, 5, Math.PI, 0); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx + p.facing * 1, y - 25, 5, Math.PI, 0);
+    ctx.fill();
     // 眼
     ctx.fillStyle = '#1a1612';
-    ctx.beginPath(); ctx.arc(sx + p.facing * 3, y - 23, 0.9, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx + p.facing * 3, y - 23, 0.9, 0, Math.PI * 2);
+    ctx.fill();
     // 手 + 小刀
     const armY = y - 12;
     if (p.attacking > 0) {
       const prog = 1 - p.attacking / 200;
       const ang = (p.facing > 0 ? -0.6 : Math.PI + 0.6) + prog * (p.facing > 0 ? 1.6 : -1.6);
-      const hx = sx + Math.cos(ang) * 22, hy = armY + Math.sin(ang) * 22;
-      ctx.strokeStyle = '#5a6878'; ctx.lineWidth = 2.8;
-      ctx.beginPath(); ctx.moveTo(sx + p.facing * 4, armY); ctx.lineTo(hx, hy); ctx.stroke();
-      const tx = hx + Math.cos(ang) * 16, ty = hy + Math.sin(ang) * 16;
-      ctx.strokeStyle = '#d8d8e0'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.strokeStyle = `rgba(255,240,200,${0.5 * (1 - prog)})`; ctx.lineWidth = 3;
+      const hx = sx + Math.cos(ang) * 22,
+        hy = armY + Math.sin(ang) * 22;
+      ctx.strokeStyle = '#5a6878';
+      ctx.lineWidth = 2.8;
       ctx.beginPath();
-      const a0 = ang - p.facing * 0.8, a1 = ang + p.facing * 0.2;
-      ctx.arc(sx + p.facing * 4, armY, 30, a0, a1, p.facing < 0); ctx.stroke();
+      ctx.moveTo(sx + p.facing * 4, armY);
+      ctx.lineTo(hx, hy);
+      ctx.stroke();
+      const tx = hx + Math.cos(ang) * 16,
+        ty = hy + Math.sin(ang) * 16;
+      ctx.strokeStyle = '#d8d8e0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,240,200,${0.5 * (1 - prog)})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const a0 = ang - p.facing * 0.8,
+        a1 = ang + p.facing * 0.2;
+      ctx.arc(sx + p.facing * 4, armY, 30, a0, a1, p.facing < 0);
+      ctx.stroke();
     } else {
       const armSwing = p.onGround && p.vx !== 0 ? Math.sin(p.walkCycle * 2 + Math.PI) * 5 : 0;
-      ctx.strokeStyle = '#5a6878'; ctx.lineWidth = 2.8;
-      ctx.beginPath(); ctx.moveTo(sx + p.facing * 4, armY); ctx.lineTo(sx + p.facing * 9, armY + 4 + armSwing); ctx.stroke();
+      ctx.strokeStyle = '#5a6878';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.moveTo(sx + p.facing * 4, armY);
+      ctx.lineTo(sx + p.facing * 9, armY + 4 + armSwing);
+      ctx.stroke();
       if (p.hasKnife) {
-        ctx.strokeStyle = '#b8b8c0'; ctx.lineWidth = 1.8;
+        ctx.strokeStyle = '#b8b8c0';
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(sx + p.facing * 9, armY + 4 + armSwing);
         ctx.lineTo(sx + p.facing * 20, armY + 2 + armSwing);
@@ -819,74 +991,128 @@ export class SideScrollLevel {
     const wob = e.onGround ? Math.sin(e.walkPhase * 2) * 1.5 : 0;
     const cy = sy - 11 + wob;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(sx, sy + 2, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + 2, 11, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
     const g = ctx.createRadialGradient(sx, cy, 0, sx, cy, 28);
     g.addColorStop(0, flash ? 'rgba(255,255,255,0.5)' : 'rgba(80,220,100,0.3)');
     g.addColorStop(1, 'rgba(80,220,100,0)');
-    ctx.fillStyle = g; ctx.fillRect(sx - 28, cy - 28, 56, 56);
+    ctx.fillStyle = g;
+    ctx.fillRect(sx - 28, cy - 28, 56, 56);
     const legSwing = e.onGround ? Math.sin(e.walkPhase * 2) * 4 : 2;
-    ctx.strokeStyle = 'rgba(40,120,50,0.85)'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(sx - 4, cy + 6); ctx.lineTo(sx - 5 + legSwing, sy); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(sx + 4, cy + 6); ctx.lineTo(sx + 5 - legSwing, sy); ctx.stroke();
+    ctx.strokeStyle = 'rgba(40,120,50,0.85)';
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx - 4, cy + 6);
+    ctx.lineTo(sx - 5 + legSwing, sy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx + 4, cy + 6);
+    ctx.lineTo(sx + 5 - legSwing, sy);
+    ctx.stroke();
     ctx.fillStyle = flash ? 'rgba(200,255,200,0.9)' : 'rgba(80,210,90,0.78)';
-    ctx.beginPath(); ctx.ellipse(sx, cy, 13, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx, cy, 13, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = 'rgba(20,40,20,0.9)';
-    ctx.beginPath(); ctx.ellipse(sx, cy + 3, 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx, cy + 3, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = 'rgba(180,255,180,0.5)';
     for (let i = 0; i < 4; i++) {
-      ctx.beginPath(); ctx.moveTo(sx - 6 + i * 4, cy + 3); ctx.lineTo(sx - 5 + i * 4, cy + 7); ctx.lineTo(sx - 4 + i * 4, cy + 3); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(sx - 6 + i * 4, cy + 3);
+      ctx.lineTo(sx - 5 + i * 4, cy + 7);
+      ctx.lineTo(sx - 4 + i * 4, cy + 3);
+      ctx.fill();
     }
     ctx.fillStyle = '#0a1a0a';
-    ctx.beginPath(); ctx.arc(sx - 4, cy - 4, 2, 0, Math.PI * 2); ctx.arc(sx + 4, cy - 4, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx - 4, cy - 4, 2, 0, Math.PI * 2);
+    ctx.arc(sx + 4, cy - 4, 2, 0, Math.PI * 2);
+    ctx.fill();
     if (e.hp < e.maxHp) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(sx - 12, cy - 20, 24, 3);
-      ctx.fillStyle = '#80dd80'; ctx.fillRect(sx - 12, cy - 20, 24 * (e.hp / e.maxHp), 3);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(sx - 12, cy - 20, 24, 3);
+      ctx.fillStyle = '#80dd80';
+      ctx.fillRect(sx - 12, cy - 20, 24 * (e.hp / e.maxHp), 3);
     }
   }
 
   _drawShuyuan(ctx, sx, sy, gameTime) {
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath(); ctx.ellipse(sx, sy + 2, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + 2, 10, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#5a7888';
     ctx.beginPath();
-    ctx.moveTo(sx - 10, sy - 8); ctx.lineTo(sx - 13, sy + 2); ctx.lineTo(sx + 13, sy + 2); ctx.lineTo(sx + 10, sy - 8);
-    ctx.closePath(); ctx.fill();
+    ctx.moveTo(sx - 10, sy - 8);
+    ctx.lineTo(sx - 13, sy + 2);
+    ctx.lineTo(sx + 13, sy + 2);
+    ctx.lineTo(sx + 10, sy - 8);
+    ctx.closePath();
+    ctx.fill();
     ctx.fillStyle = '#e8e4d8';
-    ctx.beginPath(); ctx.arc(sx, sy - 15, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx, sy - 15, 6, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#ccc';
-    ctx.beginPath(); ctx.arc(sx, sy - 16, 6, Math.PI, 0); ctx.fill();
-    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(sx - 2, sy - 13); ctx.lineTo(sx - 1, sy - 10); ctx.moveTo(sx + 2, sy - 13); ctx.lineTo(sx + 1, sy - 10); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(sx, sy - 16, 6, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx - 2, sy - 13);
+    ctx.lineTo(sx - 1, sy - 10);
+    ctx.moveTo(sx + 2, sy - 13);
+    ctx.lineTo(sx + 1, sy - 10);
+    ctx.stroke();
     const pulse = 0.6 + Math.sin(gameTime * 0.004) * 0.3;
     ctx.fillStyle = `rgba(255,220,140,${pulse})`;
-    ctx.beginPath(); ctx.arc(sx + 12, sy - 6, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx + 12, sy - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   _drawHUD(ctx) {
     // SAN 条
-    const sanW = 140, sanH = 12, sx = 16, sy = 14;
+    const sanW = 140,
+      sanH = 12,
+      sx = 16,
+      sy = 14;
     const ratio = Math.max(0, this.game.player.san / this.game.player.maxSan);
     ctx.fillStyle = 'rgba(20,15,10,0.8)';
     ctx.fillRect(sx, sy, sanW, sanH);
     const col = ratio > 0.5 ? '#7ad07a' : ratio > 0.25 ? '#e0b850' : '#d04040';
-    ctx.fillStyle = col; ctx.fillRect(sx + 1, sy + 1, (sanW - 2) * ratio, sanH - 2);
-    ctx.strokeStyle = 'rgba(220,200,150,0.5)'; ctx.lineWidth = 1;
+    ctx.fillStyle = col;
+    ctx.fillRect(sx + 1, sy + 1, (sanW - 2) * ratio, sanH - 2);
+    ctx.strokeStyle = 'rgba(220,200,150,0.5)';
+    ctx.lineWidth = 1;
     ctx.strokeRect(sx, sy, sanW, sanH);
-    ctx.fillStyle = 'rgba(255,240,200,0.9)'; ctx.font = 'bold 9px serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,240,200,0.9)';
+    ctx.font = 'bold 9px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
     ctx.fillText('理性', sx + 5, sy + sanH / 2);
     ctx.textBaseline = 'alphabetic';
     // 武器提示
     if (this.p.hasKnife) {
-      ctx.fillStyle = 'rgba(255,220,140,0.7)'; ctx.font = 'bold 11px serif';
+      ctx.fillStyle = 'rgba(255,220,140,0.7)';
+      ctx.font = 'bold 11px serif';
       ctx.fillText('记忆合金小刀 · 鼠标左键', sx, sy + sanH + 18);
     } else {
-      ctx.fillStyle = 'rgba(200,200,200,0.6)'; ctx.font = '11px serif';
+      ctx.fillStyle = 'rgba(200,200,200,0.6)';
+      ctx.font = '11px serif';
       ctx.fillText('向前走，找老人……', sx, sy + sanH + 18);
     }
     // === 跳跃蓄力指示器 ===
     if (this.p.jumpCharge > 0) {
-      const barW = 100, barH = 6;
-      const bx = sx, by = sy + sanH + 36;
+      const barW = 100,
+        barH = 6;
+      const bx = sx,
+        by = sy + sanH + 36;
       ctx.fillStyle = 'rgba(20,15,10,0.8)';
       ctx.fillRect(bx, by, barW, barH);
       // 蓄力进度
@@ -895,27 +1121,37 @@ export class SideScrollLevel {
       const lightRatio = JUMP_LIGHT_HOLD / JUMP_HEAVY_HOLD;
       ctx.fillStyle = chargeRatio < lightRatio ? '#66dd66' : '#ffd866';
       ctx.fillRect(bx + 1, by + 1, (barW - 2) * chargeRatio, barH - 2);
-      ctx.strokeStyle = 'rgba(220,200,150,0.4)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(220,200,150,0.4)';
+      ctx.lineWidth = 1;
       ctx.strokeRect(bx, by, barW, barH);
       // 轻跳/重跳分界线
       ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.beginPath(); ctx.moveTo(bx + barW * lightRatio, by); ctx.lineTo(bx + barW * lightRatio, by + barH); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx + barW * lightRatio, by);
+      ctx.lineTo(bx + barW * lightRatio, by + barH);
+      ctx.stroke();
       // 标签
-      ctx.fillStyle = 'rgba(255,240,200,0.7)'; ctx.font = '9px serif';
+      ctx.fillStyle = 'rgba(255,240,200,0.7)';
+      ctx.font = '9px serif';
       ctx.fillText(chargeRatio < lightRatio ? '轻跳蓄力…' : '重跳蓄力…', bx, by - 3);
     }
     // 剩余敌人计数 + 段落标识
-    const left = this.enemies.filter(e => e.alive).length;
-    ctx.fillStyle = 'rgba(120,220,120,0.7)'; ctx.font = 'bold 11px serif'; ctx.textAlign = 'right';
+    const left = this.enemies.filter((e) => e.alive).length;
+    ctx.fillStyle = 'rgba(120,220,120,0.7)';
+    ctx.font = 'bold 11px serif';
+    ctx.textAlign = 'right';
     ctx.fillText(`梗鬼 ${left}`, W - 16, sy + 12);
     // 当前段落
     const px = this.p.x;
     const segName = px < SEG1_END ? '前段·教学' : px < SEG2_END ? '中段·攀爬' : '后段·跳跃';
-    ctx.fillStyle = 'rgba(255,220,140,0.6)'; ctx.font = '10px serif';
+    ctx.fillStyle = 'rgba(255,220,140,0.6)';
+    ctx.font = '10px serif';
     ctx.fillText(segName, W - 16, sy + 28);
     // 跳跃提示（首次进入后段时显示）
     if (px > SEG2_END && !this._jumpHintShown) {
-      ctx.fillStyle = 'rgba(255,220,140,0.5)'; ctx.font = '9px serif'; ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(255,220,140,0.5)';
+      ctx.font = '9px serif';
+      ctx.textAlign = 'right';
       ctx.fillText('短按=轻跳  长按=重跳', W - 16, sy + 44);
     }
     ctx.textAlign = 'left';

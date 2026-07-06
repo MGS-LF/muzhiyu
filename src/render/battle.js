@@ -33,29 +33,42 @@ export function drawBattle(ctx, battle, gameTime) {
   // HP 条
   const eBarW = 120;
   ctx.fillStyle = '#400';
-  ctx.fillRect(enemyCX - eBarW/2, enemyCY + 78, eBarW, 8);
+  ctx.fillRect(enemyCX - eBarW / 2, enemyCY + 78, eBarW, 8);
   ctx.fillStyle = '#e44';
-  ctx.fillRect(enemyCX - eBarW/2, enemyCY + 78, eBarW * (battle.enemy.hp / battle.enemy.maxHp), 8);
+  ctx.fillRect(
+    enemyCX - eBarW / 2,
+    enemyCY + 78,
+    eBarW * (battle.enemy.hp / battle.enemy.maxHp),
+    8
+  );
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 1;
-  ctx.strokeRect(enemyCX - eBarW/2, enemyCY + 78, eBarW, 8);
+  ctx.strokeRect(enemyCX - eBarW / 2, enemyCY + 78, eBarW, 8);
   ctx.fillStyle = '#ccc';
   ctx.font = '10px serif';
   ctx.fillText(`${battle.enemy.hp} / ${battle.enemy.maxHp}`, enemyCX, enemyCY + 95);
 
   // 清醒值（调查累积，满了可宽恕）
   if (battle.clarityMax) {
-    const cw = 120, cyc = enemyCY + 103;
+    const cw = 120,
+      cyc = enemyCY + 103;
     ctx.fillStyle = 'rgba(40,40,20,0.8)';
-    ctx.fillRect(enemyCX - cw/2, cyc, cw, 6);
+    ctx.fillRect(enemyCX - cw / 2, cyc, cw, 6);
     ctx.fillStyle = 'rgba(255,210,140,0.95)';
-    ctx.fillRect(enemyCX - cw/2, cyc, cw * (battle.clarity / battle.clarityMax), 6);
+    ctx.fillRect(enemyCX - cw / 2, cyc, cw * (battle.clarity / battle.clarityMax), 6);
     ctx.strokeStyle = 'rgba(255,210,140,0.5)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(enemyCX - cw/2, cyc, cw, 6);
-    ctx.fillStyle = battle.clarity >= battle.clarityMax ? 'rgba(255,225,150,0.95)' : 'rgba(200,190,160,0.7)';
+    ctx.strokeRect(enemyCX - cw / 2, cyc, cw, 6);
+    ctx.fillStyle =
+      battle.clarity >= battle.clarityMax ? 'rgba(255,225,150,0.95)' : 'rgba(200,190,160,0.7)';
     ctx.font = '9px serif';
-    ctx.fillText(battle.clarity >= battle.clarityMax ? '清醒：可宽恕' : `清醒 ${battle.clarity}/${battle.clarityMax}`, enemyCX, cyc + 14);
+    ctx.fillText(
+      battle.clarity >= battle.clarityMax
+        ? '清醒：可宽恕'
+        : `清醒 ${battle.clarity}/${battle.clarityMax}`,
+      enemyCX,
+      cyc + 14
+    );
   }
 
   // 敌人文字气泡
@@ -63,11 +76,11 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.font = '13px serif';
     const tw = ctx.measureText(battle.enemyText).width + 30;
     ctx.fillStyle = 'rgba(20,20,30,0.9)';
-    roundRect(ctx, enemyCX - tw/2, enemyCY + 124, tw, 26, 4);
+    roundRect(ctx, enemyCX - tw / 2, enemyCY + 124, tw, 26, 4);
     ctx.fill();
     ctx.strokeStyle = 'rgba(80,220,100,0.5)';
     ctx.lineWidth = 1;
-    roundRect(ctx, enemyCX - tw/2, enemyCY + 124, tw, 26, 4);
+    roundRect(ctx, enemyCX - tw / 2, enemyCY + 124, tw, 26, 4);
     ctx.stroke();
     ctx.fillStyle = 'rgba(120,255,140,0.9)';
     ctx.textBaseline = 'middle';
@@ -85,9 +98,9 @@ export function drawBattle(ctx, battle, gameTime) {
   // 弹幕框边框
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 3;
-  ctx.strokeRect(-BOX_W/2, -BOX_H/2, BOX_W, BOX_H);
+  ctx.strokeRect(-BOX_W / 2, -BOX_H / 2, BOX_W, BOX_H);
   ctx.fillStyle = '#000';
-  ctx.fillRect(-BOX_W/2, -BOX_H/2, BOX_W, BOX_H);
+  ctx.fillRect(-BOX_W / 2, -BOX_H / 2, BOX_W, BOX_H);
 
   if (battle.phase === 'enemyTurn') {
     // 红心
@@ -117,26 +130,26 @@ export function drawBattle(ctx, battle, gameTime) {
     const barW = BOX_W - 20;
     const barH = 30;
     ctx.fillStyle = '#222';
-    ctx.fillRect(-barW/2, -barH/2, barW, barH);
+    ctx.fillRect(-barW / 2, -barH / 2, barW, barH);
     // 中心区域（高伤害区）
     ctx.fillStyle = 'rgba(255,220,120,0.3)';
-    ctx.fillRect(-barW * 0.1, -barH/2, barW * 0.2, barH);
+    ctx.fillRect(-barW * 0.1, -barH / 2, barW * 0.2, barH);
     // 移动指示器
-    const ix = -barW/2 + battle.attackBar.pos * barW;
+    const ix = -barW / 2 + battle.attackBar.pos * barW;
     ctx.fillStyle = '#ff4';
-    ctx.fillRect(ix - 3, -barH/2, 6, barH);
+    ctx.fillRect(ix - 3, -barH / 2, 6, barH);
     // 标签
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('按 E / 空格 攻击', 0, -barH/2 - 14);
+    ctx.fillText('按 E / 空格 攻击', 0, -barH / 2 - 14);
     ctx.textAlign = 'left';
   } else if (battle.phase === 'poem') {
     // 诗词特效：金色光幕
     const t = battle.timer / 3000;
     const a = Math.sin(t * Math.PI) * 0.5;
     ctx.fillStyle = `rgba(255,220,120,${a})`;
-    ctx.fillRect(-BOX_W/2, -BOX_H/2, BOX_W, BOX_H);
+    ctx.fillRect(-BOX_W / 2, -BOX_H / 2, BOX_W, BOX_H);
     // 诗句
     ctx.fillStyle = `rgba(255,240,180,${0.7 + a})`;
     ctx.font = 'bold 16px serif';
@@ -181,19 +194,19 @@ export function drawBattle(ctx, battle, gameTime) {
   ctx.font = 'bold 13px serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('理性', W/2 - 200, uiY);
+  ctx.fillText('理性', W / 2 - 200, uiY);
   const pBarW = 140;
   ctx.fillStyle = '#400';
-  ctx.fillRect(W/2 - 160, uiY - 6, pBarW, 12);
+  ctx.fillRect(W / 2 - 160, uiY - 6, pBarW, 12);
   const ratio = Math.max(0, battle.heartHp / battle.heartMaxHp);
   ctx.fillStyle = ratio > 0.3 ? '#7ad07a' : '#e44';
-  ctx.fillRect(W/2 - 160, uiY - 6, pBarW * ratio, 12);
+  ctx.fillRect(W / 2 - 160, uiY - 6, pBarW * ratio, 12);
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 1;
-  ctx.strokeRect(W/2 - 160, uiY - 6, pBarW, 12);
+  ctx.strokeRect(W / 2 - 160, uiY - 6, pBarW, 12);
   ctx.fillStyle = '#ccc';
   ctx.font = '10px serif';
-  ctx.fillText(`${Math.floor(battle.heartHp)} / ${battle.heartMaxHp}`, W/2 - 155, uiY);
+  ctx.fillText(`${Math.floor(battle.heartHp)} / ${battle.heartMaxHp}`, W / 2 - 155, uiY);
   ctx.textBaseline = 'alphabetic';
 
   // 菜单（玩家回合时显示）
@@ -202,7 +215,7 @@ export function drawBattle(ctx, battle, gameTime) {
     const items = battle.menuItems;
     const itemW = 130;
     const totalW = itemW * items.length + 20 * (items.length - 1);
-    const startX = W/2 - totalW/2;
+    const startX = W / 2 - totalW / 2;
     for (let i = 0; i < items.length; i++) {
       const ix = startX + i * (itemW + 20);
       const selected = i === battle.menuIndex;
@@ -219,7 +232,7 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.font = selected ? 'bold 15px serif' : '14px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(items[i], ix + itemW/2, menuY + 18);
+      ctx.fillText(items[i], ix + itemW / 2, menuY + 18);
       // 选中指示
       if (selected) {
         ctx.fillStyle = 'rgba(255,220,120,0.9)';
@@ -241,10 +254,10 @@ export function drawBattle(ctx, battle, gameTime) {
     if (battle.ultimateReady && !battle.ultimateUsed) {
       hintText += `    K ${battle.availableUltimate ? battle.availableUltimate.name : '诗词大招'}`;
     }
-    ctx.fillText(hintText, W/2, H - 20);
+    ctx.fillText(hintText, W / 2, H - 20);
     ctx.fillStyle = 'rgba(150,150,160,0.5)';
     ctx.font = '10px serif';
-    ctx.fillText('调查＝看清它残存的"人"，集满清醒可宽恕（不沾血也能脱战）', W/2, H - 6);
+    ctx.fillText('调查＝看清它残存的"人"，集满清醒可宽恕（不沾血也能脱战）', W / 2, H - 6);
     // 大招就绪指示（菜单右上角）
     if (battle.ultimateReady && !battle.ultimateUsed) {
       const pulse = 0.5 + Math.sin(gameTime * 0.006) * 0.4;
@@ -273,16 +286,16 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.textBaseline = 'middle';
       ctx.shadowColor = ult.color;
       ctx.shadowBlur = 20;
-      ctx.fillText(ult.text, W/2, H/2 - 40);
+      ctx.fillText(ult.text, W / 2, H / 2 - 40);
       ctx.shadowBlur = 0;
       ctx.fillStyle = `rgba(255,220,140,${0.6})`;
       ctx.font = '14px serif';
-      ctx.fillText(`「${ult.desc}」`, W/2, H/2 - 10);
+      ctx.fillText(`「${ult.desc}」`, W / 2, H / 2 - 10);
       // 伤害数字
       if (battle._ultimateResolved) {
         ctx.fillStyle = `rgba(255,100,80,${0.8 + Math.sin(gameTime * 0.01) * 0.2})`;
         ctx.font = 'bold 36px serif';
-        ctx.fillText(`-${ult.damage}`, W/2, H/2 + 40);
+        ctx.fillText(`-${ult.damage}`, W / 2, H / 2 + 40);
       }
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
@@ -291,13 +304,13 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.fillStyle = 'rgba(255,100,100,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⚠ 躲避弹幕！用 WASD / 方向键移动红心', W/2, H - 30);
+    ctx.fillText('⚠ 躲避弹幕！用 WASD / 方向键移动红心', W / 2, H - 30);
     ctx.textAlign = 'left';
   } else if (battle.phase === 'attack_aim') {
     ctx.fillStyle = 'rgba(255,220,120,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('按 E / 空格在中心位置停下，造成最大伤害', W/2, H - 30);
+    ctx.fillText('按 E / 空格在中心位置停下，造成最大伤害', W / 2, H - 30);
     ctx.textAlign = 'left';
   }
 
@@ -311,26 +324,26 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.font = 'bold 32px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('梗鬼消散了', W/2, H/2 - 20);
+      ctx.fillText('梗鬼消散了', W / 2, H / 2 - 20);
       ctx.fillStyle = `rgba(200,200,200,${a * 0.8})`;
       ctx.font = '14px serif';
-      ctx.fillText('绿色的光点四散，留下一个金色的汉字碎片。', W/2, H/2 + 20);
+      ctx.fillText('绿色的光点四散，留下一个金色的汉字碎片。', W / 2, H / 2 + 20);
     } else if (battle.result === 'lose') {
       ctx.fillStyle = `rgba(220,60,60,${a})`;
       ctx.font = 'bold 32px serif';
-      ctx.fillText('理性崩溃', W/2, H/2 - 20);
+      ctx.fillText('理性崩溃', W / 2, H / 2 - 20);
       ctx.fillStyle = `rgba(200,200,200,${a * 0.8})`;
       ctx.font = '14px serif';
-      ctx.fillText('你的语言被吞噬了……', W/2, H/2 + 20);
+      ctx.fillText('你的语言被吞噬了……', W / 2, H / 2 + 20);
     } else if (battle.result === 'spare') {
       ctx.fillStyle = `rgba(255,210,150,${a})`;
       ctx.font = 'bold 32px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('你宽恕了它', W/2, H/2 - 20);
+      ctx.fillText('你宽恕了它', W / 2, H / 2 - 20);
       ctx.fillStyle = `rgba(200,200,200,${a * 0.8})`;
       ctx.font = '14px serif';
-      ctx.fillText('绿光褪成暖色，它想起了自己曾是个会说话的人。', W/2, H/2 + 20);
+      ctx.fillText('绿光褪成暖色，它想起了自己曾是个会说话的人。', W / 2, H / 2 + 20);
     }
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';

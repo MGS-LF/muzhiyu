@@ -19,7 +19,8 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
 
     if (locked) {
       // 红绿交织的能量屏障
-      const bw = 150, bh = 90;
+      const bw = 150,
+        bh = 90;
       const flow = (gameTime * 0.05) % 18;
       // 雾团
       const grad = ctx.createRadialGradient(s.x, s.y - 10, 6, s.x, s.y - 10, 90);
@@ -37,8 +38,10 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
         ctx.beginPath();
         for (let y = -bh / 2; y <= bh / 2; y += 6) {
           const wob = Math.sin((y + flow * 6 + x) * 0.12 + gameTime * 0.005) * 4;
-          const px = s.x + x + wob, py = s.y - 10 + y;
-          if (y === -bh / 2) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          const px = s.x + x + wob,
+            py = s.y - 10 + y;
+          if (y === -bh / 2) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
         }
         ctx.stroke();
       }
@@ -46,7 +49,8 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
       ctx.fillStyle = `rgba(255,90,90,${0.7 + pulse * 0.3})`;
       ctx.shadowColor = 'rgba(255,80,80,0.8)';
       ctx.shadowBlur = 8;
-      const lx = s.x, ly = s.y - 46;
+      const lx = s.x,
+        ly = s.y - 46;
       ctx.fillRect(lx - 7, ly, 14, 11);
       ctx.shadowBlur = 0;
       ctx.strokeStyle = `rgba(255,120,120,${0.8})`;
@@ -86,16 +90,21 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
 export function drawObjectiveArrow(ctx, W2S, game, gameTime) {
   const obj = game.objective;
   if (!obj || obj.done || !obj.target) return;
-  const tx = obj.target.x, ty = obj.target.y;
+  const tx = obj.target.x,
+    ty = obj.target.y;
   const dist = Math.hypot(tx - game.player.x, ty - game.player.y);
   if (dist < 70) return; // 已在目标附近，无需箭头
   const s = W2S(tx, ty);
-  const cx = W / 2, cy = H / 2;
-  const dx = s.x - cx, dy = s.y - cy;
+  const cx = W / 2,
+    cy = H / 2;
+  const dx = s.x - cx,
+    dy = s.y - cy;
   const d = Math.hypot(dx, dy) || 1;
-  const nx = dx / d, ny = dy / d;
+  const nx = dx / d,
+    ny = dy / d;
   const margin = 92;
-  const ax = cx + nx * margin, ay = cy + ny * margin;
+  const ax = cx + nx * margin,
+    ay = cy + ny * margin;
   const pulse = 0.6 + Math.sin(gameTime * 0.006) * 0.4;
   const angle = Math.atan2(ny, nx);
   ctx.save();
@@ -129,8 +138,8 @@ export function drawObjectiveArrow(ctx, W2S, game, gameTime) {
 // 受伤红屏
 // ============================================================
 export function drawDamageOverlay(ctx, player, gameTime) {
-  const a = Math.min(0.35, player.invulnerable / 800 * 0.35);
-  const grad = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.7);
+  const a = Math.min(0.35, (player.invulnerable / 800) * 0.35);
+  const grad = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.7);
   grad.addColorStop(0, 'rgba(220,40,40,0)');
   grad.addColorStop(1, `rgba(220,40,40,${a})`);
   ctx.fillStyle = grad;
@@ -152,14 +161,14 @@ export function drawDeathScreen(ctx, gameTime) {
   ctx.font = 'bold 36px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('理性崩溃', W/2, H/2 - 30);
+  ctx.fillText('理性崩溃', W / 2, H / 2 - 30);
   ctx.fillStyle = 'rgba(220,200,180,0.8)';
   ctx.font = '14px serif';
-  ctx.fillText('你被烂梗的海洋吞没，失去了语言。', W/2, H/2 + 10);
+  ctx.fillText('你被烂梗的海洋吞没，失去了语言。', W / 2, H / 2 + 10);
   const blink = 0.5 + Math.sin(gameTime * 0.005) * 0.5;
   ctx.fillStyle = `rgba(255,220,140,${blink})`;
   ctx.font = 'bold 16px serif';
-  ctx.fillText('▼ 按 E 在最近的要石醒来', W/2, H/2 + 60);
+  ctx.fillText('▼ 按 E 在最近的要石醒来', W / 2, H / 2 + 60);
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
 }

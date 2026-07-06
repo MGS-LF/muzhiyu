@@ -32,7 +32,7 @@ export function drawRiverside(ctx, W2S, scene, gameTime, game) {
   }
 
   // 对岸
-  for (const b of scene.props.filter(p => p.name === '对岸高楼')) {
+  for (const b of scene.props.filter((p) => p.name === '对岸高楼')) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = 'rgba(15,10,8,0.85)';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -82,15 +82,17 @@ export function drawRiverside(ctx, W2S, scene, gameTime, game) {
     let started = false;
     for (let x = 0; x < W; x += 6) {
       const waveY = y + Math.sin((x + t * 20) * 0.04 + y * 0.1) * 3;
-      if (!started) { ctx.moveTo(x, waveY); started = true; }
-      else ctx.lineTo(x, waveY);
+      if (!started) {
+        ctx.moveTo(x, waveY);
+        started = true;
+      } else ctx.lineTo(x, waveY);
     }
     ctx.stroke();
   }
 
   for (let i = 0; i < 8; i++) {
-    const lx = (i * 271 - gameTime * 0.02) % (W + 100) - 50;
-    const ly = waterTop + 30 + (i * 31) % (waterH - 60);
+    const lx = ((i * 271 - gameTime * 0.02) % (W + 100)) - 50;
+    const ly = waterTop + 30 + ((i * 31) % (waterH - 60));
     ctx.fillStyle = 'rgba(50,40,30,0.5)';
     ctx.fillRect(lx, ly, 4 + (i % 3), 2);
   }
@@ -103,7 +105,8 @@ export function drawRiverside(ctx, W2S, scene, gameTime, game) {
   ctx.lineWidth = 1;
   for (let y = walkY + 8; y < H; y += 12) {
     ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
     ctx.stroke();
   }
 
@@ -125,10 +128,11 @@ export function drawRiverside(ctx, W2S, scene, gameTime, game) {
   // 芦苇（固定世界坐标，人物移动时保持静止）
   for (let i = 0; i < 60; i++) {
     const wx = (i * 47 + 13) % scene.width;
-    const wy = 810 + (i * 13) % 80;
+    const wy = 810 + ((i * 13) % 80);
     const p = W2S(wx, wy);
     if (p.x < -20 || p.x > W + 20) continue;
-    const bx = p.x, by = p.y;
+    const bx = p.x,
+      by = p.y;
     const sway = Math.sin(gameTime * 0.002 + i) * 3;
     ctx.strokeStyle = '#6a6a30';
     ctx.lineWidth = 1.2;
@@ -147,10 +151,11 @@ export function drawRiverside(ctx, W2S, scene, gameTime, game) {
 
   for (let i = 0; i < 20; i++) {
     const wx = (i * 113 + 7) % scene.width;
-    const wy = 796 + (i * 7) % 12;
+    const wy = 796 + ((i * 7) % 12);
     const p = W2S(wx, wy);
     if (p.x < -15 || p.x > W + 15) continue;
-    const bx = p.x, by = p.y;
+    const bx = p.x,
+      by = p.y;
     const sway = Math.sin(gameTime * 0.002 + i + 1) * 2;
     ctx.strokeStyle = '#5a5028';
     ctx.lineWidth = 1;
@@ -199,12 +204,14 @@ export function drawSubway(ctx, W2S, scene, gameTime, game) {
   ctx.lineWidth = 1;
   for (let y = tileY; y < W2S(0, 600).y; y += 30) {
     ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
     ctx.stroke();
   }
-  for (let x = (W2S(0,0).x % 40 + 40) % 40; x < W; x += 40) {
+  for (let x = ((W2S(0, 0).x % 40) + 40) % 40; x < W; x += 40) {
     ctx.beginPath();
-    ctx.moveTo(x, tileY); ctx.lineTo(x, W2S(0, 600).y);
+    ctx.moveTo(x, tileY);
+    ctx.lineTo(x, W2S(0, 600).y);
     ctx.stroke();
   }
 
@@ -227,12 +234,13 @@ export function drawSubway(ctx, W2S, scene, gameTime, game) {
   for (const off of [20, 60]) {
     const ry = trackY + off;
     ctx.beginPath();
-    ctx.moveTo(0, ry); ctx.lineTo(W, ry);
+    ctx.moveTo(0, ry);
+    ctx.lineTo(W, ry);
     ctx.stroke();
   }
   // 枕木
   ctx.fillStyle = '#1a1410';
-  for (let x = (W2S(0,0).x % 50 + 50) % 50; x < W; x += 50) {
+  for (let x = ((W2S(0, 0).x % 50) + 50) % 50; x < W; x += 50) {
     ctx.fillRect(x, trackY + 10, 30, 50);
   }
 
@@ -255,62 +263,62 @@ export function drawSubway(ctx, W2S, scene, gameTime, game) {
   }
 
   // 立柱
-  for (const p of scene.walls.filter(w => w.name === '立柱')) {
-    const s = W2S(p.x + p.w/2, p.y + p.h/2);
+  for (const p of scene.walls.filter((w) => w.name === '立柱')) {
+    const s = W2S(p.x + p.w / 2, p.y + p.h / 2);
     ctx.fillStyle = '#2a2a30';
-    ctx.fillRect(s.x - p.w/2, s.y - p.h/2, p.w, p.h);
+    ctx.fillRect(s.x - p.w / 2, s.y - p.h / 2, p.w, p.h);
     ctx.fillStyle = '#3a3a40';
-    ctx.fillRect(s.x - p.w/2, s.y - p.h/2, p.w, 4);
+    ctx.fillRect(s.x - p.w / 2, s.y - p.h / 2, p.w, 4);
     ctx.strokeStyle = '#0a0a0e';
     ctx.lineWidth = 1;
-    ctx.strokeRect(s.x - p.w/2, s.y - p.h/2, p.w, p.h);
+    ctx.strokeRect(s.x - p.w / 2, s.y - p.h / 2, p.w, p.h);
     // 立柱阴影
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(s.x - p.w/2 + 2, s.y - p.h/2 + 4, p.w - 2, p.h - 4);
+    ctx.fillRect(s.x - p.w / 2 + 2, s.y - p.h / 2 + 4, p.w - 2, p.h - 4);
   }
 
   // 废弃列车车厢
-  for (const car of scene.props.filter(p => p.name === '列车车厢')) {
-    const s = W2S(car.x + car.w/2, car.y + car.h/2);
+  for (const car of scene.props.filter((p) => p.name === '列车车厢')) {
+    const s = W2S(car.x + car.w / 2, car.y + car.h / 2);
     // 阴影
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.beginPath();
-    ctx.ellipse(s.x, s.y + car.h/2 + 4, car.w * 0.5, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(s.x, s.y + car.h / 2 + 4, car.w * 0.5, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     // 车身
     ctx.fillStyle = '#3a4a5a';
-    roundRect(ctx, s.x - car.w/2, s.y - car.h/2, car.w, car.h, 6);
+    roundRect(ctx, s.x - car.w / 2, s.y - car.h / 2, car.w, car.h, 6);
     ctx.fill();
     // 车顶
     ctx.fillStyle = '#2a3a4a';
-    roundRect(ctx, s.x - car.w/2 + 4, s.y - car.h/2 - 6, car.w - 8, 8, 4);
+    roundRect(ctx, s.x - car.w / 2 + 4, s.y - car.h / 2 - 6, car.w - 8, 8, 4);
     ctx.fill();
     // 车窗（破碎）
     ctx.fillStyle = '#0a0a10';
-    for (let wx = s.x - car.w/2 + 10; wx < s.x + car.w/2 - 10; wx += 30) {
-      ctx.fillRect(wx, s.y - car.h/2 + 8, 22, 18);
+    for (let wx = s.x - car.w / 2 + 10; wx < s.x + car.w / 2 - 10; wx += 30) {
+      ctx.fillRect(wx, s.y - car.h / 2 + 8, 22, 18);
     }
     // 裂纹
     ctx.strokeStyle = 'rgba(180,200,220,0.3)';
     ctx.lineWidth = 0.5;
-    for (let wx = s.x - car.w/2 + 12; wx < s.x + car.w/2 - 12; wx += 30) {
+    for (let wx = s.x - car.w / 2 + 12; wx < s.x + car.w / 2 - 12; wx += 30) {
       ctx.beginPath();
-      ctx.moveTo(wx, s.y - car.h/2 + 10);
-      ctx.lineTo(wx + 8, s.y - car.h/2 + 22);
+      ctx.moveTo(wx, s.y - car.h / 2 + 10);
+      ctx.lineTo(wx + 8, s.y - car.h / 2 + 22);
       ctx.stroke();
     }
     // 车门
     ctx.fillStyle = '#1a2a3a';
-    ctx.fillRect(s.x - 8, s.y - car.h/2 + 30, 16, car.h - 35);
+    ctx.fillRect(s.x - 8, s.y - car.h / 2 + 30, 16, car.h - 35);
     // 边框
     ctx.strokeStyle = '#1a2028';
     ctx.lineWidth = 1.5;
-    roundRect(ctx, s.x - car.w/2, s.y - car.h/2, car.w, car.h, 6);
+    roundRect(ctx, s.x - car.w / 2, s.y - car.h / 2, car.w, car.h, 6);
     ctx.stroke();
     // 锈迹
     ctx.fillStyle = 'rgba(140,80,40,0.3)';
     ctx.beginPath();
-    ctx.ellipse(s.x - car.w/4, s.y, 10, 5, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(s.x - car.w / 4, s.y, 10, 5, 0.3, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -355,7 +363,7 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 远景高楼
-  for (const b of scene.props.filter(p => p.name === '高楼')) {
+  for (const b of scene.props.filter((p) => p.name === '高楼')) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#1a1612';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -379,7 +387,7 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   ctx.fillStyle = 'rgba(60,50,40,0.5)';
   for (let i = 0; i < 80; i++) {
     const wx = (i * 67 + 11) % scene.width;
-    const wy = 384 + (i * 23) % (scene.height - 384);
+    const wy = 384 + ((i * 23) % (scene.height - 384));
     const p = W2S(wx, wy);
     if (p.x < -10 || p.x > W + 10 || p.y < -10 || p.y > H + 10) continue;
     ctx.beginPath();
@@ -388,7 +396,7 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 民居建筑
-  for (const b of scene.props.filter(p => p.name && p.name.includes('民居'))) {
+  for (const b of scene.props.filter((p) => p.name && p.name.includes('民居'))) {
     const s = W2S(b.x, b.y);
     // 屋顶
     ctx.fillStyle = '#3a2a1a';
@@ -405,7 +413,7 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
     }
     // 门（暖光）
     ctx.fillStyle = 'rgba(200,160,80,0.15)';
-    ctx.fillRect(s.x + b.w/2 - 12, s.y + b.h - 20, 24, 20);
+    ctx.fillRect(s.x + b.w / 2 - 12, s.y + b.h - 20, 24, 20);
     // 边框
     ctx.strokeStyle = '#1a1008';
     ctx.lineWidth = 1.5;
@@ -413,12 +421,12 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 碎石堆
-  for (const r of scene.props.filter(p => p.name === '碎石堆')) {
+  for (const r of scene.props.filter((p) => p.name === '碎石堆')) {
     drawRubble(ctx, W2S, r);
   }
 
   // 废弃花坛
-  const planter = scene.props.find(p => p.name === '废弃花坛');
+  const planter = scene.props.find((p) => p.name === '废弃花坛');
   if (planter) {
     const s = W2S(planter.x, planter.y);
     ctx.fillStyle = '#3a3020';
@@ -430,8 +438,8 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
     ctx.strokeStyle = '#5a5028';
     ctx.lineWidth = 1;
     for (let i = 0; i < 12; i++) {
-      const gx = s.x + 5 + (i * 9) % (planter.w - 10);
-      const gy = s.y + 5 + (i * 7) % (planter.h - 10);
+      const gx = s.x + 5 + ((i * 9) % (planter.w - 10));
+      const gy = s.y + 5 + ((i * 7) % (planter.h - 10));
       ctx.beginPath();
       ctx.moveTo(gx, gy);
       ctx.lineTo(gx + 2, gy - 8);
@@ -440,10 +448,10 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 窄巷墙壁
-  for (const w of scene.walls.filter(w => !w.name)) continue;
+  for (const w of scene.walls.filter((w) => !w.name)) continue;
   ctx.strokeStyle = '#3a3028';
   ctx.lineWidth = 3;
-  for (const w of scene.walls.filter(w => w.w === 6 && w.h > 100)) {
+  for (const w of scene.walls.filter((w) => w.w === 6 && w.h > 100)) {
     const s = W2S(w.x, w.y);
     ctx.fillStyle = '#3a3028';
     ctx.fillRect(s.x, s.y, 6, w.h);
@@ -463,10 +471,11 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   ctx.strokeStyle = '#1a1410';
   ctx.lineWidth = 1;
   for (let y = 40; y < H; y += 30) {
-    const sy = y - W2S(0,0).y % 30;
+    const sy = y - (W2S(0, 0).y % 30);
     if (sy > 0 && sy < H) {
       ctx.beginPath();
-      ctx.moveTo(0, sy); ctx.lineTo(W, sy);
+      ctx.moveTo(0, sy);
+      ctx.lineTo(W, sy);
       ctx.stroke();
     }
   }
@@ -479,7 +488,7 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 桌子
-  for (const t of scene.props.filter(p => p.name === '桌子')) {
+  for (const t of scene.props.filter((p) => p.name === '桌子')) {
     const s = W2S(t.x, t.y);
     ctx.fillStyle = '#4a3020';
     ctx.fillRect(s.x, s.y, t.w, t.h);
@@ -491,7 +500,7 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 旧收音机
-  for (const r of scene.props.filter(p => p.name === '收音机')) {
+  for (const r of scene.props.filter((p) => p.name === '收音机')) {
     const s = W2S(r.x, r.y);
     ctx.fillStyle = '#1b1712';
     ctx.fillRect(s.x, s.y, r.w, r.h);
@@ -512,7 +521,7 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 书架
-  for (const b of scene.props.filter(p => p.name === '书架')) {
+  for (const b of scene.props.filter((p) => p.name === '书架')) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#3a2010';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -526,7 +535,7 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
       ctx.stroke();
     }
     // 书
-    const colors = ['#5a3a2a','#4a3a4a','#3a4a3a','#5a4a3a'];
+    const colors = ['#5a3a2a', '#4a3a4a', '#3a4a3a', '#5a4a3a'];
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col < 4; col++) {
         if ((row * 4 + col) % 3 === 0) continue;
@@ -560,7 +569,7 @@ export function drawStadium(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 屏幕墙（发光）
-  for (const p of scene.props.filter(p => p.name === '屏幕墙')) {
+  for (const p of scene.props.filter((p) => p.name === '屏幕墙')) {
     const s = W2S(p.x, p.y);
     const pulse = 0.4 + Math.sin(gameTime * 0.005 + p.x * 0.01) * 0.3;
     // 光晕
@@ -572,8 +581,8 @@ export function drawStadium(ctx, W2S, scene, gameTime, game) {
     // 屏幕内容（噪点）
     ctx.fillStyle = `rgba(180,200,255,${pulse * 0.5})`;
     for (let i = 0; i < 8; i++) {
-      const nx = s.x + (i * 23) % p.w;
-      const ny = s.y + (i * 17) % p.h;
+      const nx = s.x + ((i * 23) % p.w);
+      const ny = s.y + ((i * 17) % p.h);
       ctx.fillRect(nx, ny, 2, 2);
     }
     // 边框
@@ -592,7 +601,7 @@ export function drawDataCenter(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 深渊（两侧）
-  for (const p of scene.props.filter(p => p.name === '深渊')) {
+  for (const p of scene.props.filter((p) => p.name === '深渊')) {
     const s = W2S(p.x, p.y);
     // 旋转的虚无
     const t = gameTime * 0.001;
@@ -728,7 +737,8 @@ export function drawShuyuan(ctx, W2S, gameTime) {
   ctx.lineTo(s.x + 14, s.y - 4);
   ctx.stroke();
 
-  const paperX = s.x + 14, paperY = s.y - 4;
+  const paperX = s.x + 14,
+    paperY = s.y - 4;
   const pulse = 0.6 + Math.sin(gameTime * 0.005) * 0.3;
   ctx.shadowColor = `rgba(255,220,140,${pulse})`;
   ctx.shadowBlur = 8 * pulse;
@@ -827,7 +837,7 @@ export function drawGenericScene(ctx, W2S, scene, gameTime, game) {
     // 废图书馆：书页飘落
     for (let i = 0; i < 12; i++) {
       const wx = (i * 173 + 80) % scene.width;
-      const wy = ((i * 97 + gameTime * 0.02) % scene.height);
+      const wy = (i * 97 + gameTime * 0.02) % scene.height;
       const s = W2S(wx, wy);
       ctx.fillStyle = 'rgba(200,180,120,0.15)';
       ctx.fillRect(s.x, s.y, 8, 10);

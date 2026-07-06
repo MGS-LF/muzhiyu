@@ -38,7 +38,8 @@ export class Player {
 
     if (this.isMoving) {
       const len = Math.hypot(mv.x, mv.y) || 1;
-      const nx = mv.x / len, ny = mv.y / len;
+      const nx = mv.x / len,
+        ny = mv.y / len;
       if (Math.abs(nx) > Math.abs(ny)) this.direction = nx > 0 ? 'right' : 'left';
       else this.direction = ny > 0 ? 'down' : 'up';
       this.walkCycle += dt * 0.014 * (isRun ? 1.6 : 1);
@@ -54,7 +55,9 @@ export class Player {
 
   draw(ctx, cam, gameTime, isInvulnerable) {
     const s = cam.worldToScreen(this.x, this.y);
-    const bob = this.isMoving ? Math.sin(this.walkCycle * 2) * 1.5 : Math.sin(gameTime * 0.003) * 0.4;
+    const bob = this.isMoving
+      ? Math.sin(this.walkCycle * 2) * 1.5
+      : Math.sin(gameTime * 0.003) * 0.4;
     const sx = Math.round(s.x);
     const sy = Math.round(s.y + bob);
 

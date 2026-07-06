@@ -23,7 +23,9 @@ function looksReal(k) {
 }
 function expandEnv(obj) {
   if (typeof obj === 'string')
-    return obj.replace(/\$\{(\w+)\}/g, (_, n) => (process.env[n] != null ? process.env[n] : ''));
+    return obj.replace(/\$\{(\w+)\}/g, (_, n) =>
+      Object.hasOwn(process.env, n) ? process.env[n] : ''
+    );
   if (Array.isArray(obj)) return obj.map(expandEnv);
   if (obj && typeof obj === 'object') {
     const out = {};
@@ -37,8 +39,11 @@ function loadConfig() {
   try {
     cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'ai_keys.local.json'), 'utf8'));
   } catch {
-    try { cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'ai_keys.example.json'), 'utf8')); }
-    catch { cfg = {}; }
+    try {
+      cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'ai_keys.example.json'), 'utf8'));
+    } catch {
+      cfg = {};
+    }
   }
   cfg = expandEnv(cfg);
   cfg.llm = cfg.llm || {};
@@ -67,10 +72,18 @@ const MIME = {
   '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
-  '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf',
-  '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.map': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.wav': 'audio/wav',
+  '.mp3': 'audio/mpeg',
+  '.map': 'application/json',
 };
 
 function readBody(req, limit = 1 << 20) {
@@ -79,7 +92,11 @@ function readBody(req, limit = 1 << 20) {
     let size = 0;
     req.on('data', (c) => {
       size += c.length;
-      if (size > limit) { reject(new Error('body too large')); req.destroy(); return; }
+      if (size > limit) {
+        reject(new Error('body too large'));
+        req.destroy();
+        return;
+      }
       chunks.push(c);
     });
     req.on('end', () => resolve(Buffer.concat(chunks)));
@@ -89,7 +106,10 @@ function readBody(req, limit = 1 << 20) {
 
 function sendJSON(res, code, obj) {
   const buf = Buffer.from(JSON.stringify(obj));
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': buf.length });
+  res.writeHead(code, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': buf.length,
+  });
   res.end(buf);
 }
 
@@ -110,10 +130,17 @@ function handleHealth(res) {
 
 // ---------- /api/llm （代理 DeepSeek）----------
 async function handleLLM(req, res) {
-  if (!LLM_OK()) { sendJSON(res, 503, { error: 'LLM 未配置 key' }); return; }
+  if (!LLM_OK()) {
+    sendJSON(res, 503, { error: 'LLM 未配置 key' });
+    return;
+  }
   let body;
-  try { body = JSON.parse((await readBody(req)).toString('utf8') || '{}'); }
-  catch { sendJSON(res, 400, { error: 'bad json' }); return; }
+  try {
+    body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+  } catch {
+    sendJSON(res, 400, { error: 'bad json' });
+    return;
+  }
 
   const payload = {
     model: body.model || CFG.llm.model,
@@ -126,22 +153,31 @@ async function handleLLM(req, res) {
 
   const u = new URL(CFG.llm.baseUrl.replace(/\/$/, '') + '/chat/completions');
   const data = Buffer.from(JSON.stringify(payload));
-  const up = https.request({
-    hostname: u.hostname, port: u.port || 443, path: u.pathname + u.search, method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CFG.llm.apiKey,
-      'Content-Length': data.length,
-      'Accept': payload.stream ? 'text/event-stream' : 'application/json',
+  const up = https.request(
+    {
+      hostname: u.hostname,
+      port: u.port || 443,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + CFG.llm.apiKey,
+        'Content-Length': data.length,
+        Accept: payload.stream ? 'text/event-stream' : 'application/json',
+      },
     },
-  }, (upRes) => {
-    res.writeHead(upRes.statusCode || 200, {
-      'Content-Type': upRes.headers['content-type'] || 'application/json',
-      'Cache-Control': 'no-store',
-    });
-    upRes.pipe(res);
+    (upRes) => {
+      res.writeHead(upRes.statusCode || 200, {
+        'Content-Type': upRes.headers['content-type'] || 'application/json',
+        'Cache-Control': 'no-store',
+      });
+      upRes.pipe(res);
+    }
+  );
+  up.on('error', (e) => {
+    if (!res.headersSent) sendJSON(res, 502, { error: 'llm upstream: ' + e.message });
+    else res.end();
   });
-  up.on('error', (e) => { if (!res.headersSent) sendJSON(res, 502, { error: 'llm upstream: ' + e.message }); else res.end(); });
   req.on('close', () => up.destroy());
   up.end(data);
 }
@@ -149,11 +185,18 @@ async function handleLLM(req, res) {
 // ---------- /api/tts （缓存 + 代理 MiMo）----------
 async function handleTTS(req, res) {
   let body;
-  try { body = JSON.parse((await readBody(req)).toString('utf8') || '{}'); }
-  catch { sendJSON(res, 400, { error: 'bad json' }); return; }
+  try {
+    body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+  } catch {
+    sendJSON(res, 400, { error: 'bad json' });
+    return;
+  }
 
   const text = (body.text || '').toString();
-  if (!text.trim()) { sendJSON(res, 400, { error: 'empty text' }); return; }
+  if (!text.trim()) {
+    sendJSON(res, 400, { error: 'empty text' });
+    return;
+  }
   const voice = (body.voice || CFG.tts.defaultVoice).toString();
   const style = (body.style || '平静、自然的中文叙述语气。').toString();
   // 允许请求体覆盖 model（按说话人路由到不同 TTS 模型）：
@@ -182,9 +225,14 @@ async function handleTTS(req, res) {
     });
     fs.createReadStream(file).pipe(res);
     return;
-  } catch { /* 未命中，继续生成 */ }
+  } catch {
+    /* 未命中，继续生成 */
+  }
 
-  if (!TTS_OK()) { sendJSON(res, 503, { error: 'TTS 未配置 key' }); return; }
+  if (!TTS_OK()) {
+    sendJSON(res, 503, { error: 'TTS 未配置 key' });
+    return;
+  }
 
   // 未命中：调 MiMo 流式，边发客户端边落盘
   const tmp = file + '.' + crypto.randomBytes(4).toString('hex') + '.tmp';
@@ -193,7 +241,9 @@ async function handleTTS(req, res) {
   let aborted = false;
   let sseBuf = '';
 
-  const cleanupTmp = () => { out.close(() => fs.unlink(tmp, () => {})); };
+  const cleanupTmp = () => {
+    out.close(() => fs.unlink(tmp, () => {}));
+  };
 
   // 不同 model 对 audio 字段的要求不同：
   //   mimo-v2.5-tts             必须有 audio.voice
@@ -213,71 +263,95 @@ async function handleTTS(req, res) {
   const u = new URL(CFG.tts.baseUrl.replace(/\/$/, '') + '/chat/completions');
   const data = Buffer.from(JSON.stringify(payload));
 
-  const up = https.request({
-    hostname: u.hostname, port: u.port || 443, path: u.pathname + u.search, method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': CFG.tts.apiKey,
-      'Content-Length': data.length,
-      'Accept': 'text/event-stream',
+  const up = https.request(
+    {
+      hostname: u.hostname,
+      port: u.port || 443,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': CFG.tts.apiKey,
+        'Content-Length': data.length,
+        Accept: 'text/event-stream',
+      },
     },
-  }, (upRes) => {
-    if ((upRes.statusCode || 0) !== 200) {
-      let errBuf = '';
-      upRes.on('data', (d) => errBuf += d.toString());
-      upRes.on('end', () => {
-        cleanupTmp();
-        if (!res.headersSent) sendJSON(res, 502, { error: 'tts upstream ' + upRes.statusCode, detail: errBuf.slice(0, 300) });
-        else res.end();
-      });
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': 'application/octet-stream',
-      'X-Cache': 'MISS',
-      'X-Sample-Rate': String(CFG.tts.sampleRate),
-      'Cache-Control': 'no-store',
-    });
-    wroteHeader = true;
-
-    upRes.setEncoding('utf8');
-    upRes.on('data', (chunk) => {
-      sseBuf += chunk;
-      let nl;
-      while ((nl = sseBuf.indexOf('\n')) >= 0) {
-        let line = sseBuf.slice(0, nl);
-        sseBuf = sseBuf.slice(nl + 1);
-        line = line.trim();
-        if (!line.startsWith('data:')) continue;
-        const payloadStr = line.slice(5).trim();
-        if (payloadStr === '[DONE]') continue;
-        let obj;
-        try { obj = JSON.parse(payloadStr); } catch { continue; }
-        const b64 = obj?.choices?.[0]?.delta?.audio?.data;
-        if (b64) {
-          const pcm = Buffer.from(b64, 'base64');
-          out.write(pcm);
-          res.write(pcm);
-        }
+    (upRes) => {
+      if ((upRes.statusCode || 0) !== 200) {
+        let errBuf = '';
+        upRes.on('data', (d) => (errBuf += d.toString()));
+        upRes.on('end', () => {
+          cleanupTmp();
+          if (!res.headersSent)
+            sendJSON(res, 502, {
+              error: 'tts upstream ' + upRes.statusCode,
+              detail: errBuf.slice(0, 300),
+            });
+          else res.end();
+        });
+        return;
       }
-    });
-    upRes.on('end', () => {
-      if (aborted) { cleanupTmp(); return; }
-      out.end(() => {
-        // 原子落盘：完整生成才转正
-        fs.rename(tmp, file, (err) => { if (err) fs.unlink(tmp, () => {}); });
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'X-Cache': 'MISS',
+        'X-Sample-Rate': String(CFG.tts.sampleRate),
+        'Cache-Control': 'no-store',
       });
-      res.end();
-    });
-    upRes.on('error', () => { cleanupTmp(); res.end(); });
-  });
+      wroteHeader = true;
+
+      upRes.setEncoding('utf8');
+      upRes.on('data', (chunk) => {
+        sseBuf += chunk;
+        let nl;
+        while ((nl = sseBuf.indexOf('\n')) >= 0) {
+          let line = sseBuf.slice(0, nl);
+          sseBuf = sseBuf.slice(nl + 1);
+          line = line.trim();
+          if (!line.startsWith('data:')) continue;
+          const payloadStr = line.slice(5).trim();
+          if (payloadStr === '[DONE]') continue;
+          let obj;
+          try {
+            obj = JSON.parse(payloadStr);
+          } catch {
+            continue;
+          }
+          const b64 = obj?.choices?.[0]?.delta?.audio?.data;
+          if (b64) {
+            const pcm = Buffer.from(b64, 'base64');
+            out.write(pcm);
+            res.write(pcm);
+          }
+        }
+      });
+      upRes.on('end', () => {
+        if (aborted) {
+          cleanupTmp();
+          return;
+        }
+        out.end(() => {
+          // 原子落盘：完整生成才转正
+          fs.rename(tmp, file, (err) => {
+            if (err) fs.unlink(tmp, () => {});
+          });
+        });
+        res.end();
+      });
+      upRes.on('error', () => {
+        cleanupTmp();
+        res.end();
+      });
+    }
+  );
 
   up.on('error', (e) => {
     cleanupTmp();
-    if (!wroteHeader && !res.headersSent) sendJSON(res, 502, { error: 'tts connect: ' + e.message });
+    if (!wroteHeader && !res.headersSent)
+      sendJSON(res, 502, { error: 'tts connect: ' + e.message });
     else res.end();
   });
-  req.on('close', () => { // 客户端抢断 → 掐上游、弃半截缓存
+  req.on('close', () => {
+    // 客户端抢断 → 掐上游、弃半截缓存
     if (res.writableEnded) return;
     aborted = true;
     up.destroy();
@@ -292,19 +366,36 @@ async function handleStatic(req, res, pathname) {
   // 根路径默认进入介绍页；点击"开始游戏"后再进入 intro_3d.html。
   if (rel === '/' || rel === '') rel = '/index.html';
   // 防目录穿越
-  const safe = path.normalize(rel).replace(/^(\.\.[\/\\])+/, '');
+  const safe = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
   const full = path.join(ROOT, safe);
-  if (!full.startsWith(ROOT)) { res.writeHead(403); res.end('forbidden'); return; }
+  if (!full.startsWith(ROOT)) {
+    res.writeHead(403);
+    res.end('forbidden');
+    return;
+  }
   // 不外泄密钥/缓存
-  if (/(^|[\/\\])(ai_keys\.local\.json|cache)([\/\\]|$)/.test(safe)) { res.writeHead(404); res.end('not found'); return; }
+  if (/(^|[/\\])(ai_keys\.local\.json|cache)([/\\]|$)/.test(safe)) {
+    res.writeHead(404);
+    res.end('not found');
+    return;
+  }
   try {
     const stat = await fsp.stat(full);
-    if (stat.isDirectory()) { res.writeHead(404); res.end('not found'); return; }
+    if (stat.isDirectory()) {
+      res.writeHead(404);
+      res.end('not found');
+      return;
+    }
     const ext = path.extname(full).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Content-Length': stat.size, 'Cache-Control': 'no-cache' });
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Content-Length': stat.size,
+      'Cache-Control': 'no-cache',
+    });
     fs.createReadStream(full).pipe(res);
   } catch {
-    res.writeHead(404); res.end('not found');
+    res.writeHead(404);
+    res.end('not found');
   }
 }
 
@@ -317,17 +408,28 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/llm' && req.method === 'POST') return await handleLLM(req, res);
     if (p === '/api/tts' && req.method === 'POST') return await handleTTS(req, res);
     if (p.startsWith('/api/')) return sendJSON(res, 404, { error: 'unknown api' });
-    if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end(); return; }
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.writeHead(405);
+      res.end();
+      return;
+    }
     return await handleStatic(req, res, p);
   } catch (e) {
-    if (!res.headersSent) sendJSON(res, 500, { error: String(e && e.message || e) });
-    else try { res.end(); } catch {}
+    if (!res.headersSent) sendJSON(res, 500, { error: String((e && e.message) || e) });
+    else
+      try {
+        res.end();
+      } catch {
+        /* ignore */
+      }
   }
 });
 
 server.listen(PORT, () => {
   console.log(`\n  墓之语 · AI 服务器已启动`);
   console.log(`  → http://localhost:${PORT}`);
-  console.log(`  LLM(${CFG.llm.model}): ${LLM_OK() ? '已配置' : '未配置(降级)'}   TTS(${CFG.tts.model}): ${TTS_OK() ? '已配置' : '未配置(降级)'}`);
+  console.log(
+    `  LLM(${CFG.llm.model}): ${LLM_OK() ? '已配置' : '未配置(降级)'}   TTS(${CFG.tts.model}): ${TTS_OK() ? '已配置' : '未配置(降级)'}`
+  );
   console.log(`  TTS 缓存目录: ${path.relative(ROOT, CACHE_DIR)}\n`);
 });

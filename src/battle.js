@@ -17,7 +17,9 @@ export class Battle {
   constructor(enemy, player, onEnd) {
     // 应用全局难度倍率到敌人 HP
     const mul = difficulty.currentMul();
-    const ngPlusMul = player.ngPlus ? { enemyHp: 1.5, bulletSpeed: 1.2 } : { enemyHp: 1, bulletSpeed: 1 };
+    const ngPlusMul = player.ngPlus
+      ? { enemyHp: 1.5, bulletSpeed: 1.2 }
+      : { enemyHp: 1, bulletSpeed: 1 };
     const baseHp = enemy.hp || 30;
     const baseMaxHp = enemy.maxHp || 30;
     this.enemy = {
@@ -53,7 +55,7 @@ export class Battle {
       '它发出一声很轻的、不像烂梗的音节——几乎是一个「谢」字。',
     ];
     // 弹幕难度
-    this.diff = this.isBoss ? 2 : (this.enemy.maxHp >= 60 ? 1.4 : 1);
+    this.diff = this.isBoss ? 2 : this.enemy.maxHp >= 60 ? 1.4 : 1;
 
     // Boss 阶段系统：血量过半切换到更激进的弹幕模式
     this.bossPhase = 1; // 1=第一阶段, 2=第二阶段（血量<50%）
@@ -102,8 +104,10 @@ export class Battle {
     // 粒子
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      p.x += p.vx; p.y += p.vy;
-      p.vx *= 0.95; p.vy *= 0.95;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.95;
+      p.vy *= 0.95;
       p.life -= dt;
       if (p.life <= 0) this.particles.splice(i, 1);
     }
@@ -227,10 +231,14 @@ export class Battle {
       for (let i = 0; i < 40; i++) {
         const a = (i / 40) * Math.PI * 2;
         this.particles.push({
-          x: 0, y: -40,
-          vx: Math.cos(a) * 6, vy: Math.sin(a) * 6,
-          life: 1000, maxLife: 1000,
-          color: '255,220,120', size: 5,
+          x: 0,
+          y: -40,
+          vx: Math.cos(a) * 6,
+          vy: Math.sin(a) * 6,
+          life: 1000,
+          maxLife: 1000,
+          color: '255,220,120',
+          size: 5,
         });
       }
       if (this.enemy.hp <= 0) {
@@ -275,8 +283,14 @@ export class Battle {
   updateAttackAim(dt) {
     if (!this.attackBar) return;
     this.attackBar.pos += this.attackBar.dir * this.attackBar.speed * dt;
-    if (this.attackBar.pos >= 1) { this.attackBar.pos = 1; this.attackBar.dir = -1; }
-    if (this.attackBar.pos <= 0) { this.attackBar.pos = 0; this.attackBar.dir = 1; }
+    if (this.attackBar.pos >= 1) {
+      this.attackBar.pos = 1;
+      this.attackBar.dir = -1;
+    }
+    if (this.attackBar.pos <= 0) {
+      this.attackBar.pos = 0;
+      this.attackBar.dir = 1;
+    }
     // E / 空格停下，避免和 J 任务面板快捷键冲突
     if (input.wasPressed('e') || input.wasPressed(' ')) {
       input.wasPressed(' ');
@@ -298,10 +312,14 @@ export class Battle {
     for (let i = 0; i < 12; i++) {
       const a = Math.random() * Math.PI * 2;
       this.particles.push({
-        x: 0, y: -40,
-        vx: Math.cos(a) * 3, vy: Math.sin(a) * 3,
-        life: 500, maxLife: 500,
-        color: '255,220,120', size: 3
+        x: 0,
+        y: -40,
+        vx: Math.cos(a) * 3,
+        vy: Math.sin(a) * 3,
+        life: 500,
+        maxLife: 500,
+        color: '255,220,120',
+        size: 3,
       });
     }
     this.phase = 'attack_resolve';
@@ -346,10 +364,14 @@ export class Battle {
       for (let i = 0; i < 24; i++) {
         const a = (i / 24) * Math.PI * 2;
         this.particles.push({
-          x: 0, y: -40,
-          vx: Math.cos(a) * 4, vy: Math.sin(a) * 4,
-          life: 700, maxLife: 700,
-          color: '255,220,120', size: 4
+          x: 0,
+          y: -40,
+          vx: Math.cos(a) * 4,
+          vy: Math.sin(a) * 4,
+          life: 700,
+          maxLife: 700,
+          color: '255,220,120',
+          size: 4,
         });
       }
       if (this.enemy.hp <= 0) {
@@ -367,7 +389,7 @@ export class Battle {
 
   // 道具
   useItem() {
-    if (this.player.inventory.find(i => i.id === 'old_page') || this.heartHp < this.heartMaxHp) {
+    if (this.player.inventory.find((i) => i.id === 'old_page') || this.heartHp < this.heartMaxHp) {
       this.heartHp = Math.min(this.heartMaxHp, this.heartHp + 30);
       this.setEnemyText('顾言翻开旧书页，理性恢复 30。');
     } else {
@@ -415,7 +437,8 @@ export class Battle {
   updateEnemyTurn(dt) {
     // 红心移动
     const speed = 0.18 * dt;
-    let hx = 0, hy = 0;
+    let hx = 0,
+      hy = 0;
     if (input.isDown('arrowleft') || input.isDown('a')) hx -= 1;
     if (input.isDown('arrowright') || input.isDown('d')) hx += 1;
     if (input.isDown('arrowup') || input.isDown('w')) hy -= 1;
@@ -424,8 +447,14 @@ export class Battle {
     this.heart.x += (hx / len) * speed;
     this.heart.y += (hy / len) * speed;
     // 限制在弹幕框内
-    this.heart.x = Math.max(-BOX_W/2 + this.heart.r, Math.min(BOX_W/2 - this.heart.r, this.heart.x));
-    this.heart.y = Math.max(-BOX_H/2 + this.heart.r, Math.min(BOX_H/2 - this.heart.r, this.heart.y));
+    this.heart.x = Math.max(
+      -BOX_W / 2 + this.heart.r,
+      Math.min(BOX_W / 2 - this.heart.r, this.heart.x)
+    );
+    this.heart.y = Math.max(
+      -BOX_H / 2 + this.heart.r,
+      Math.min(BOX_H / 2 - this.heart.r, this.heart.y)
+    );
 
     // 生成弹幕
     this.bulletTimer += dt;
@@ -440,14 +469,29 @@ export class Battle {
       b.x += b.vx * dt * 0.06;
       b.y += b.vy * dt * 0.06;
       b.life -= dt;
-      if (b.life <= 0) { this.bullets.splice(i, 1); continue; }
+      if (b.life <= 0) {
+        this.bullets.splice(i, 1);
+        continue;
+      }
       // 反弹弹幕：碰到弹幕框边界反弹
       if (b.bounce) {
-        if (b.x < -BOX_W/2) { b.x = -BOX_W/2; b.vx = Math.abs(b.vx); }
-        if (b.x > BOX_W/2) { b.x = BOX_W/2; b.vx = -Math.abs(b.vx); }
-        if (b.y < -BOX_H/2) { b.y = -BOX_H/2; b.vy = Math.abs(b.vy); }
-        if (b.y > BOX_H/2) { b.y = BOX_H/2; b.vy = -Math.abs(b.vy); }
-      } else if (Math.abs(b.x) > BOX_W/2 + 30 || Math.abs(b.y) > BOX_H/2 + 30) {
+        if (b.x < -BOX_W / 2) {
+          b.x = -BOX_W / 2;
+          b.vx = Math.abs(b.vx);
+        }
+        if (b.x > BOX_W / 2) {
+          b.x = BOX_W / 2;
+          b.vx = -Math.abs(b.vx);
+        }
+        if (b.y < -BOX_H / 2) {
+          b.y = -BOX_H / 2;
+          b.vy = Math.abs(b.vy);
+        }
+        if (b.y > BOX_H / 2) {
+          b.y = BOX_H / 2;
+          b.vy = -Math.abs(b.vy);
+        }
+      } else if (Math.abs(b.x) > BOX_W / 2 + 30 || Math.abs(b.y) > BOX_H / 2 + 30) {
         // 出框清除
         this.bullets.splice(i, 1);
         continue;
@@ -457,7 +501,11 @@ export class Battle {
       if (d < this.heart.r + b.r) {
         this.heartHp -= Math.round(6 * difficulty.currentMul().sanDamage);
         // 格式化者弹幕：被击中时偷走一个已收集的汉字碎片（仅 collectedChars 弹药，不影响 collectedCharsAll 永久记录）
-        if (b.stealFragment && this.player.collectedChars && this.player.collectedChars.length > 0) {
+        if (
+          b.stealFragment &&
+          this.player.collectedChars &&
+          this.player.collectedChars.length > 0
+        ) {
           const stolen = this.player.collectedChars.pop();
           this.setEnemyText(`「${stolen}」已被格式化！`);
         }
@@ -467,10 +515,14 @@ export class Battle {
         for (let k = 0; k < 6; k++) {
           const a = Math.random() * Math.PI * 2;
           this.particles.push({
-            x: this.heart.x, y: this.heart.y,
-            vx: Math.cos(a) * 2, vy: Math.sin(a) * 2,
-            life: 300, maxLife: 300,
-            color: '220,60,60', size: 2
+            x: this.heart.x,
+            y: this.heart.y,
+            vx: Math.cos(a) * 2,
+            vy: Math.sin(a) * 2,
+            life: 300,
+            maxLife: 300,
+            color: '220,60,60',
+            size: 2,
           });
         }
         if (this.heartHp <= 0) {
@@ -535,70 +587,132 @@ export class Battle {
       // 左侧扫射（难度越高越多发）
       const count = 1 + Math.floor(d);
       for (let i = 0; i < count; i++) {
-        this.bullets.push({ x: -BOX_W/2 - 10, y: (Math.random() - 0.5) * BOX_H * 0.7, vx: 3 * sp, vy: 0, r, text: word(), life: 4000 });
+        this.bullets.push({
+          x: -BOX_W / 2 - 10,
+          y: (Math.random() - 0.5) * BOX_H * 0.7,
+          vx: 3 * sp,
+          vy: 0,
+          r,
+          text: word(),
+          life: 4000,
+        });
       }
     } else if (pick === 1) {
       // 顶部落雨
       const count = 1 + Math.floor(d);
       for (let i = 0; i < count; i++) {
-        this.bullets.push({ x: (Math.random() - 0.5) * BOX_W * 0.7, y: -BOX_H/2 - 10, vx: 0, vy: 3 * sp, r, text: word(), life: 4000 });
+        this.bullets.push({
+          x: (Math.random() - 0.5) * BOX_W * 0.7,
+          y: -BOX_H / 2 - 10,
+          vx: 0,
+          vy: 3 * sp,
+          r,
+          text: word(),
+          life: 4000,
+        });
       }
     } else if (pick === 2) {
       // 锁定红心的瞄准弹
-      const sx = (Math.random() - 0.5) * BOX_W, sy = -BOX_H/2 - 10;
-      const ax = this.heart.x - sx, ay = this.heart.y - sy;
+      const sx = (Math.random() - 0.5) * BOX_W,
+        sy = -BOX_H / 2 - 10;
+      const ax = this.heart.x - sx,
+        ay = this.heart.y - sy;
       const m = Math.hypot(ax, ay) || 1;
-      this.bullets.push({ x: sx, y: sy, vx: (ax / m) * 3 * sp, vy: (ay / m) * 3 * sp, r, text: word(), life: 4000 });
+      this.bullets.push({
+        x: sx,
+        y: sy,
+        vx: (ax / m) * 3 * sp,
+        vy: (ay / m) * 3 * sp,
+        r,
+        text: word(),
+        life: 4000,
+      });
     } else if (pick === 3) {
       // 中心螺旋爆发
       const k = 6 + Math.floor(d * 2);
       const base = Math.random() * Math.PI * 2;
       for (let i = 0; i < k; i++) {
         const a = base + (i / k) * Math.PI * 2;
-        this.bullets.push({ x: 0, y: 0, vx: Math.cos(a) * 2.2 * sp, vy: Math.sin(a) * 2.2 * sp, r: 7, text: '6', life: 3500 });
+        this.bullets.push({
+          x: 0,
+          y: 0,
+          vx: Math.cos(a) * 2.2 * sp,
+          vy: Math.sin(a) * 2.2 * sp,
+          r: 7,
+          text: '6',
+          life: 3500,
+        });
       }
     } else if (pick === 4) {
       // Boss：带缺口的横墙
       const gap = (Math.random() - 0.5) * BOX_W * 0.5;
-      for (let gx = -BOX_W/2; gx < BOX_W/2; gx += 26) {
+      for (let gx = -BOX_W / 2; gx < BOX_W / 2; gx += 26) {
         if (Math.abs(gx - gap) < 28) continue;
-        this.bullets.push({ x: gx, y: -BOX_H/2 - 10, vx: 0, vy: 2.6 * sp, r: 7, text: '卡', life: 4200 });
+        this.bullets.push({
+          x: gx,
+          y: -BOX_H / 2 - 10,
+          vx: 0,
+          vy: 2.6 * sp,
+          r: 7,
+          text: '卡',
+          life: 4200,
+        });
       }
     } else if (pick === 5) {
       // 【新】追踪弹波浪：从两侧交替发射瞄准弹
       const fromLeft = Math.random() < 0.5;
-      const sx = fromLeft ? -BOX_W/2 - 10 : BOX_W/2 + 10;
-      const ax = this.heart.x - sx, ay = this.heart.y;
+      const sx = fromLeft ? -BOX_W / 2 - 10 : BOX_W / 2 + 10;
+      const ax = this.heart.x - sx,
+        ay = this.heart.y;
       const m = Math.hypot(ax, ay) || 1;
       for (let i = 0; i < 3; i++) {
         this.bullets.push({
-          x: sx, y: (i - 1) * 30,
-          vx: (ax / m) * 2.5 * sp, vy: (ay / m) * 2.5 * sp + (i - 1) * 0.3,
-          r: 7, text: word(), life: 4000,
+          x: sx,
+          y: (i - 1) * 30,
+          vx: (ax / m) * 2.5 * sp,
+          vy: (ay / m) * 2.5 * sp + (i - 1) * 0.3,
+          r: 7,
+          text: word(),
+          life: 4000,
         });
       }
     } else if (pick === 6) {
       // 【新】墙壁反弹弹：从角落发射，碰墙反弹
-      const corners = [[-BOX_W/2,-BOX_H/2],[BOX_W/2,-BOX_H/2],[-BOX_W/2,BOX_H/2],[BOX_W/2,BOX_H/2]];
+      const corners = [
+        [-BOX_W / 2, -BOX_H / 2],
+        [BOX_W / 2, -BOX_H / 2],
+        [-BOX_W / 2, BOX_H / 2],
+        [BOX_W / 2, BOX_H / 2],
+      ];
       const c = corners[Math.floor(Math.random() * 4)];
-      const ang = Math.atan2(this.heart.y - c[1], this.heart.x - c[0]) + (Math.random() - 0.5) * 0.5;
+      const ang =
+        Math.atan2(this.heart.y - c[1], this.heart.x - c[0]) + (Math.random() - 0.5) * 0.5;
       this.bullets.push({
-        x: c[0], y: c[1],
-        vx: Math.cos(ang) * 2.8 * sp, vy: Math.sin(ang) * 2.8 * sp,
-        r: 8, text: '弹', life: 5000, bounce: true, // 反弹标记
+        x: c[0],
+        y: c[1],
+        vx: Math.cos(ang) * 2.8 * sp,
+        vy: Math.sin(ang) * 2.8 * sp,
+        r: 8,
+        text: '弹',
+        life: 5000,
+        bounce: true, // 反弹标记
       });
     } else {
       // 【新】螺旋连续弹：多波次螺旋，时间偏移
       const waves = 2;
       const k = 5;
       for (let w = 0; w < waves; w++) {
-        const base = (this.timer * 0.001 + w * Math.PI / waves) % (Math.PI * 2);
+        const base = (this.timer * 0.001 + (w * Math.PI) / waves) % (Math.PI * 2);
         for (let i = 0; i < k; i++) {
           const a = base + (i / k) * Math.PI * 2;
           this.bullets.push({
-            x: 0, y: 0,
-            vx: Math.cos(a) * 2 * sp, vy: Math.sin(a) * 2 * sp,
-            r: 6, text: '6', life: 3500,
+            x: 0,
+            y: 0,
+            vx: Math.cos(a) * 2 * sp,
+            vy: Math.sin(a) * 2 * sp,
+            r: 6,
+            text: '6',
+            life: 3500,
           });
         }
       }
@@ -616,9 +730,14 @@ export class Battle {
         const a = (i / 4) * Math.PI * 2 + Math.random() * 0.3;
         const edge = Math.max(BOX_W, BOX_H) / 2 + 20;
         this.bullets.push({
-          x: Math.cos(a) * edge, y: Math.sin(a) * edge,
-          vx: -Math.cos(a) * 2.4 * sp, vy: -Math.sin(a) * 2.4 * sp,
-          r: 9, text: code(), life: 4000, stealFragment: true,
+          x: Math.cos(a) * edge,
+          y: Math.sin(a) * edge,
+          vx: -Math.cos(a) * 2.4 * sp,
+          vy: -Math.sin(a) * 2.4 * sp,
+          r: 9,
+          text: code(),
+          life: 4000,
+          stealFragment: true,
         });
       }
     } else if (pick === 1) {
@@ -627,20 +746,33 @@ export class Battle {
       for (let gx = -BOX_W / 2; gx < BOX_W / 2; gx += 32) {
         if (Math.abs(gx - gap) < 34) continue;
         this.bullets.push({
-          x: gx, y: -BOX_H / 2 - 10, vx: 0, vy: 2.8 * sp,
-          r: 8, text: 'ERR', life: 4200, stealFragment: true,
+          x: gx,
+          y: -BOX_H / 2 - 10,
+          vx: 0,
+          vy: 2.8 * sp,
+          r: 8,
+          text: 'ERR',
+          life: 4200,
+          stealFragment: true,
         });
       }
     } else {
       // 追踪 404 弹幕：瞄准红心
-      const sx = (Math.random() - 0.5) * BOX_W, sy = -BOX_H / 2 - 10;
-      const ax = this.heart.x - sx, ay = this.heart.y - sy;
+      const sx = (Math.random() - 0.5) * BOX_W,
+        sy = -BOX_H / 2 - 10;
+      const ax = this.heart.x - sx,
+        ay = this.heart.y - sy;
       const m = Math.hypot(ax, ay) || 1;
       for (let i = 0; i < 2; i++) {
         this.bullets.push({
-          x: sx + (i - 0.5) * 40, y: sy,
-          vx: (ax / m) * 3 * sp, vy: (ay / m) * 3 * sp,
-          r: 8, text: '404', life: 4000, stealFragment: true,
+          x: sx + (i - 0.5) * 40,
+          y: sy,
+          vx: (ax / m) * 3 * sp,
+          vy: (ay / m) * 3 * sp,
+          r: 8,
+          text: '404',
+          life: 4000,
+          stealFragment: true,
         });
       }
     }
@@ -656,9 +788,13 @@ export class Battle {
       const startX = -((line.length - 1) * 28) / 2;
       for (let i = 0; i < line.length; i++) {
         this.bullets.push({
-          x: startX + i * 28, y: -BOX_H / 2 - 10,
-          vx: 0, vy: 1.8 * sp,
-          r: 9, text: line[i], life: 5000,
+          x: startX + i * 28,
+          y: -BOX_H / 2 - 10,
+          vx: 0,
+          vy: 1.8 * sp,
+          r: 9,
+          text: line[i],
+          life: 5000,
         });
       }
     } else if (pick === 1) {
@@ -668,9 +804,13 @@ export class Battle {
       for (let i = 0; i < k; i++) {
         const a = base + (i / k) * Math.PI * 2;
         this.bullets.push({
-          x: 0, y: 0,
-          vx: Math.cos(a) * 1.8 * sp, vy: Math.sin(a) * 1.8 * sp,
-          r: 8, text: poemChars[i % poemChars.length], life: 4000,
+          x: 0,
+          y: 0,
+          vx: Math.cos(a) * 1.8 * sp,
+          vy: Math.sin(a) * 1.8 * sp,
+          r: 8,
+          text: poemChars[i % poemChars.length],
+          life: 4000,
         });
       }
     } else {
@@ -680,9 +820,13 @@ export class Battle {
       const dir = fromLeft ? 1 : -1;
       for (let i = 0; i < 3; i++) {
         this.bullets.push({
-          x: sx, y: (i - 1) * 35,
-          vx: dir * 2.6 * sp, vy: (Math.random() - 0.5) * 0.5,
-          r: 8, text: poemChars[Math.floor(Math.random() * poemChars.length)], life: 4500,
+          x: sx,
+          y: (i - 1) * 35,
+          vx: dir * 2.6 * sp,
+          vy: (Math.random() - 0.5) * 0.5,
+          r: 8,
+          text: poemChars[Math.floor(Math.random() * poemChars.length)],
+          life: 4500,
         });
       }
     }

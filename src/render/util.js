@@ -3,16 +3,17 @@ import { W, H } from '../config.js';
 
 export class Camera {
   constructor() {
-    this.x = 0; this.y = 0;
+    this.x = 0;
+    this.y = 0;
     this.smooth = 0.18;
   }
   follow(px, py) {
-    this.x += (px - W/2 - this.x) * this.smooth;
-    this.y += (py - H/2 - this.y) * this.smooth;
+    this.x += (px - W / 2 - this.x) * this.smooth;
+    this.y += (py - H / 2 - this.y) * this.smooth;
   }
   snap(px, py, sceneW, sceneH) {
-    this.x = px - W/2;
-    this.y = py - H/2;
+    this.x = px - W / 2;
+    this.y = py - H / 2;
     this.clamp(sceneW, sceneH);
   }
   clamp(sceneW, sceneH) {
@@ -22,14 +23,14 @@ export class Camera {
   worldToScreen(x, y) {
     return {
       x: Math.round((x - this.x) * 10) / 10,
-      y: Math.round((y - this.y) * 10) / 10
+      y: Math.round((y - this.y) * 10) / 10,
     };
   }
 }
 
 // 通用：圆角矩形路径
 export function roundRect(ctx, x, y, w, h, r) {
-  const rr = Math.min(r, w/2, h/2);
+  const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + rr, y);
   ctx.lineTo(x + w - rr, y);
@@ -50,9 +51,15 @@ export function wrapText(ctx, text, maxW) {
   const lines = [];
   let line = '';
   for (const ch of text) {
-    if (ch === '\n') { lines.push(line); line = ''; continue; }
-    if (ctx.measureText(line + ch).width > maxW) { lines.push(line); line = ch; }
-    else line += ch;
+    if (ch === '\n') {
+      lines.push(line);
+      line = '';
+      continue;
+    }
+    if (ctx.measureText(line + ch).width > maxW) {
+      lines.push(line);
+      line = ch;
+    } else line += ch;
   }
   if (line) lines.push(line);
   return lines;

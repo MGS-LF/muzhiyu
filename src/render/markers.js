@@ -11,9 +11,14 @@ import { W, H } from '../config.js';
 // 已在各自场景函数中专门绘制了实体的交互点，不再补标识
 export const INTERACTABLES_WITH_VISUAL = new Set([
   // freeze_center：冷冻仓/终端机/储物柜/大门均由 drawFreezeCenter 绘制
-  'player_pod', 'terminal', 'locker', 'exit_door',
+  'player_pod',
+  'terminal',
+  'locker',
+  'exit_door',
   // street_01：失语者群、地铁站入口、锈死轿车、要石、失语者支线
-  'lost_people', 'subway_entrance', 'street_carwreck',
+  'lost_people',
+  'subway_entrance',
+  'street_carwreck',
   // riverside：守砚由 drawShuyuan 绘制
   'shuyuan',
   // subway：出口有专门的光柱
@@ -37,8 +42,8 @@ export function markerKind(it) {
 export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
   for (const it of scene.interactables) {
     // 已有独立渲染的类型跳过
-    if (it.type === 'keystone') continue;        // drawKeystones
-    if (it.type === 'cure') continue;            // drawCureNPCs
+    if (it.type === 'keystone') continue; // drawKeystones
+    if (it.type === 'cure') continue; // drawCureNPCs
     if (it.type === 'scene_change' && it.gate) continue; // drawGates
     // 已在场景函数中专门绘制的交互点跳过
     if (INTERACTABLES_WITH_VISUAL.has(it.id)) continue;
@@ -48,7 +53,8 @@ export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
 
     const pulse = 0.5 + Math.sin(gameTime * 0.004 + it.x * 0.01) * 0.3;
     const bob = Math.sin(gameTime * 0.003 + it.x) * 1.5;
-    const cx = s.x, cy = s.y;
+    const cx = s.x,
+      cy = s.y;
 
     // 地面光晕（远距离即可看到）
     const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, 44);
@@ -87,7 +93,8 @@ export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
 
 // 通道门（普通场景切换 / 出口）：拱门 + 门洞光 + 箭头
 export function drawPortalMarker(ctx, x, y, it, gameTime, pulse) {
-  const w = 28, h = 42;
+  const w = 28,
+    h = 42;
   // 两根门柱
   ctx.fillStyle = '#3a3a3e';
   ctx.fillRect(x - w / 2 - 3, y - h, 6, h);
@@ -153,7 +160,8 @@ export function drawPersonMarker(ctx, x, y, it, gameTime, pulse) {
 
 // 屏幕类对话点：发光屏幕 + 噪点
 export function drawScreenMarker(ctx, x, y, it, gameTime, pulse) {
-  const w = 32, h = 24;
+  const w = 32,
+    h = 24;
   // 支架
   ctx.fillStyle = '#2a2a2e';
   ctx.fillRect(x - 2, y - 7, 4, 7);
@@ -183,7 +191,8 @@ export function drawScreenMarker(ctx, x, y, it, gameTime, pulse) {
 
 // 线路图类对话点：墙挂图板 + 站点
 export function drawMapMarker(ctx, x, y, it, gameTime, pulse) {
-  const w = 30, h = 36;
+  const w = 30,
+    h = 36;
   ctx.fillStyle = '#3a3530';
   ctx.fillRect(x - w / 2 - 2, y - h - 2, w + 4, h + 4);
   ctx.fillStyle = '#1a1814';
@@ -204,7 +213,13 @@ export function drawMapMarker(ctx, x, y, it, gameTime, pulse) {
   ctx.stroke();
   // 站点
   ctx.fillStyle = `rgba(255,220,140,${0.85 + pulse * 0.15})`;
-  for (const [dx, dy] of [[-w / 2 + 4, -h + 7], [-2, -h + 15], [w / 2 - 4, -h + 11], [4, -h + 26], [w / 2 - 4, -h + 22]]) {
+  for (const [dx, dy] of [
+    [-w / 2 + 4, -h + 7],
+    [-2, -h + 15],
+    [w / 2 - 4, -h + 11],
+    [4, -h + 26],
+    [w / 2 - 4, -h + 22],
+  ]) {
     ctx.beginPath();
     ctx.arc(x + dx, y + dy, 1.5, 0, Math.PI * 2);
     ctx.fill();
@@ -213,7 +228,8 @@ export function drawMapMarker(ctx, x, y, it, gameTime, pulse) {
 
 // 标牌/告示/乱涂/小龛类对话点：杆 + 牌
 export function drawSignMarker(ctx, x, y, it, gameTime, pulse) {
-  const w = 28, h = 22;
+  const w = 28,
+    h = 22;
   // 杆
   ctx.fillStyle = '#2a2520';
   ctx.fillRect(x - 1.5, y - h, 3, h);

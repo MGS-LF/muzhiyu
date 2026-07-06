@@ -52,7 +52,7 @@ export async function generateBranch(game, key) {
     `【情境】${ctx.situation}\n` +
     `【玩家历程】${journeySummary(game)}\n` +
     (isContinuation
-      ? `【上次对话】这是与该角色的后续对话。上次 LLM 已生成过一段分支，历史如下，请在此基础上延续，不要重复开场的旁白，直接推进情绪与选择：\n${hist.map(m => (m.role === 'assistant' ? '导演:' : '玩家:') + m.content).join('\n')}\n`
+      ? `【上次对话】这是与该角色的后续对话。上次 LLM 已生成过一段分支，历史如下，请在此基础上延续，不要重复开场的旁白，直接推进情绪与选择：\n${hist.map((m) => (m.role === 'assistant' ? '导演:' : '玩家:') + m.content).join('\n')}\n`
       : '') +
     '【任务】写一段贴合该玩家历程的简短分支。偏暴力的玩家应更冷硬克制，偏仁慈/救人多的玩家应更悲悯。\n' +
     '一次推算所有可能的选项走向：若给 choice，每个选项的 effect 已隐含该选择的结局倾向，不要在 narration 里把结局写死，留给玩家选择后由后续对话承接。\n' +
@@ -67,7 +67,11 @@ export async function generateBranch(game, key) {
     );
     if (obj) {
       // 缓存本轮上下文，供下次复用
-      branchHistory[key] = [...hist, { role: 'user', content: user }, { role: 'assistant', content: JSON.stringify(obj) }].slice(-8);
+      branchHistory[key] = [
+        ...hist,
+        { role: 'user', content: user },
+        { role: 'assistant', content: JSON.stringify(obj) },
+      ].slice(-8);
     }
     return obj || null;
   } catch (e) {
@@ -138,12 +142,16 @@ export async function tingyuReply(game, history, playerInput, mustConclude) {
     { role: 'user', content: playerInput },
   ];
   if (mustConclude) {
-    msgs.push({ role: 'system', content: '【系统】对话需要收束了。请在本次回应里给出 end 与 epilogue。' });
+    msgs.push({
+      role: 'system',
+      content: '【系统】对话需要收束了。请在本次回应里给出 end 与 epilogue。',
+    });
   }
   const obj = await callLLM(msgs, { json: true, temperature: 0.9, max_tokens: 500 });
-  const reply = (obj && typeof obj.reply === 'string' && obj.reply.trim()) ? obj.reply.trim() : '……';
+  const reply = obj && typeof obj.reply === 'string' && obj.reply.trim() ? obj.reply.trim() : '……';
   let end = obj && obj.end;
   if (end !== 'fire' && end !== 'silence' && end !== 'burnout') end = null;
-  const epilogue = (obj && typeof obj.epilogue === 'string' && obj.epilogue.trim()) ? obj.epilogue.trim() : null;
+  const epilogue =
+    obj && typeof obj.epilogue === 'string' && obj.epilogue.trim() ? obj.epilogue.trim() : null;
   return { reply, end, epilogue };
 }

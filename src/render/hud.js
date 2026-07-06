@@ -8,7 +8,8 @@ import { roundRect } from './util.js';
 export function drawHUD(ctx, player, game, objective) {
   const sanW = 140;
   const sanH = 14;
-  const sx = 16, sy = 14;
+  const sx = 16,
+    sy = 14;
   const ratio = Math.max(0, player.san / player.maxSan);
   ctx.fillStyle = 'rgba(20,15,10,0.8)';
   roundRect(ctx, sx, sy, sanW, sanH, 3);
@@ -25,10 +26,10 @@ export function drawHUD(ctx, player, game, objective) {
   ctx.font = 'bold 10px serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('理性', sx + 5, sy + sanH/2);
+  ctx.fillText('理性', sx + 5, sy + sanH / 2);
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.font = '9px serif';
-  ctx.fillText(`${Math.floor(player.san)}/${player.maxSan}`, sx + sanW - 36, sy + sanH/2);
+  ctx.fillText(`${Math.floor(player.san)}/${player.maxSan}`, sx + sanW - 36, sy + sanH / 2);
   ctx.textBaseline = 'alphabetic';
 
   // 章节碎片进度面板（直接回答"还要做什么"）
@@ -36,7 +37,8 @@ export function drawHUD(ctx, player, game, objective) {
   const ammo = (player.collectedChars || []).length;
   const poemY = sy + sanH + 14;
   if (prog) {
-    const panelW = 250, panelH = 40;
+    const panelW = 250,
+      panelH = 40;
     ctx.fillStyle = 'rgba(22,17,10,0.78)';
     roundRect(ctx, sx, poemY, panelW, panelH, 4);
     ctx.fill();
@@ -99,28 +101,30 @@ export function drawHUD(ctx, player, game, objective) {
 
   // 任务目标（顶部中央）
   if (objective && !objective.done) {
-    const ox = W / 2, oy = 14;
-    const ow = 360, oh = 30;
+    const ox = W / 2,
+      oy = 14;
+    const ow = 360,
+      oh = 30;
     ctx.fillStyle = 'rgba(20,15,10,0.85)';
-    roundRect(ctx, ox - ow/2, oy, ow, oh, 4);
+    roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
     ctx.fill();
     ctx.strokeStyle = 'rgba(220,170,80,0.7)';
     ctx.lineWidth = 1.5;
-    roundRect(ctx, ox - ow/2, oy, ow, oh, 4);
+    roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
     ctx.stroke();
     // 顶部金色边
     ctx.fillStyle = 'rgba(220,170,80,0.5)';
-    ctx.fillRect(ox - ow/2, oy, ow, 2);
+    ctx.fillRect(ox - ow / 2, oy, ow, 2);
     // 任务文字
     ctx.fillStyle = 'rgba(255,210,120,0.95)';
     ctx.font = 'bold 12px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('目  标', ox - ow/2 + 40, oy + oh/2);
+    ctx.fillText('目  标', ox - ow / 2 + 40, oy + oh / 2);
     ctx.fillStyle = 'rgba(232,220,200,0.95)';
     ctx.font = '13px serif';
     ctx.textAlign = 'left';
-    ctx.fillText(objective.text, ox - ow/2 + 80, oy + oh/2);
+    ctx.fillText(objective.text, ox - ow / 2 + 80, oy + oh / 2);
     ctx.textBaseline = 'alphabetic';
   }
 
@@ -128,7 +132,8 @@ export function drawHUD(ctx, player, game, objective) {
   // 右上角场景信息面板：当小地图显示时下移到小地图下方，避免重叠
   const miniH = game._showMinimap ? 132 + 12 : 0; // 小地图高度 120 + margin 12
   ctx.fillStyle = 'rgba(20,15,10,0.7)';
-  const mx = W - 200, my = 14 + miniH;
+  const mx = W - 200,
+    my = 14 + miniH;
   roundRect(ctx, mx, my, 184, 60, 4);
   ctx.fill();
   ctx.strokeStyle = 'rgba(180,140,80,0.4)';
@@ -155,7 +160,8 @@ export function drawHUD(ctx, player, game, objective) {
     const warm = game.karma.mercy + game.karma.saved;
     const cold = game.karma.violence;
     const fl = Math.max(0.25, Math.min(1, 0.45 + (warm - cold) * 0.12));
-    const fx = mx + 168, fy = my + 26;
+    const fx = mx + 168,
+      fy = my + 26;
     const fcol = cold > warm + 1 ? '120,210,130' : '255,185,95';
     ctx.save();
     ctx.shadowColor = `rgba(${fcol},${fl})`;
@@ -173,7 +179,8 @@ export function drawHUD(ctx, player, game, objective) {
 
   // 面板快捷键提示（右下角）
   ctx.fillStyle = 'rgba(180,170,150,0.4)';
-  ctx.font = '9px monospace'; ctx.textAlign = 'right';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'right';
   ctx.fillText('J 任务 · M 地图 · F2 调试', W - 12, H - 8);
   ctx.textAlign = 'left';
 }

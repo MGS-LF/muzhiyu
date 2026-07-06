@@ -52,19 +52,25 @@ async function main() {
   // 健康检查
   try {
     const h = await (await fetch(BASE + '/api/health')).json();
-    if (!h.ai || !h.ai.tts) { console.error('TTS 未配置或服务器未就绪，无法预热。'); process.exit(1); }
+    if (!h.ai || !h.ai.tts) {
+      console.error('TTS 未配置或服务器未就绪，无法预热。');
+      process.exit(1);
+    }
   } catch (e) {
     console.error(`连不上 ${BASE} ——请先 \`node server.js\`。`, e.message);
     process.exit(1);
   }
   const lines = extractLines();
   console.log(`待预热台词：${lines.length} 条`);
-  let hit = 0, miss = 0, fail = 0;
+  let hit = 0,
+    miss = 0,
+    fail = 0;
   for (let i = 0; i < lines.length; i++) {
     const ln = lines[i];
     try {
       const c = await warm(ln);
-      if (c === 'HIT') hit++; else miss++;
+      if (c === 'HIT') hit++;
+      else miss++;
       process.stdout.write(`\r[${i + 1}/${lines.length}] HIT=${hit} MISS=${miss} FAIL=${fail}  `);
     } catch (e) {
       fail++;

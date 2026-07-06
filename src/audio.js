@@ -18,15 +18,15 @@ let sfxVolume = 0.35;
 // 缺省回退到下方 BGM_DEFS 的合成 drone
 const BGM_FILES = {
   bgm_01_prologue: 'assets/audio/bgm/bgm_01_prologue.mp3',
-  bgm_02_battle:   'assets/audio/bgm/bgm_02_battle.mp3',
-  bgm_03_purify:   'assets/audio/bgm/bgm_03_purify.mp3',
-  bgm_04_tingyu:   'assets/audio/bgm/bgm_04_tingyu.mp3',
-  bgm_05_ending:   'assets/audio/bgm/bgm_05_ending.mp3',
-  bgm_06_void:     'assets/audio/bgm/bgm_06_void.mp3',
-  bgm_07_ruins:    'assets/audio/bgm/bgm_07_ruins.mp3',
-  bgm_08_stealth:  'assets/audio/bgm/bgm_08_stealth.mp3',
-  bgm_09_river:    'assets/audio/bgm/bgm_09_river.mp3',
-  bgm_10_ember:    'assets/audio/bgm/bgm_10_ember.mp3',
+  bgm_02_battle: 'assets/audio/bgm/bgm_02_battle.mp3',
+  bgm_03_purify: 'assets/audio/bgm/bgm_03_purify.mp3',
+  bgm_04_tingyu: 'assets/audio/bgm/bgm_04_tingyu.mp3',
+  bgm_05_ending: 'assets/audio/bgm/bgm_05_ending.mp3',
+  bgm_06_void: 'assets/audio/bgm/bgm_06_void.mp3',
+  bgm_07_ruins: 'assets/audio/bgm/bgm_07_ruins.mp3',
+  bgm_08_stealth: 'assets/audio/bgm/bgm_08_stealth.mp3',
+  bgm_09_river: 'assets/audio/bgm/bgm_09_river.mp3',
+  bgm_10_ember: 'assets/audio/bgm/bgm_10_ember.mp3',
 };
 
 // 场景/事件 ID -> BGM 曲目 ID 映射（见 README 的 BGM 说明）
@@ -69,18 +69,24 @@ const SCENE_TO_BGM = {
 };
 
 const bgmBufferCache = new Map(); // bgmId -> AudioBuffer（已解码完整缓存，二次播放用）
-const bgmLoading = new Map();     // bgmId -> Promise（完整解码加载）
-const bgmAudioEls = new Map();    // bgmId -> HTMLAudioElement（流式播放元素池，循环复用）
+const bgmLoading = new Map(); // bgmId -> Promise（完整解码加载）
+const bgmAudioEls = new Map(); // bgmId -> HTMLAudioElement（流式播放元素池，循环复用）
 const bgmStreamNodes = new Map(); // bgmId -> { source, gain }（MediaElementSource 节点）
-let currentMp3El = null;          // 当前流式播放的 audio 元素
-let currentMp3Gain = null;        // 当前 mp3 的增益节点
+let currentMp3El = null; // 当前流式播放的 audio 元素
+let currentMp3Gain = null; // 当前 mp3 的增益节点
 
 // 优先级：首场景 > 高频 > 其余。用于提前缓存排序
 const BGM_PRELOAD_PRIORITY = [
-  'bgm_01_prologue', 'bgm_06_void', 'bgm_07_ruins', // 冷冻中心+街道（开局必经）
-  'bgm_02_battle', 'bgm_08_stealth',                 // 战斗+地铁（高频）
-  'bgm_09_river', 'bgm_10_ember', 'bgm_03_purify',
-  'bgm_04_tingyu', 'bgm_05_ending',
+  'bgm_01_prologue',
+  'bgm_06_void',
+  'bgm_07_ruins', // 冷冻中心+街道（开局必经）
+  'bgm_02_battle',
+  'bgm_08_stealth', // 战斗+地铁（高频）
+  'bgm_09_river',
+  'bgm_10_ember',
+  'bgm_03_purify',
+  'bgm_04_tingyu',
+  'bgm_05_ending',
 ];
 
 // 获取/创建流式 audio 元素（浏览器原生边下边播+缓冲，无需等完整下载）
@@ -91,7 +97,7 @@ function getStreamAudioEl(bgmId) {
   const el = new Audio();
   el.src = url;
   el.loop = true;
-  el.preload = 'auto';       // 浏览器自动缓冲
+  el.preload = 'auto'; // 浏览器自动缓冲
   el.crossOrigin = 'anonymous';
   bgmAudioEls.set(bgmId, el);
   return el;
@@ -113,7 +119,9 @@ async function loadBgmFile(bgmId) {
       const buf = await c.decodeAudioData(arr);
       bgmBufferCache.set(bgmId, buf);
       return buf;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   })();
   bgmLoading.set(bgmId, p);
   return p;
@@ -167,7 +175,11 @@ function playMp3BGM(bgmId) {
         g.gain.cancelScheduledValues(st);
         g.gain.setValueAtTime(g.gain.value, st);
         g.gain.linearRampToValueAtTime(0, st + fadeDur);
-        try { src.stop(st + fadeDur + 0.1); } catch (e) {}
+        try {
+          src.stop(st + fadeDur + 0.1);
+        } catch (e) {
+          /* ignore */
+        }
       },
     };
     return true;
@@ -187,7 +199,9 @@ function playMp3BGM(bgmId) {
       g.connect(bgmGain);
       node = { source, gain: g };
       bgmStreamNodes.set(bgmId, node);
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
   const g = node.gain;
@@ -209,41 +223,56 @@ function playMp3BGM(bgmId) {
       g.gain.cancelScheduledValues(st);
       g.gain.setValueAtTime(g.gain.value, st);
       g.gain.linearRampToValueAtTime(0, st + fadeDur);
-      setTimeout(() => { try { el.pause(); } catch (e) {} }, fadeDur * 1000 + 100);
+      setTimeout(
+        () => {
+          try {
+            el.pause();
+          } catch (e) {
+            /* ignore */
+          }
+        },
+        fadeDur * 1000 + 100
+      );
     },
   };
 
   // 流式播放期间，后台继续解码完整 AudioBuffer；完成后若仍是该曲则无缝切换（消除循环间隙）
   if (!bgmBufferCache.has(bgmId) && !bgmLoading.has(bgmId)) {
-    loadBgmFile(bgmId).then(b => {
-      if (b && currentBgmId === bgmId && currentBGM && currentBGM.isStream) {
-        // 切换到 buffer 源（循环更平滑），保留当前播放位置近似
-        const resumeTime = el.currentTime;
-        stopBGM();
-        const src = c.createBufferSource();
-        src.buffer = b;
-        src.loop = true;
-        src.start(0, resumeTime % b.duration);
-        const ng = c.createGain();
-        const nt = c.currentTime;
-        ng.gain.setValueAtTime(0, nt);
-        ng.gain.linearRampToValueAtTime(1, nt + 0.5);
-        src.connect(ng);
-        ng.connect(bgmGain);
-        currentBgmId = bgmId;
-        currentBGM = {
-          isMp3: true,
-          masterBgGain: ng,
-          stop: (fadeDur = 0.8) => {
-            const st = c.currentTime;
-            ng.gain.cancelScheduledValues(st);
-            ng.gain.setValueAtTime(ng.gain.value, st);
-            ng.gain.linearRampToValueAtTime(0, st + fadeDur);
-            try { src.stop(st + fadeDur + 0.1); } catch (e) {}
-          },
-        };
-      }
-    }).catch(() => {});
+    loadBgmFile(bgmId)
+      .then((b) => {
+        if (b && currentBgmId === bgmId && currentBGM && currentBGM.isStream) {
+          // 切换到 buffer 源（循环更平滑），保留当前播放位置近似
+          const resumeTime = el.currentTime;
+          stopBGM();
+          const src = c.createBufferSource();
+          src.buffer = b;
+          src.loop = true;
+          src.start(0, resumeTime % b.duration);
+          const ng = c.createGain();
+          const nt = c.currentTime;
+          ng.gain.setValueAtTime(0, nt);
+          ng.gain.linearRampToValueAtTime(1, nt + 0.5);
+          src.connect(ng);
+          ng.connect(bgmGain);
+          currentBgmId = bgmId;
+          currentBGM = {
+            isMp3: true,
+            masterBgGain: ng,
+            stop: (fadeDur = 0.8) => {
+              const st = c.currentTime;
+              ng.gain.cancelScheduledValues(st);
+              ng.gain.setValueAtTime(ng.gain.value, st);
+              ng.gain.linearRampToValueAtTime(0, st + fadeDur);
+              try {
+                src.stop(st + fadeDur + 0.1);
+              } catch (e) {
+                /* ignore */
+              }
+            },
+          };
+        }
+      })
+      .catch(() => {});
   }
   return true;
 }
@@ -280,9 +309,17 @@ export function setMuted(m) {
   muted = m;
   if (masterGain) masterGain.gain.value = m ? 0 : 1;
 }
-export function isMuted() { return muted; }
-export function setBgmVolume(v) { bgmVolume = v; if (bgmGain) bgmGain.gain.value = v; }
-export function setSfxVolume(v) { sfxVolume = v; if (sfxGain) sfxGain.gain.value = v; }
+export function isMuted() {
+  return muted;
+}
+export function setBgmVolume(v) {
+  bgmVolume = v;
+  if (bgmGain) bgmGain.gain.value = v;
+}
+export function setSfxVolume(v) {
+  sfxVolume = v;
+  if (sfxGain) sfxGain.gain.value = v;
+}
 
 // ---------- SFX 合成 ----------
 // 通用单音：频率/时长/波形/包络
@@ -346,12 +383,24 @@ function noiseBurst(dur, vol = 1, filterFreq = 2000, filterType = 'lowpass') {
 
 // SFX 字典
 const SFX = {
-  pickup: () => { tone(660, 0.08, 'triangle', 0.5); setTimeout(() => tone(880, 0.1, 'triangle', 0.4), 60); },
+  pickup: () => {
+    tone(660, 0.08, 'triangle', 0.5);
+    setTimeout(() => tone(880, 0.1, 'triangle', 0.4), 60);
+  },
   ui: () => tone(440, 0.05, 'square', 0.2),
-  uiConfirm: () => { tone(523, 0.06, 'square', 0.25); setTimeout(() => tone(784, 0.08, 'square', 0.25), 50); },
+  uiConfirm: () => {
+    tone(523, 0.06, 'square', 0.25);
+    setTimeout(() => tone(784, 0.08, 'square', 0.25), 50);
+  },
   uiCancel: () => tone(300, 0.08, 'square', 0.2),
-  hit: () => { noiseBurst(0.12, 0.6, 800); toneSweep(220, 80, 0.15, 'sawtooth', 0.3); },
-  hurt: () => { toneSweep(400, 100, 0.2, 'sawtooth', 0.5); noiseBurst(0.08, 0.3, 500); },
+  hit: () => {
+    noiseBurst(0.12, 0.6, 800);
+    toneSweep(220, 80, 0.15, 'sawtooth', 0.3);
+  },
+  hurt: () => {
+    toneSweep(400, 100, 0.2, 'sawtooth', 0.5);
+    noiseBurst(0.08, 0.3, 500);
+  },
   dash: () => toneSweep(800, 200, 0.15, 'sine', 0.3),
   purify: () => {
     tone(523, 0.15, 'sine', 0.3);
@@ -360,17 +409,33 @@ const SFX = {
   },
   bulletHit: () => tone(200, 0.05, 'square', 0.15),
   footstep: () => tone(80 + Math.random() * 20, 0.04, 'sine', 0.08),
-  save: () => { tone(523, 0.08, 'sine', 0.3); setTimeout(() => tone(659, 0.08, 'sine', 0.3), 70); setTimeout(() => tone(880, 0.12, 'sine', 0.3), 140); },
-  load: () => { tone(880, 0.08, 'sine', 0.3); setTimeout(() => tone(659, 0.08, 'sine', 0.3), 70); setTimeout(() => tone(523, 0.12, 'sine', 0.3), 140); },
-  death: () => { toneSweep(300, 50, 0.6, 'sawtooth', 0.4); noiseBurst(0.3, 0.3, 300); },
+  save: () => {
+    tone(523, 0.08, 'sine', 0.3);
+    setTimeout(() => tone(659, 0.08, 'sine', 0.3), 70);
+    setTimeout(() => tone(880, 0.12, 'sine', 0.3), 140);
+  },
+  load: () => {
+    tone(880, 0.08, 'sine', 0.3);
+    setTimeout(() => tone(659, 0.08, 'sine', 0.3), 70);
+    setTimeout(() => tone(523, 0.12, 'sine', 0.3), 140);
+  },
+  death: () => {
+    toneSweep(300, 50, 0.6, 'sawtooth', 0.4);
+    noiseBurst(0.3, 0.3, 300);
+  },
   victory: () => {
-    [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.3), i * 100));
+    [523, 659, 784, 1047].forEach((f, i) =>
+      setTimeout(() => tone(f, 0.15, 'triangle', 0.3), i * 100)
+    );
   },
   spare: () => {
     [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sine', 0.25), i * 120));
   },
   gate: () => toneSweep(200, 600, 0.4, 'sine', 0.3),
-  keystone: () => { tone(440, 0.1, 'sine', 0.3); setTimeout(() => tone(660, 0.2, 'sine', 0.3), 80); },
+  keystone: () => {
+    tone(440, 0.1, 'sine', 0.3);
+    setTimeout(() => tone(660, 0.2, 'sine', 0.3), 80);
+  },
   purifyWave: () => {
     toneSweep(200, 1200, 0.5, 'sine', 0.4);
     noiseBurst(0.4, 0.2, 4000, 'highpass');
@@ -380,7 +445,13 @@ const SFX = {
 export function playSfx(name) {
   if (muted) return;
   const fn = SFX[name];
-  if (fn) { try { fn(); } catch (e) {} }
+  if (fn) {
+    try {
+      fn();
+    } catch (e) {
+      /* ignore */
+    }
+  }
 }
 
 // ---------- BGM 合成 ----------
@@ -388,31 +459,36 @@ export function playSfx(name) {
 // 用多个 OscillatorNode 叠加，通过 LFO 调制音量制造呼吸感
 
 const BGM_DEFS = {
-  freeze_center: { // 冷冻中心：冰冷、空旷
+  freeze_center: {
+    // 冷冻中心：冰冷、空旷
     freqs: [55, 110, 165],
     type: 'sine',
     lfo: 0.08,
     filter: 400,
   },
-  street_01: { // 废弃街道：风声、荒凉
+  street_01: {
+    // 废弃街道：风声、荒凉
     freqs: [73.4, 146.8, 220],
     type: 'triangle',
     lfo: 0.12,
     filter: 600,
   },
-  riverside: { // 江堤：宁静、水声
+  riverside: {
+    // 江堤：宁静、水声
     freqs: [65.4, 130.8, 196],
     type: 'sine',
     lfo: 0.06,
     filter: 800,
   },
-  subway: { // 地铁站：幽闭回响
+  subway: {
+    // 地铁站：幽闭回响
     freqs: [49, 98, 147],
     type: 'sawtooth',
     lfo: 0.15,
     filter: 300,
   },
-  alley_district: { // 居民区：压抑低音
+  alley_district: {
+    // 居民区：压抑低音
     freqs: [41.2, 82.4, 123.5],
     type: 'triangle',
     lfo: 0.1,
@@ -420,25 +496,29 @@ const BGM_DEFS = {
   },
   house_a: { freqs: [65.4, 130.8], type: 'sine', lfo: 0.07, filter: 700 },
   house_b: { freqs: [65.4, 130.8], type: 'sine', lfo: 0.07, filter: 700 },
-  stadium: { // 体育馆：电子嗡鸣、紧张
+  stadium: {
+    // 体育馆：电子嗡鸣、紧张
     freqs: [55, 110, 220, 330],
     type: 'sawtooth',
     lfo: 0.2,
     filter: 350,
   },
-  data_center: { // 数据中心：虚无寂静、高频
+  data_center: {
+    // 数据中心：虚无寂静、高频
     freqs: [110, 220, 440, 880],
     type: 'sine',
     lfo: 0.05,
     filter: 1200,
   },
-  battle: { // 战斗：紧张、快节奏
+  battle: {
+    // 战斗：紧张、快节奏
     freqs: [110, 165, 220],
     type: 'sawtooth',
     lfo: 0.25,
     filter: 500,
   },
-  ending: { // 结局：空灵、悠远
+  ending: {
+    // 结局：空灵、悠远
     freqs: [130.8, 196, 261.6, 392],
     type: 'sine',
     lfo: 0.04,
@@ -516,19 +596,38 @@ function _startDrone(def, c) {
       masterBgGain.gain.cancelScheduledValues(st);
       masterBgGain.gain.setValueAtTime(masterBgGain.gain.value, st);
       masterBgGain.gain.linearRampToValueAtTime(0, st + fadeDur);
-      oscs.forEach(({ osc }) => { try { osc.stop(st + fadeDur + 0.1); } catch (e) {} });
-      try { lfo.stop(st + fadeDur + 0.1); } catch (e) {}
+      oscs.forEach(({ osc }) => {
+        try {
+          osc.stop(st + fadeDur + 0.1);
+        } catch (e) {
+          /* ignore */
+        }
+      });
+      try {
+        lfo.stop(st + fadeDur + 0.1);
+      } catch (e) {
+        /* ignore */
+      }
     },
   };
 }
 
 export function stopBGM(fadeDur = 0.8) {
   if (currentBGM) {
-    try { currentBGM.stop(fadeDur); } catch (e) {}
+    try {
+      currentBGM.stop(fadeDur);
+    } catch (e) {
+      /* ignore */
+    }
     currentBGM = null;
     currentBgmId = null;
   }
-  if (currentMp3El) { currentMp3El = null; currentMp3Gain = null; }
+  if (currentMp3El) {
+    currentMp3El = null;
+    currentMp3Gain = null;
+  }
 }
 
-export function getCurrentBgmId() { return currentBgmId; }
+export function getCurrentBgmId() {
+  return currentBgmId;
+}

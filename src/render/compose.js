@@ -16,8 +16,8 @@ export function drawCompose(ctx, c, gameTime) {
   ctx.fillRect(0, 0, W, H);
   // 漂浮烂梗噪点
   for (let i = 0; i < 22; i++) {
-    const x = (i * 137 + gameTime * 0.02 * ((i % 2) ? 1 : -1)) % (W + 80) - 40;
-    const y = (i * 263 % H);
+    const x = ((i * 137 + gameTime * 0.02 * (i % 2 ? 1 : -1)) % (W + 80)) - 40;
+    const y = (i * 263) % H;
     ctx.fillStyle = `rgba(90,200,110,${0.05 + 0.05 * Math.abs(Math.sin(gameTime * 0.002 + i))})`;
     ctx.font = '12px serif';
     ctx.fillText(['YYDS', '绝绝子', '6', '栓Q', 'emo'][i % 5], x, y);
@@ -44,8 +44,12 @@ export function drawCompose(ctx, c, gameTime) {
     let disp = '';
     const blankFlags = [];
     for (const ch of lineStr) {
-      if (ch === '_') { const s = c.slots[bc]; disp += s ? s.char : '＿'; blankFlags.push({ i: disp.length - 1, filled: !!s }); bc++; }
-      else disp += ch;
+      if (ch === '_') {
+        const s = c.slots[bc];
+        disp += s ? s.char : '＿';
+        blankFlags.push({ i: disp.length - 1, filled: !!s });
+        bc++;
+      } else disp += ch;
     }
     const tw = ctx.measureText(disp).width;
     let x = W / 2 - tw / 2 + shakeX;
@@ -58,9 +62,14 @@ export function drawCompose(ctx, c, gameTime) {
       if (isBlank) {
         const filled = blankFlags[bi].filled;
         ctx.fillStyle = filled
-          ? (winGlow ? 'rgba(255,235,150,1)' : 'rgba(255,225,140,1)')
+          ? winGlow
+            ? 'rgba(255,235,150,1)'
+            : 'rgba(255,225,140,1)'
           : 'rgba(120,200,130,0.7)';
-        if (filled && winGlow) { ctx.shadowColor = 'rgba(255,220,140,0.9)'; ctx.shadowBlur = 14; }
+        if (filled && winGlow) {
+          ctx.shadowColor = 'rgba(255,220,140,0.9)';
+          ctx.shadowBlur = 14;
+        }
         ctx.fillText(ch, x + cw / 2, ly);
         ctx.shadowBlur = 0;
         bi++;
@@ -78,7 +87,8 @@ export function drawCompose(ctx, c, gameTime) {
   ctx.font = 'bold 13px serif';
   ctx.fillStyle = 'rgba(200,190,175,0.7)';
   ctx.fillText('字　盘', W / 2, poolY - 28);
-  const tileW = 46, gap = 10;
+  const tileW = 46,
+    gap = 10;
   const totalW = c.pool.length * (tileW + gap) - gap;
   let tx = W / 2 - totalW / 2;
   for (let i = 0; i < c.pool.length; i++) {
@@ -90,12 +100,16 @@ export function drawCompose(ctx, c, gameTime) {
     ctx.fillStyle = sel ? 'rgba(50,38,18,0.95)' : 'rgba(18,16,12,0.9)';
     roundRect(ctx, tx, ty, tileW, tileW, 6);
     ctx.fill();
-    ctx.strokeStyle = sel ? 'rgba(255,214,124,1)' : (isDecoy ? 'rgba(90,180,110,0.5)' : 'rgba(150,130,90,0.6)');
+    ctx.strokeStyle = sel
+      ? 'rgba(255,214,124,1)'
+      : isDecoy
+        ? 'rgba(90,180,110,0.5)'
+        : 'rgba(150,130,90,0.6)';
     ctx.lineWidth = sel ? 2.5 : 1.2;
     roundRect(ctx, tx, ty, tileW, tileW, 6);
     ctx.stroke();
     ctx.fillStyle = sel ? 'rgba(255,236,170,1)' : 'rgba(220,210,190,0.92)';
-    ctx.font = (c.pool[i].length > 1) ? 'bold 13px serif' : 'bold 22px serif';
+    ctx.font = c.pool[i].length > 1 ? 'bold 13px serif' : 'bold 22px serif';
     ctx.fillText(c.pool[i], tx + tileW / 2, poolY);
     ctx.globalAlpha = 1;
     tx += tileW + gap;
