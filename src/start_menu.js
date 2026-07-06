@@ -1,0 +1,383 @@
+import { listSaves, loadSnapshot, restore, summarize } from './save.js';
+
+const STYLE_ID = 'start-menu-style';
+
+function ensureStyle() {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    .start-menu {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      color: #e8dcc8;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(180, 135, 70, 0.13), transparent 34%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.86), rgba(5, 6, 9, 0.62) 46%, rgba(0, 0, 0, 0.9));
+      font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+    }
+    .start-menu.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 360ms ease;
+    }
+    .start-menu [hidden] {
+      display: none !important;
+    }
+    .start-menu__panel {
+      width: min(980px, calc(100vw - 48px));
+      min-height: 520px;
+      padding: 44px 52px 38px;
+      border: 1px solid rgba(212, 168, 90, 0.48);
+      background: rgba(8, 7, 5, 0.88);
+      box-shadow: inset 0 1px 0 rgba(255, 236, 190, 0.1), 0 30px 80px rgba(0, 0, 0, 0.52);
+    }
+    .start-menu__kicker {
+      color: rgba(212, 168, 90, 0.72);
+      font-size: 12px;
+      letter-spacing: 0.36em;
+      text-align: center;
+    }
+    .start-menu__title {
+      margin: 14px 0 8px;
+      color: #f0dfbd;
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: 0.34em;
+      text-align: center;
+      text-indent: 0.34em;
+      text-shadow: 0 0 22px rgba(212, 168, 90, 0.32);
+    }
+    .start-menu__subtitle {
+      margin-bottom: 34px;
+      color: rgba(232, 220, 200, 0.58);
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-align: center;
+    }
+    .start-menu__view {
+      display: none;
+    }
+    .start-menu__view.is-active {
+      display: block;
+    }
+    .start-menu__intro-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) 300px;
+      gap: 42px;
+      align-items: start;
+    }
+    .start-menu__intro {
+      padding-top: 2px;
+      border-top: 1px solid rgba(212, 168, 90, 0.22);
+    }
+    .start-menu__intro-label,
+    .start-menu__menu-label {
+      margin-bottom: 18px;
+      color: rgba(212, 168, 90, 0.78);
+      font-size: 12px;
+      letter-spacing: 0.28em;
+    }
+    .start-menu__intro h2 {
+      margin-bottom: 16px;
+      color: #f0dfbd;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      line-height: 1.45;
+    }
+    .start-menu__intro p {
+      max-width: 58ch;
+      margin: 0 0 14px;
+      color: rgba(232, 220, 200, 0.72);
+      font-size: 14px;
+      line-height: 1.9;
+      letter-spacing: 0.05em;
+    }
+    .start-menu__notes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 26px;
+    }
+    .start-menu__note {
+      padding: 12px 10px;
+      border: 1px solid rgba(212, 168, 90, 0.22);
+      background: rgba(212, 168, 90, 0.045);
+      color: rgba(232, 220, 200, 0.68);
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+    .start-menu__menu {
+      padding: 2px 0 0 28px;
+      border-left: 1px solid rgba(212, 168, 90, 0.22);
+    }
+    .start-menu__actions {
+      display: grid;
+      gap: 14px;
+      width: 100%;
+      margin: 0;
+    }
+    .start-menu button {
+      min-height: 46px;
+      border: 1px solid rgba(212, 168, 90, 0.42);
+      color: #e8dcc8;
+      background: rgba(212, 168, 90, 0.08);
+      font: inherit;
+      font-size: 15px;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+    }
+    .start-menu button:hover,
+    .start-menu button:focus-visible {
+      color: #fff8e8;
+      border-color: rgba(255, 222, 142, 0.9);
+      background: rgba(212, 168, 90, 0.16);
+      outline: none;
+    }
+    .start-menu button:active {
+      transform: translateY(1px);
+    }
+    .start-menu__back {
+      width: 96px;
+      min-height: 34px;
+      margin-bottom: 20px;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+    }
+    .start-menu__heading {
+      margin-bottom: 18px;
+      color: #f0dfbd;
+      font-size: 22px;
+      letter-spacing: 0.2em;
+      text-align: center;
+    }
+    .start-menu__saves {
+      display: grid;
+      gap: 10px;
+      max-height: 290px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .start-menu__save {
+      width: 100%;
+      min-height: 64px;
+      padding: 10px 16px;
+      text-align: left;
+      letter-spacing: 0.04em;
+    }
+    .start-menu__save-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #f0dfbd;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .start-menu__save-meta {
+      margin-top: 4px;
+      color: rgba(232, 220, 200, 0.58);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .start-menu__empty,
+    .start-menu__about,
+    .start-menu__error {
+      min-height: 156px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(212, 168, 90, 0.18);
+      color: rgba(232, 220, 200, 0.54);
+      background: rgba(255, 255, 255, 0.025);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+    }
+    .start-menu__error {
+      min-height: auto;
+      margin-top: 12px;
+      padding: 10px 12px;
+      color: #f0b0a0;
+    }
+    @media (max-width: 720px) {
+      .start-menu__panel {
+        width: calc(100vw - 28px);
+        min-height: 0;
+        padding: 34px 24px 28px;
+      }
+      .start-menu__title {
+        font-size: 32px;
+      }
+      .start-menu__intro-layout,
+      .start-menu__notes {
+        grid-template-columns: 1fr;
+      }
+      .start-menu__menu {
+        padding-left: 0;
+        border-left: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function saveLabel(slot) {
+  return slot === 'auto' ? '自动存档' : `槽位 ${slot}`;
+}
+
+function makeSaveButton(save, onLoad) {
+  const info = summarize(save);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'start-menu__save';
+  button.innerHTML = `
+    <span class="start-menu__save-title">
+      <span>${saveLabel(save.slot)} · ${info.scene}</span>
+      <span>SAN ${Math.floor(info.san ?? 0)}</span>
+    </span>
+    <span class="start-menu__save-meta">${info.time} · 碎片 ${info.chars}</span>
+  `;
+  button.addEventListener('click', () => onLoad(save.slot));
+  return button;
+}
+
+export function mountStartMenu(game, { fromIntro } = {}) {
+  if (fromIntro) return null;
+
+  ensureStyle();
+
+  const root = document.createElement('div');
+  root.className = 'start-menu';
+  root.innerHTML = `
+    <section class="start-menu__panel" aria-label="开始页面">
+      <div class="start-menu__view is-active" data-view="main">
+        <div class="start-menu__kicker">公元 2147 · 上海废墟</div>
+        <h1 class="start-menu__title">墓之语</h1>
+        <div class="start-menu__subtitle">在遗忘的文字里醒来</div>
+        <div class="start-menu__intro-layout">
+          <section class="start-menu__intro" aria-label="游戏介绍">
+            <div class="start-menu__intro-label">游戏介绍</div>
+            <h2>人类失去了完整表达，城市只剩下腐烂的短句。</h2>
+            <p>你将扮演从冷冻仓中醒来的顾言，在被语义噪声吞没的上海废墟中探索、战斗、拾起散落的诗词碎片。</p>
+            <p>完整的句子能抵抗梗鬼，刻下的文字能钉住坍塌的世界。沿着老人守砚留下的线索，走向算法茧房深处，回答那个被遗忘的良心 AI。</p>
+            <div class="start-menu__notes" aria-label="玩法要点">
+              <div class="start-menu__note">探索废墟</div>
+              <div class="start-menu__note">收集诗词</div>
+              <div class="start-menu__note">守住语言</div>
+            </div>
+          </section>
+          <nav class="start-menu__menu" aria-label="主菜单">
+            <div class="start-menu__menu-label">菜单</div>
+            <div class="start-menu__actions">
+              <button type="button" data-action="start">开始游戏</button>
+              <button type="button" data-action="saves">存档</button>
+              <button type="button" data-action="about">关于游戏</button>
+            </div>
+          </nav>
+        </div>
+      </div>
+      <div class="start-menu__view" data-view="saves">
+        <button type="button" class="start-menu__back" data-action="back">返回</button>
+        <h2 class="start-menu__heading">读取存档</h2>
+        <div class="start-menu__saves" data-saves></div>
+        <div class="start-menu__error" data-error hidden></div>
+      </div>
+      <div class="start-menu__view" data-view="about">
+        <button type="button" class="start-menu__back" data-action="back">返回</button>
+        <h2 class="start-menu__heading">关于游戏</h2>
+        <div class="start-menu__about"></div>
+      </div>
+    </section>
+  `;
+  document.body.appendChild(root);
+
+  const views = Array.from(root.querySelectorAll('.start-menu__view'));
+  const savesBox = root.querySelector('[data-saves]');
+  const errorBox = root.querySelector('[data-error]');
+
+  const showView = (name) => {
+    for (const view of views) {
+      view.classList.toggle('is-active', view.dataset.view === name);
+    }
+    errorBox.hidden = true;
+    errorBox.textContent = '';
+    if (name === 'saves') renderSaves();
+  };
+
+  const dismiss = () => {
+    document.removeEventListener('keydown', blockGameKeys, true);
+    root.classList.add('is-hidden');
+    setTimeout(() => root.remove(), 380);
+  };
+
+  const loadGame = (slot) => {
+    const snap = loadSnapshot(slot);
+    if (!snap) {
+      errorBox.textContent = '这个存档已经不存在。';
+      errorBox.hidden = false;
+      renderSaves();
+      return;
+    }
+    const ok = restore(game, snap);
+    if (!ok || !game._pendingScene) {
+      errorBox.textContent = '读取失败，存档数据无法恢复。';
+      errorBox.hidden = false;
+      return;
+    }
+    game.loadScene(game._pendingScene, game._pendingSpawn);
+    game._pendingScene = null;
+    game._pendingSpawn = null;
+    game.tutorial = null;
+    game._saveMenu = null;
+    game.uiPanel = null;
+    game.showHint(`已读取${saveLabel(slot)}`);
+    dismiss();
+  };
+
+  function renderSaves() {
+    savesBox.replaceChildren();
+    const saves = listSaves();
+    if (!saves.length) {
+      const empty = document.createElement('div');
+      empty.className = 'start-menu__empty';
+      empty.textContent = '暂无存档';
+      savesBox.appendChild(empty);
+      return;
+    }
+    for (const save of saves) {
+      savesBox.appendChild(makeSaveButton(save, loadGame));
+    }
+  }
+
+  function blockGameKeys(e) {
+    if (!root.isConnected) return;
+    if (e.key === 'Escape') {
+      const active = root.querySelector('.start-menu__view.is-active');
+      if (active && active.dataset.view !== 'main') showView('main');
+    }
+    e.stopPropagation();
+  }
+
+  root.addEventListener('click', (e) => {
+    const action = e.target && e.target.dataset ? e.target.dataset.action : null;
+    if (!action) return;
+    if (action === 'start') {
+      window.location.href = 'intro_3d.html?from=menu';
+    } else if (action === 'saves') {
+      showView('saves');
+    } else if (action === 'about') {
+      showView('about');
+    } else if (action === 'back') {
+      showView('main');
+    }
+  });
+
+  document.addEventListener('keydown', blockGameKeys, true);
+  return { close: dismiss };
+}

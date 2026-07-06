@@ -3,6 +3,7 @@ import { Game } from './game.js';
 import { initAI } from './ai/config.js';
 import * as difficulty from './difficulty.js';
 import * as audio from './audio.js';
+import { mountStartMenu } from './start_menu.js';
 
 const canvas = document.getElementById('c');
 const game = new Game(canvas);
@@ -31,5 +32,6 @@ window.addEventListener('pointerdown', _playTitleBGM, { once: true });
 window.addEventListener('keydown', _playTitleBGM, { once: true });
 
 game.start();
+mountStartMenu(game, { fromIntro: FROM_INTRO });
 
 console.log('[墓之语] 启动' + (FROM_INTRO ? '（接序幕）' : '') + `（难度：${difficulty.currentDef().name}）`);

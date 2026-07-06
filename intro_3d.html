@@ -6,16 +6,42 @@
 <title>墓之语 — 序幕</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', 'PingFang SC', 'Microsoft YaHei', serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { width: 100%; height: 100%; background: #050403; overflow: hidden; font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', 'PingFang SC', 'Microsoft YaHei', serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
   canvas { display: block; position: fixed; inset: 0; cursor: grab; }
   canvas.dragging { cursor: grabbing; }
-  #hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); color: rgba(255, 210, 140, 0.35); font-size: 12px; letter-spacing: 0.25em; pointer-events: none; animation: pulse 3s ease-in-out infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.5; } }
+  #introUi { position: fixed; inset: 0; z-index: 4; pointer-events: none; color: rgba(238, 218, 178, 0.82); }
+  #introUi::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(5, 4, 3, 0.62), transparent 26%, transparent 68%, rgba(5, 4, 3, 0.7)); }
+  #introPanel { position: absolute; left: 32px; top: 28px; width: min(360px, calc(100vw - 148px)); padding: 18px 20px 16px; border-left: 1px solid rgba(210, 165, 92, 0.48); background: rgba(8, 7, 5, 0.42); box-shadow: inset 0 1px 0 rgba(255, 236, 190, 0.08); }
+  #introKicker { color: rgba(210, 165, 92, 0.72); font-size: 11px; letter-spacing: 0.34em; }
+  #introTitle { margin-top: 8px; color: rgba(246, 226, 185, 0.96); font-size: 24px; letter-spacing: 0.22em; }
+  #introStatus { margin-top: 10px; color: rgba(238, 218, 178, 0.58); font-size: 13px; line-height: 1.7; letter-spacing: 0.08em; }
+  #introProgress { position: relative; width: 100%; height: 2px; margin-top: 14px; overflow: hidden; background: rgba(238, 218, 178, 0.16); }
+  #introProgressFill { width: 0%; height: 100%; background: rgba(210, 165, 92, 0.86); transform-origin: left center; transition: width 180ms linear; }
+  #skipIntro { position: absolute; right: 28px; top: 28px; min-width: 108px; min-height: 36px; padding: 0 16px; border: 1px solid rgba(210, 165, 92, 0.5); color: rgba(238, 218, 178, 0.84); background: rgba(8, 7, 5, 0.48); font: inherit; font-size: 12px; letter-spacing: 0.18em; cursor: pointer; pointer-events: auto; transition: transform 140ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease; }
+  #skipIntro:hover, #skipIntro:focus-visible { color: #fff7e8; border-color: rgba(246, 226, 185, 0.9); background: rgba(210, 165, 92, 0.16); outline: none; }
+  #skipIntro:active { transform: translateY(1px); }
+  #hint { position: fixed; bottom: 18px; left: 50%; z-index: 5; transform: translateX(-50%); color: rgba(255, 210, 140, 0.46); font-size: 12px; letter-spacing: 0.22em; pointer-events: none; animation: pulse 3s ease-in-out infinite; white-space: nowrap; }
+  @keyframes pulse { 0%, 100% { opacity: 0.36; } 50% { opacity: 0.68; } }
+  @media (max-width: 720px) {
+    #introPanel { left: 18px; top: 18px; width: calc(100vw - 36px); padding: 16px 16px 14px; }
+    #skipIntro { right: 18px; top: auto; bottom: 54px; }
+    #introTitle { font-size: 20px; }
+    #hint { bottom: 18px; width: calc(100vw - 36px); text-align: center; white-space: normal; line-height: 1.6; }
+  }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hint">拖动可旋转视角</div>
+<div id="introUi">
+  <section id="introPanel" aria-label="序幕状态">
+    <div id="introKicker">序幕</div>
+    <div id="introTitle">遗忘的文字</div>
+    <div id="introStatus">封面正在开启</div>
+    <div id="introProgress" aria-hidden="true"><div id="introProgressFill"></div></div>
+  </section>
+  <button id="skipIntro" type="button">跳过 Esc</button>
+</div>
+<div id="hint">拖动可旋转视角 · 按 Esc 或 S 跳过</div>
 <script type="importmap">
 {"imports": {"three": "https://unpkg.com/three@0.160.0/build/three.module.js"}}
 </script>
@@ -23,13 +49,16 @@
 import * as THREE from 'three';
 
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const skipIntro = document.getElementById('skipIntro');
+const introStatus = document.getElementById('introStatus');
+const introProgressFill = document.getElementById('introProgressFill');
+const DPR_CAP = window.innerWidth < 900 ? 1 : 1.25;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 1);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = false;
+renderer.toneMapping = THREE.LinearToneMapping;
 renderer.toneMappingExposure = 1.0;
 
 const scene = new THREE.Scene();
@@ -43,8 +72,8 @@ camera.lookAt(0, 0, 0);
 scene.add(new THREE.AmbientLight(0x5c4a3a, 0.5));
 const keyLight = new THREE.DirectionalLight(0xffd8a8, 0.95);
 keyLight.position.set(4, 12, 5);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.castShadow = false;
+keyLight.shadow.mapSize.set(512, 512);
 keyLight.shadow.camera.left = -15; keyLight.shadow.camera.right = 15;
 keyLight.shadow.camera.top = 15; keyLight.shadow.camera.bottom = -15;
 keyLight.shadow.camera.near = 1; keyLight.shadow.camera.far = 60;
@@ -225,11 +254,11 @@ book.add(stack);
 
 const spot = new THREE.SpotLight(0xffcc90, 0, 24, Math.PI / 4.8, 0.5, 1.2);
 spot.position.set(2, 9, 3); spot.target.position.set(0, 0, 0);
-spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024);
+spot.castShadow = false; spot.shadow.mapSize.set(512, 512);
 scene.add(spot); scene.add(spot.target);
 
 const dustGeo = new THREE.BufferGeometry();
-const dustN = 150;
+const dustN = window.innerWidth < 900 ? 60 : 90;
 const dustPos = new Float32Array(dustN * 3);
 const dustVel = new Float32Array(dustN);
 for (let i = 0; i < dustN; i++) {
@@ -291,11 +320,39 @@ const T_RIGHT_START = 7.0, T_RIGHT_END = 13.0;
 const T_FADE_OUT = 13.0, T_JUMP = 15.0;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
 let t0 = null, finished = false;
+let lastRender = 0;
+const FRAME_MS = 1000 / 50;
+
+function goGame() {
+  if (finished) return;
+  finished = true;
+  location.replace('index.html?from=intro&t=' + Date.now());
+}
+
+function updateIntroUi(T) {
+  const progress = Math.max(0, Math.min(1, T / T_JUMP));
+  introProgressFill.style.width = `${Math.round(progress * 100)}%`;
+  if (T < T_OPEN_START) introStatus.textContent = '封面正在醒来';
+  else if (T < T_OPEN_END) introStatus.textContent = '旧书缓慢翻开';
+  else if (T < T_RIGHT_START) introStatus.textContent = '失语灾难显影';
+  else if (T < T_FADE_OUT) introStatus.textContent = '前情记录正在补全';
+  else introStatus.textContent = '即将进入冷冻中心';
+}
+
+skipIntro.addEventListener('click', goGame);
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'escape' || k === 's') goGame();
+});
 
 function step(now) {
   requestAnimationFrame(step);
+  if (finished) return;
+  if (now - lastRender < FRAME_MS) return;
+  lastRender = now;
   if (t0 == null) t0 = now;
   const T = (now - t0) / 1000;
+  updateIntroUi(T);
 
   const openU = Math.max(0, Math.min(1, (T - T_OPEN_START) / (T_OPEN_END - T_OPEN_START)));
   const openE = easeOut(openU);
@@ -329,13 +386,12 @@ function step(now) {
   renderer.render(scene, camera);
 
   if (T >= T_JUMP && !finished) {
-    finished = true;
-    location.replace('index.html?from=intro&t=' + Date.now());
+    goGame();
   }
 }
 
 requestAnimationFrame(step);
-setTimeout(() => { if (!finished) { finished = true; location.replace('index.html?from=intro'); } }, 17000);
+setTimeout(goGame, 17000);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;

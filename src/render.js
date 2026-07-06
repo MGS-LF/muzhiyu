@@ -4,6 +4,7 @@ import * as fx from './fx.js';
 import { isMuted } from './audio.js';
 import { drawMinimap } from './minimap.js';
 import { listDifficulties, getDifficultyDef } from './difficulty.js';
+import { listSaves, summarize } from './save.js';
 
 export class Camera {
   constructor() {
@@ -1079,7 +1080,7 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.textAlign = 'center';
     let hintText = '← → 选择    E / 空格 确认';
     if (battle.ultimateReady && !battle.ultimateUsed) {
-      hintText += '    K 诗词大招';
+      hintText += `    K ${battle.availableUltimate ? battle.availableUltimate.name : '诗词大招'}`;
     }
     ctx.fillText(hintText, W/2, H - 20);
     ctx.fillStyle = 'rgba(150,150,160,0.5)';
@@ -1091,7 +1092,8 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.fillStyle = `rgba(255,200,80,${pulse})`;
       ctx.font = 'bold 11px serif';
       ctx.textAlign = 'right';
-      ctx.fillText('★ 诗词大招就绪 (K)', W - 20, H - 50);
+      const name = battle.availableUltimate ? battle.availableUltimate.name : '诗词大招';
+      ctx.fillText(`★ ${name} 就绪 (K)`, W - 20, H - 50);
       ctx.textAlign = 'left';
     }
     ctx.textAlign = 'left';
@@ -1099,7 +1101,7 @@ export function drawBattle(ctx, battle, gameTime) {
     // 诗词大招全屏特效
     const ult = battle._ultimateDef;
     if (ult) {
-      const prog = 1 - battle.ultimateAnim / 2000;
+      const prog = 1 - battle.ultimateAnim / (battle.ultimateDuration || 2000);
       // 全屏金色光幕
       ctx.fillStyle = `${ult.color}`;
       ctx.globalAlpha = 0.15 + Math.sin(gameTime * 0.01) * 0.1;
@@ -4093,29 +4095,14 @@ function drawSaveMenu(ctx, game, gameTime) {
   ctx.restore();
 }
 
-// 从 localStorage 同步读取存档列表（避免循环依赖，不 import save.js）
+// 从存档系统读取菜单摘要，避免渲染层复制存档格式细节。
 function _readSavesForMenu() {
-  try {
-    const raw = localStorage.getItem('keheng_saves');
-    if (!raw) return [];
-    const data = JSON.parse(raw);
-    const out = [];
-    const sceneNames = {
-      freeze_center: '冷冻中心', street_01: '废弃街道', riverside: '江堤',
-      subway: '地铁站', alley_district: '居民区', house_a: '民居A', house_b: '民居B',
-      stadium: '体育馆', data_center: '数据中心',
-    };
-    const fmtTime = (t) => {
-      const d = new Date(t);
-      const p = (n) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-    };
-    if (data.auto) out.push({ slot: 'auto', scene: sceneNames[data.auto.sceneId] || data.auto.sceneId, time: fmtTime(data.auto.time), san: data.auto.san, chars: (data.auto.collectedCharsAll||[]).length, karma: data.auto.karma || {mercy:0,violence:0,saved:0} });
-    if (data.slots) for (let i = 0; i < data.slots.length; i++) {
-      if (data.slots[i]) out.push({ slot: i+1, scene: sceneNames[data.slots[i].sceneId] || data.slots[i].sceneId, time: fmtTime(data.slots[i].time), san: data.slots[i].san, chars: (data.slots[i].collectedCharsAll||[]).length, karma: data.slots[i].karma || {mercy:0,violence:0,saved:0} });
-    }
-    return out;
-  } catch (e) { return []; }
+  return listSaves()
+    .map((snap) => {
+      const summary = summarize(snap);
+      return summary ? { slot: snap.slot, ...summary } : null;
+    })
+    .filter(Boolean);
 }
 
 // ============================================================

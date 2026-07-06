@@ -1,13 +1,14 @@
 // 玩家 — 精致小人
 import { COLORS } from './config.js';
+import { PACE } from './pacing.js';
 
 export class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
     this.r = 7;
-    this.speed = 1.6;
-    this.runSpeed = 2.6;
+    this.speed = PACE.exploration.walkSpeed;
+    this.runSpeed = PACE.exploration.runSpeed;
     this.isMoving = false;
     this.direction = 'down';
     this.walkCycle = 0;

@@ -289,8 +289,8 @@ async function handleTTS(req, res) {
 // ---------- 静态文件 ----------
 async function handleStatic(req, res, pathname) {
   let rel = decodeURIComponent(pathname);
-  // 根路径默认进序幕；intro 末尾会跳到 ?from=intro
-  if (rel === '/' || rel === '') rel = '/intro_3d.html';
+  // 根路径默认进入介绍页；点击"开始游戏"后再进入 intro_3d.html。
+  if (rel === '/' || rel === '') rel = '/index.html';
   // 防目录穿越
   const safe = path.normalize(rel).replace(/^(\.\.[\/\\])+/, '');
   const full = path.join(ROOT, safe);

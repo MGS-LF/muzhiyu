@@ -176,7 +176,8 @@ export function summarize(snap) {
   const sceneNames = {
     freeze_center: '冷冻中心', street_01: '废弃街道', riverside: '江堤',
     subway: '地铁站', alley_district: '居民区', house_a: '民居A', house_b: '民居B',
-    stadium: '体育馆', data_center: '数据中心',
+    stadium: '体育馆', ruined_library: '废图书馆', network_nexus: '网络中枢',
+    memory_abyss: '记忆深渊', lost_village: '失语者聚居地', data_center: '数据中心',
   };
   return {
     scene: sceneNames[snap.sceneId] || snap.sceneId,

@@ -6,7 +6,8 @@ import { input } from './input.js';
 import * as audio from './audio.js';
 import * as fx from './fx.js';
 import * as difficulty from './difficulty.js';
-import { getFirstAvailableUltimate, canUseUltimate, POEM_ULTIMATES } from './poem_ultimate.js';
+import { getFirstAvailableUltimate } from './poem_ultimate.js';
+import { PACE } from './pacing.js';
 
 // 弹幕框尺寸（战斗界面中央的躲避区域）
 const BOX_W = 280;
@@ -57,9 +58,11 @@ export class Battle {
     this.bossPhaseTriggered = false;
 
     // 诗词连击大招系统：集齐完整诗句可按 K 释放全屏大招（每场限一次）
-    this.ultimateReady = canUseUltimate(player.collectedCharsAll, POEM_ULTIMATES[0]);
+    this.availableUltimate = getFirstAvailableUltimate(player.collectedCharsAll);
+    this.ultimateReady = !!this.availableUltimate;
     this.ultimateUsed = false;
     this.ultimateAnim = 0; // 大招动画计时
+    this.ultimateDuration = PACE.battle.ultimateMs;
 
     // 红心（玩家在弹幕框里的位置）
     this.heart = { x: 0, y: 0, r: 6 };
@@ -69,7 +72,7 @@ export class Battle {
     // 弹幕
     this.bullets = [];
     this.bulletTimer = 0;
-    this.enemyTurnDuration = enemy.boss ? 7000 : 5000; // 敌人回合时长
+    this.enemyTurnDuration = enemy.boss ? PACE.battle.bossTurnMs : PACE.battle.normalTurnMs; // 敌人回合时长
 
     // 战斗条（攻击时）
     this.attackBar = null;
@@ -105,7 +108,7 @@ export class Battle {
 
     if (this.phase === 'intro') {
       // 淡入 0.8 秒后进入菜单
-      if (this.timer > 800) {
+      if (this.timer > PACE.battle.introMs) {
         this.phase = 'menu';
         this.timer = 0;
         this.setEnemyText('蚌埠住了！YYDS！');
@@ -124,7 +127,7 @@ export class Battle {
     }
 
     if (this.phase === 'attack_resolve') {
-      if (this.timer > 1200) {
+      if (this.timer > PACE.battle.actionResolveMs) {
         this.startEnemyTurn();
       }
       return;
@@ -146,7 +149,7 @@ export class Battle {
     }
 
     if (this.phase === 'result') {
-      if (this.timer > 1500) {
+      if (this.timer > PACE.battle.resultMs) {
         this.finish();
       }
       return;
@@ -184,7 +187,7 @@ export class Battle {
       audio.playSfx('uiCancel');
       return;
     }
-    const ult = getFirstAvailableUltimate(this.player.collectedCharsAll);
+    const ult = this.availableUltimate || getFirstAvailableUltimate(this.player.collectedCharsAll);
     if (!ult) {
       this.setEnemyText('尚未集齐任何完整诗句！');
       audio.playSfx('uiCancel');
@@ -192,7 +195,8 @@ export class Battle {
     }
     // 释放大招
     this.ultimateUsed = true;
-    this.ultimateAnim = 2000; // 2 秒全屏特效
+    this.ultimateDuration = PACE.battle.ultimateMs;
+    this.ultimateAnim = this.ultimateDuration;
     this.phase = 'ultimate';
     this.timer = 0;
     this._ultimateDef = ult;
@@ -207,7 +211,7 @@ export class Battle {
   updateUltimate(dt) {
     this.ultimateAnim -= dt;
     // 1 秒后结算伤害
-    if (this.ultimateAnim <= 1000 && !this._ultimateResolved) {
+    if (this.ultimateAnim <= this.ultimateDuration * 0.5 && !this._ultimateResolved) {
       this._ultimateResolved = true;
       const ult = this._ultimateDef;
       this.enemy.hp -= ult.damage;
@@ -262,7 +266,7 @@ export class Battle {
   startAttack() {
     this.phase = 'attack_aim';
     this.timer = 0;
-    this.attackBar = { pos: 0, dir: 1, speed: 0.0028, hit: false };
+    this.attackBar = { pos: 0, dir: 1, speed: PACE.battle.attackBarSpeed, hit: false };
     this.setEnemyText('顾言举起了刻刀……');
   }
 
@@ -326,8 +330,8 @@ export class Battle {
   }
 
   updatePoem(dt) {
-    // 3 秒后结算
-    if (this.timer > 3000) {
+    // Short cast keeps poem attacks from stalling the turn loop.
+    if (this.timer > PACE.battle.poemCastMs) {
       const damage = 35;
       this.enemy.hp -= damage;
       this.lastDamage = damage;
@@ -494,7 +498,7 @@ export class Battle {
       this.bossPhaseTriggered = true;
       this.bossPhase = 2;
       this.diff += 0.5; // 难度提升
-      this.enemyTurnDuration += 2000; // 第二阶段更长
+      this.enemyTurnDuration += PACE.battle.bossPhaseExtraMs; // 第二阶段更长
       this.setEnemyText('……你……竟敢……！！');
       audio.playSfx('hit');
       fx.shake(10, 300);
@@ -695,6 +699,6 @@ export class Battle {
 
   // 是否结束
   isDone() {
-    return this.phase === 'result' && this.timer > 1500;
+    return this.phase === 'result' && this.timer > PACE.battle.resultMs;
   }
 }

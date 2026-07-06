@@ -10,7 +10,8 @@ import { speakerStyle } from './ai/speakers.js';
 import { AI } from './ai/config.js';
 import { generateBranch, buildBranchDialog, tingyuReply, recordBranchChoice, clearBranchHistory } from './ai/director.js';
 import { SideScrollLevel } from './sidescroll.js';
-import { Level3D } from './level3d.js';
+import { SCENE_INTROS, createStartTutorial } from './tutorial.js';
+import { PACE } from './pacing.js';
 // 新增系统：存档 / 音效 / 视觉特效 / 难度 / 小地图
 import { autoSave, saveToSlot, loadSnapshot, restore, listSaves, summarize, deleteSave, SAVE_SLOTS } from './save.js';
 import * as audio from './audio.js';
@@ -679,21 +680,6 @@ const PUZZLES = {
   },
 };
 
-// 首次进入场景的一行引导（配合左上角目标条/箭头）
-const SCENE_INTROS = {
-  freeze_center: '左上角是你的目标。靠近发光物体按 E 互动。',
-  street_01: '废墟街道很大——跟着金色箭头走，沿途按 E 拾取发光的汉字碎片。',
-  riverside: '江风里有人在念诗。往西侧的光柱走，找到那位老人。',
-  subway: '地下很暗。可探索，也可随时从台阶（↑地面）离开。',
-  alley_district: '先在入口找守砚了解情况，再深入收集碎片。绿光处有更强的梗鬼。',
-  stadium: '蓝光迷宫会扰乱判断。沿屏幕墙的缝隙穿行，集齐四个字。',
-  data_center: '深渊在桥两侧旋转。沿石桥一直向前，走向那道蓝光。',
-  ruined_library: '方知远的工作室遗迹。找回声NPC了解情况，然后补全《将进酒》打开记忆碎片。',
-  network_nexus: 'Sydney的核心服务器群。找守卷人了解情况，小心格式化者——被击中会暂时失去碎片。',
-  memory_abyss: 'Sydney被封存前的最后空间。找到幼年Sydney，补全《月夜忆舍弟》打开最后的封印。',
-  lost_village: '失语者聚居地。5 个失语者可以唤醒——给他们接上完整的诗句。',
-};
-
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
@@ -706,8 +692,8 @@ export class Game {
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = W * dpr;
     this.canvas.height = H * dpr;
-    this.canvas.style.width = W + 'px';
-    this.canvas.style.height = H + 'px';
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
     this.ctx.scale(dpr, dpr);
     this.ctx.imageSmoothingEnabled = false;
 
@@ -768,25 +754,11 @@ export class Game {
       purifyCooldown: 600,
       // 冲刺
       lastDash: 0,
-      dashCooldown: 1500,
+      dashCooldown: PACE.exploration.dashCooldown,
       // 死亡对话框
       dead: false,
     };
-    this.tutorial = {
-      title: '刻 痕 · 遗 忘 的 文 字',
-      keys: [
-        { k: 'WASD', d: '移动　·　Shift 奔跑' },
-        { k: 'E', d: '交互 / 拾取 / 推进对话' },
-        { k: '方向键', d: '战斗中移动红心 / 选菜单' },
-        { k: 'J', d: '战斗中：攻击瞄准' },
-        { k: 'Space', d: '战斗中确认 / 大地图冲刺' },
-        { k: 'I', d: '背包' },
-        { k: 'Tab', d: '小地图开关' },
-        { k: 'F5/F9', d: '快速存档 / 读档' },
-        { k: 'N', d: '静音切换' },
-      ],
-      tip: '左上角是当前目标，金色箭头指向下一步。靠近发光物按 E，靠近绿色梗鬼会进入战斗。',
-    };
+    this.tutorial = createStartTutorial();
     // 模式：江堤横版 / 维度裂隙3D
     this.sidescroll = null;
     this.level3d = null;
@@ -811,8 +783,9 @@ export class Game {
     this._screenWallSlow = 0;         // >0 时玩家被减速
     this._screenWallSanDrain = 0;     // >0 时持续扣 SAN
     // 随机事件系统：探索中随机触发环境事件
-    this._randomEventTimer = 25000;   // 下次随机事件检查（25 秒后首次）
-    this._randomEventCooldown = 20000; // 事件间最小间隔
+    this._encounterGrace = 0;         // 场景切换/战斗结束后的短暂遭遇保护
+    this._randomEventTimer = PACE.ambient.firstDelayMs;
+    this._randomEventCooldown = PACE.ambient.cooldownMs;
   }
 
   // 应用当前难度到游戏状态（SAN 上限等）
@@ -847,6 +820,7 @@ export class Game {
     this.player.invulnerable = 0;
     this.player.hurtFlash = false;
     this.player.dialogGrace = 0;
+    this._encounterGrace = PACE.exploration.sceneGraceMs;
     this.camera.snap(spawn.x, spawn.y, this.scene.width, this.scene.height);
     this.dialogState = null;
     this.combat.bullets = [];
@@ -960,8 +934,15 @@ export class Game {
       { s: '系统', t: '隧道深处的绿光裂开了一道缝——那是维度坍缩留下的裂隙。' },
       { s: '顾言', t: '里面……是另一个形状的世界？空间在那里重新有了厚度。' },
       { s: '系统', t: '（进入维度裂隙3D关卡：WASD+鼠标视角，左键射击。找到「裂隙之钥」才能解锁出口，搜集物资击败怪物，回到地铁站）' },
-    ], '维度裂隙', () => {
-      this.level3d = new Level3D(this);
+    ], '维度裂隙', async () => {
+      this.showHint('维度裂隙正在展开……');
+      try {
+        const { Level3D } = await import('./level3d.js');
+        this.level3d = new Level3D(this);
+      } catch (err) {
+        console.error('[3D] 维度裂隙加载失败', err);
+        this.showHint('维度裂隙暂时无法展开：3D 模块加载失败。');
+      }
     });
   }
 
@@ -1294,18 +1275,19 @@ export class Game {
 
     // 踩踏窗口：空格冲刺时打开短暂窗口，用于俯视角踩踏地面梗鬼
     // 防抖：600ms 内仅触发一次，避免连按/长按反复冲刺
-    if (input.wasPressed(' ') && performance.now() - this.combat.lastDash > 600) {
+    if (input.wasPressed(' ') && performance.now() - this.combat.lastDash > this.combat.dashCooldown) {
       this.combat.lastDash = performance.now();
-      this._stompWindow = 260;
+      this._stompWindow = PACE.exploration.stompWindow;
       // 冲刺位移（碰撞检测走 Game.collides，场景对象本身无该方法）
       const mv = input.moveVec();
       if (mv.x !== 0 || mv.y !== 0) {
         const len = Math.hypot(mv.x, mv.y) || 1;
-        const dx = (mv.x / len) * 36, dy = (mv.y / len) * 36;
+        const dx = (mv.x / len) * PACE.exploration.dashDistance;
+        const dy = (mv.y / len) * PACE.exploration.dashDistance;
         if (!this.collides(this.player.x + dx, this.player.y, this.player.r)) this.player.x += dx;
         if (!this.collides(this.player.x, this.player.y + dy, this.player.r)) this.player.y += dy;
       }
-      this.player.invulnerable = 300;
+      this.player.invulnerable = PACE.exploration.dashInvulnerable;
     }
     if (this._stompWindow > 0) this._stompWindow -= dt;
 
@@ -1318,6 +1300,7 @@ export class Game {
       }
     }
     if (this.player.dialogGrace > 0) this.player.dialogGrace -= dt;
+    if (this._encounterGrace > 0) this._encounterGrace -= dt;
 
     // 粒子
     this.updateParticles(dt);
@@ -1348,8 +1331,8 @@ export class Game {
 
     this._randomEventTimer -= dt;
     if (this._randomEventTimer > 0) return;
-    // 重置计时器（20-45 秒后下次检查）
-    this._randomEventTimer = this._randomEventCooldown + Math.random() * 25000;
+    // 重置计时器，避免探索刚展开就被环境事件打断。
+    this._randomEventTimer = this._randomEventCooldown + Math.random() * PACE.ambient.varianceMs;
 
     const events = [
       // 风中诗韵：听到一句诗，SAN 恢复
@@ -1362,10 +1345,10 @@ export class Game {
       },
       // 梗鬼游荡：附近出现一只游荡梗鬼
       () => {
-        if (!this.scene.enemies) return;
+        if (!this.scene.enemies || this.scene.enemies.length >= PACE.ambient.maxAmbientEnemies) return;
         const id = 'rand_geng_' + Date.now();
         const ang = Math.random() * Math.PI * 2;
-        const dist = 200 + Math.random() * 150;
+        const dist = 320 + Math.random() * 160;
         const ex = Math.max(50, Math.min(this.scene.width - 50, this.player.x + Math.cos(ang) * dist));
         const ey = Math.max(50, Math.min(this.scene.height - 50, this.player.y + Math.sin(ang) * dist));
         this.scene.enemies.push({ id, typeId: 'geng_weak', x: ex, y: ey, hp: 30, maxHp: 30, name: '游荡梗鬼', floating: 0, walkPhase: Math.random() * 6, dir: Math.random() < 0.5 ? -1 : 1, vx: 0.5, vy: 0, onGround: true, homeX: ex, range: 80, stompCD: 0 });
@@ -1415,6 +1398,7 @@ export class Game {
     this.battle = null;
     this.battleResult = null;
     this.battleEnemy = null;
+    this._encounterGrace = PACE.exploration.encounterGraceMs;
 
     // 恢复场景 BGM
     if (this._audioUnlocked && this.scene) {
@@ -1665,6 +1649,8 @@ export class Game {
         return;
       }
     }
+    if (this._encounterGrace > 0) return;
+
     // 梗鬼地面行走 + 踩踏判定
     if (this.scene.enemies && !this.battle && !this.dialogState) {
       this.updateEnemies(dt);
