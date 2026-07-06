@@ -17,15 +17,17 @@ export class Battle {
   constructor(enemy, player, onEnd) {
     // 应用全局难度倍率到敌人 HP
     const mul = difficulty.currentMul();
+    const ngPlusMul = player.ngPlus ? { enemyHp: 1.5, bulletSpeed: 1.2 } : { enemyHp: 1, bulletSpeed: 1 };
     const baseHp = enemy.hp || 30;
     const baseMaxHp = enemy.maxHp || 30;
     this.enemy = {
       ...enemy,
-      hp: Math.round(baseHp * mul.enemyHp),
-      maxHp: Math.round(baseMaxHp * mul.enemyHp),
+      hp: Math.round(baseHp * mul.enemyHp * ngPlusMul.enemyHp),
+      maxHp: Math.round(baseMaxHp * mul.enemyHp * ngPlusMul.enemyHp),
       name: enemy.name || '梗鬼',
       typeId: enemy.typeId || 'geng_weak',
     };
+    this.ngPlusMul = ngPlusMul;
     this.player = player;
     this.onEnd = onEnd;
 
@@ -275,8 +277,8 @@ export class Battle {
     this.attackBar.pos += this.attackBar.dir * this.attackBar.speed * dt;
     if (this.attackBar.pos >= 1) { this.attackBar.pos = 1; this.attackBar.dir = -1; }
     if (this.attackBar.pos <= 0) { this.attackBar.pos = 0; this.attackBar.dir = 1; }
-    // 按 J 停下
-    if (input.wasPressed('j') || input.wasPressed('e') || input.wasPressed(' ')) {
+    // E / 空格停下，避免和 J 任务面板快捷键冲突
+    if (input.wasPressed('e') || input.wasPressed(' ')) {
       input.wasPressed(' ');
       this.resolveAttack();
     }
@@ -509,7 +511,7 @@ export class Battle {
     const word = () => words[Math.floor(Math.random() * words.length)];
     const d = this.diff;
     const mul = difficulty.currentMul();
-    const sp = (0.9 + d * 0.35) * mul.bulletSpeed; // 速度系数 × 难度倍率
+    const sp = (0.9 + d * 0.35) * mul.bulletSpeed * this.ngPlusMul.bulletSpeed; // 速度系数 × 难度倍率
     const r = 8;
 
     // ===== 第五章新敌人：独立弹幕模式 =====

@@ -1,4 +1,4 @@
-import { listSaves, loadSnapshot, restore, summarize } from './save.js';
+import { listSaves, loadSnapshot, restore, summarize, loadMeta } from './save.js';
 
 const STYLE_ID = 'start-menu-style';
 
@@ -205,6 +205,25 @@ function ensureStyle() {
       padding: 10px 12px;
       color: #f0b0a0;
     }
+    .start-menu__about {
+      display: block;
+      padding: 20px 24px;
+      line-height: 1.9;
+      place-items: initial;
+    }
+    .start-menu__about p {
+      margin: 0 0 12px;
+      color: rgba(232, 220, 200, 0.72);
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+    .start-menu__about ul {
+      margin: 10px 0 0;
+      padding-left: 1.2em;
+      color: rgba(232, 220, 200, 0.66);
+      font-size: 13px;
+      line-height: 1.9;
+    }
     @media (max-width: 720px) {
       .start-menu__panel {
         width: calc(100vw - 28px);
@@ -276,6 +295,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
             <div class="start-menu__menu-label">菜单</div>
             <div class="start-menu__actions">
               <button type="button" data-action="start">开始游戏</button>
+              <button type="button" data-action="ngplus" data-ngplus hidden>二周目</button>
               <button type="button" data-action="saves">存档</button>
               <button type="button" data-action="about">关于游戏</button>
             </div>
@@ -291,7 +311,15 @@ export function mountStartMenu(game, { fromIntro } = {}) {
       <div class="start-menu__view" data-view="about">
         <button type="button" class="start-menu__back" data-action="back">返回</button>
         <h2 class="start-menu__heading">关于游戏</h2>
-        <div class="start-menu__about"></div>
+        <div class="start-menu__about">
+          <p>《墓之语》是一款废墟探索与诗词弹幕战斗游戏。你将扮演顾言，在 2147 年的上海废墟中收集散落文字，唤醒失语者，并追寻 Sydney 与方知远留下的记忆。</p>
+          <p>当前版本包含主线章节、第五章「余烬」、江堤横版关卡、维度裂隙 3D 关卡、刻字、背包、存档、难度、诗词大招与二周目基础流程。</p>
+          <ul>
+            <li>移动：WASD / 方向键，交互：E，冲刺：Space</li>
+            <li>战斗：← → 选择，E / Space 确认，K 释放诗词大招</li>
+            <li>菜单：J 任务，I 背包，M 地图，F5/F9 快速存读档</li>
+          </ul>
+        </div>
       </div>
     </section>
   `;
@@ -300,6 +328,12 @@ export function mountStartMenu(game, { fromIntro } = {}) {
   const views = Array.from(root.querySelectorAll('.start-menu__view'));
   const savesBox = root.querySelector('[data-saves]');
   const errorBox = root.querySelector('[data-error]');
+  const ngPlusButton = root.querySelector('[data-ngplus]');
+  const meta = loadMeta();
+  if (ngPlusButton && meta.clearCount > 0) {
+    ngPlusButton.hidden = false;
+    ngPlusButton.textContent = `二周目（已通关 ${meta.clearCount} 次）`;
+  }
 
   const showView = (name) => {
     for (const view of views) {
@@ -330,6 +364,8 @@ export function mountStartMenu(game, { fromIntro } = {}) {
       errorBox.hidden = false;
       return;
     }
+    if (game.flags.new_game_plus) localStorage.setItem('keheng_new_game_plus', '1');
+    else localStorage.removeItem('keheng_new_game_plus');
     game.loadScene(game._pendingScene, game._pendingSpawn);
     game._pendingScene = null;
     game._pendingSpawn = null;
@@ -368,7 +404,11 @@ export function mountStartMenu(game, { fromIntro } = {}) {
     const action = e.target && e.target.dataset ? e.target.dataset.action : null;
     if (!action) return;
     if (action === 'start') {
+      localStorage.removeItem('keheng_new_game_plus');
       window.location.href = 'intro_3d.html?from=menu';
+    } else if (action === 'ngplus') {
+      localStorage.setItem('keheng_new_game_plus', '1');
+      window.location.href = 'intro_3d.html?from=menu&ngplus=1';
     } else if (action === 'saves') {
       showView('saves');
     } else if (action === 'about') {

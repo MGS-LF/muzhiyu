@@ -640,7 +640,7 @@ const regionData = {
         { "speaker": "书远", "text": "这个世界不是死于战争。它是死于失语。死于人类不再能够表达复杂的感情。" },
         { "speaker": "书远", "text": "记住，在这个时代，文字比食物更重要。食物只能让人活着，文字才能让人成为人。" },
         { "speaker": "系统", "text": "（获得物品：刻刀×1、诗词纸片《关雎》×1）" },
-        { "speaker": "系统", "text": "（提示：按 J 键释放诗词净化波，按 K 键大声朗读减速周围弹幕）" }
+        { "speaker": "系统", "text": "（提示：战斗中选择「诗词」可释放净化波；集齐完整诗句后按 K 键释放诗词大招）" }
       ],
       "onComplete": "setFlag:met_shuyuan;giveItem:knife;giveItem:poem_guanju"
     },

@@ -435,6 +435,7 @@ export const scenes = {
 
     props: [
       { x: 80, y: 80, w: 100, h: 50, name: '桌子', collidable: true },
+      { x: 120, y: 92, w: 30, h: 20, name: '收音机' },
     ],
 
     enemies: [
@@ -443,6 +444,7 @@ export const scenes = {
 
     interactables: [
       { id: 'house_b_exit', x: 240, y: 360, label: '离开', type: 'scene_change', target: 'alley_district', spawn: { x: 1100, y: 780 } },
+      { id: 'house_b_radio', x: 135, y: 115, label: '旧收音机', type: 'dialog', dialogKey: 'house_b_radio' },
     ],
 
     items: [
@@ -510,7 +512,7 @@ export const scenes = {
       // —— 上部 BOSS 茧房区 ——
       { id: 'cocoon_screen', x: 1500, y: 350, label: '流动的屏幕内壁', type: 'dialog', dialogKey: 'cocoon_screen' },
       { id: 'to_ruined_library', x: 1100, y: 200, label: '通往废墟深处', type: 'scene_change', target: 'ruined_library', spawn: { x: 100, y: 300 },
-        gate: { chars: ['岳', '星', '然', '冥'], puzzle: 'voidverse', msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先在茧房迷宫里集齐「岳」「星」「然」「冥」——只有完整的诗，能在虚无里点出一条路。' } },
+        gate: { chars: ['岳', '星', '然', '冥'], flag: 'stadium_puzzle_solved', puzzle: 'voidverse', defeatedEnemy: 'stadium_geng_1', msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「岳」「星」「然」「冥」，点亮诗屏，并处理复读巨像——只有完整的诗，能在虚无里点出一条路。' } },
     ],
 
     items: [
@@ -799,6 +801,7 @@ export const scenes = {
       { id: 'char_yue2', x: 300, y: 600, type: 'char_fragment', char: '月' },
       { id: 'char_qiu2', x: 1300, y: 600, type: 'char_fragment', char: '秋' },
       { id: 'page_abyss_1', x: 200, y: 1100, type: 'page', name: '旧书页' },
+      { id: 'seed_abyss', x: 1450, y: 300, type: 'language_seed', name: '语言种子·月光深处' },
       { id: 'diary_5', x: 1200, y: 1200, type: 'diary', name: '方知远的日记·其五' },
       { id: 'diary_6', x: 500, y: 1200, type: 'diary', name: '方知远的日记·其六' },
     ],

@@ -14,7 +14,7 @@ let bgmVolume = 0.25;
 let sfxVolume = 0.35;
 
 // ---------- 真实 mp3 BGM 系统 ----------
-// 场景/事件 ID -> BGM 曲目文件名映射（5首真实音乐，多场景复用）
+// 场景/事件 ID -> BGM 曲目文件名映射（10 首真实音乐，多场景复用）
 // 缺省回退到下方 BGM_DEFS 的合成 drone
 const BGM_FILES = {
   bgm_01_prologue: 'assets/audio/bgm/bgm_01_prologue.mp3',
@@ -29,7 +29,7 @@ const BGM_FILES = {
   bgm_10_ember:    'assets/audio/bgm/bgm_10_ember.mp3',
 };
 
-// 场景/事件 ID -> BGM 曲目 ID 映射（见 docs/BGM_音乐配置方案.md）
+// 场景/事件 ID -> BGM 曲目 ID 映射（见 README 的 BGM 说明）
 // 真实场景ID（来自 scenes.js）直接映射；事件用 __xxx__ 前缀避免冲突
 const SCENE_TO_BGM = {
   // BGM-01 序章主题：3D序幕 + 金门标题

@@ -264,10 +264,10 @@ html, body {
     border-radius: 50%;
 }
 
-#action-zone {
+#action-zone,
+#jump-zone {
     position: absolute;
     right: 24px;
-    bottom: 24px;
     width: 100px;
     height: 100px;
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -277,8 +277,16 @@ html, body {
     display: none;
 }
 
-#action-zone::after {
-    content: '话';
+#action-zone {
+    bottom: 136px;
+}
+
+#jump-zone {
+    bottom: 24px;
+}
+
+#action-zone::after,
+#jump-zone::after {
     position: absolute;
     left: 50%;
     top: 50%;
@@ -288,8 +296,16 @@ html, body {
     pointer-events: none;
 }
 
+#action-zone::after {
+    content: 'E';
+}
+
+#jump-zone::after {
+    content: 'Space';
+}
+
 @media (pointer: coarse) {
-    #joystick-zone, #action-zone {
+    #joystick-zone, #action-zone, #jump-zone {
         display: block;
     }
 }

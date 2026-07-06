@@ -13,7 +13,7 @@ import { SideScrollLevel } from './sidescroll.js';
 import { SCENE_INTROS, createStartTutorial } from './tutorial.js';
 import { PACE } from './pacing.js';
 // 新增系统：存档 / 音效 / 视觉特效 / 难度 / 小地图
-import { autoSave, saveToSlot, loadSnapshot, restore, listSaves, summarize, deleteSave, SAVE_SLOTS } from './save.js';
+import { autoSave, saveToSlot, loadSnapshot, restore, listSaves, summarize, deleteSave, SAVE_SLOTS, recordClear } from './save.js';
 import * as audio from './audio.js';
 import * as fx from './fx.js';
 import * as difficulty from './difficulty.js';
@@ -136,11 +136,11 @@ const DIALOGS = {
     { s: '顾言', t: '那是什么东西？！它身上飘出来的字……在往我脑子里钻！' },
     { s: '系统', t: '那是「梗鬼」——腐烂的语言聚合成的怪物。靠近它，你的理性(SAN)会被它的噪声侵蚀。' },
     { s: '系统', t: '（战斗中：← → 选择菜单，E 确认。敌人回合用方向键移动红心，躲避飞来的烂梗弹幕。）' },
-    { s: '系统', t: '（选「战斗」按 J 让光标停在中心造成最大伤害；选「诗词」消耗一枚汉字碎片释放净化波。）' },
+    { s: '系统', t: '（选「战斗」按 E / 空格让光标停在中心造成最大伤害；选「诗词」消耗一枚汉字碎片释放净化波。）' },
     { s: '系统', t: '（消灭它会掉落金色的汉字碎片。集齐一句诗，就能在世界里凿开一条路。）' },
   ],
   battle_hint: [
-    { s: '系统', t: '（靠近绿色的梗鬼，按 J 释放诗词净化波）' },
+    { s: '系统', t: '（靠近绿色的梗鬼会进入战斗；选「战斗」可用 E / 空格瞄准，选「诗词」可消耗碎片释放净化波。）' },
     { s: '系统', t: '（被弹幕击中会损失 SAN 值；按 Space 冲刺闪避）' },
   ],
   meet_shuyuan: [
@@ -215,6 +215,18 @@ const DIALOGS = {
     { s: '系统', t: '你翻开一本，是《滕王阁序》的残页。' },
     { s: '顾言', t: '「落霞与孤鹜齐飞，秋水共长天一色。」' },
     { s: '系统', t: '（念出诗句，理性恢复了一些。SAN +20）' },
+  ],
+  house_a_book_done: [
+    { s: '系统', t: '书架已经被你翻过。残页仍夹在书脊里，像一小块保留下来的黄昏。' },
+  ],
+  house_b_radio: [
+    { s: '系统', t: '桌边有一台锈蚀的收音机，旋钮卡在一个早已不存在的频道上。' },
+    { s: '收音机', t: '……请……不要只说短句……请把……想念……说完整……' },
+    { s: '顾言', t: '这是谁留下的广播？还有人在这种噪声里，试着提醒别人好好说话。' },
+    { s: '系统', t: '你把旋钮轻轻拨回原位。微弱的白噪声里，夹着半句旧诗。（理性 +10）' },
+  ],
+  house_b_radio_done: [
+    { s: '系统', t: '收音机只剩下细小的电流声。那半句旧诗已经被你记住了。' },
   ],
   shuyuan_farewell: [
     { s: '守砚', t: '我只能送你到这里了。' },
@@ -433,7 +445,12 @@ const DIALOGS = {
   ],
 
   keeper_trade: [
-    { s: '守卷人', t: '谢谢你。我这里有一些东西可以和你交换——不过交易系统还在建设中。先去找记忆碎片吧。' },
+    { s: '守卷人', t: '谢谢你帮我找回了《春望》。我还能替你整理一点残存的文字。你想换什么？', choice: [
+      { label: '交出 1 枚当前诗词弹药，换一页旧书', effect: { trade: 'old_page' } },
+      { label: '交出 2 枚当前诗词弹药，修复 40 点理性', effect: { trade: 'san_restore' } },
+      { label: '暂时不用', effect: { hint: '守卷人点点头，把残页重新收好。' } },
+    ] },
+    { s: '守卷人', t: '交易不该夺走你的记忆。只会整理你此刻握在手里的碎片。真正属于你的诗，我不会碰。' },
   ],
 
   memory_shard_2: [
@@ -705,6 +722,8 @@ export class Game {
     this.player.collectedCharsAll = []; // 永久收集记录（战斗诗词攻击不消耗它），用于门禁与进度 UI
     this.player.inventory = [];
     this.player.diaries = new Set(); // 方知远日记收集记录（id 集合）
+    this.player.seeds = 0; // 语言种子收集数，每枚提供 SAN 上限加成
+    this.player.ngPlus = false;
     this.player.invulnerable = 0;
     this.player.hurtFlash = false;
     this.player.dialogGrace = 0;
@@ -734,6 +753,7 @@ export class Game {
     // 道德/倾向：驱动三结局（火种 / 沉默 / 燃尽）
     this.karma = { mercy: 0, violence: 0, saved: 0 };
     this.ending = null; // 'fire' | 'silence' | 'burnout'
+    this._clearRecorded = false;
     // 已解开的造句谜题、已完成的支线
     this.solvedPuzzles = new Set();
     this.completedQuests = new Set();
@@ -791,7 +811,8 @@ export class Game {
   // 应用当前难度到游戏状态（SAN 上限等）
   _applyDifficulty() {
     const mul = difficulty.currentMul();
-    this.player.maxSan = mul.sanMax;
+    const seedBonus = (this.player.seeds || 0) * 10;
+    this.player.maxSan = mul.sanMax + seedBonus;
     this.player.san = Math.min(this.player.san, this.player.maxSan);
   }
 
@@ -981,7 +1002,9 @@ export class Game {
     }
     let flagOk = true;
     if (gate.flag) flagOk = !!this.flags[gate.flag];
-    return { ok: missing.length === 0 && flagOk, missing };
+    let defeatedOk = true;
+    if (gate.defeatedEnemy) defeatedOk = this.defeatedEnemies.has(gate.defeatedEnemy);
+    return { ok: missing.length === 0 && flagOk && defeatedOk, missing };
   }
 
   // 集中式目标计算：根据场景 + flags + 永久收集，得出当前该做什么 + 指引坐标 + 进度
@@ -1041,6 +1064,12 @@ export class Game {
       if (!need.every(has)) {
         text = '在茧房迷宫收集「岳」「星」「然」「冥」';
         target = point(nearestChar(need)) || point(it('keystone_stadium'));
+      } else if (!this.solvedPuzzles.has('zhengqi')) {
+        text = '点亮熄灭的诗屏，削弱复读巨像';
+        target = point(it('light_screen'));
+      } else if (!this.defeatedEnemies.has('stadium_geng_1')) {
+        text = '挑战算法核心·复读巨像';
+        target = point((this.scene.enemies || []).find(e => e.id === 'stadium_geng_1'));
       } else { text = '通往废墟深处的大门已打开'; target = point(it('to_ruined_library')); }
     } else if (sid === 'ruined_library') {
       const need5a = ['河', '海'];
@@ -1414,6 +1443,7 @@ export class Game {
         const idx = this.scene.enemies.findIndex(e => e.id === enemy.id);
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
+      if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
       // 掉落汉字碎片（数据驱动：从场景掉落表读取）
       const drops = DROP_TABLES[this.scene.id] || DEFAULT_DROPS;
       const drop = drops[Math.floor(Math.random() * drops.length)];
@@ -1445,6 +1475,7 @@ export class Game {
         const idx = this.scene.enemies.findIndex(e => e.id === enemy.id);
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
+      if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
       this.showHint('梗鬼安静下来，化作一缕暖光散去。（宽恕）');
       audio.playSfx('spare');
       fx.flash('#ffd866', 0.4, 500);
@@ -1602,7 +1633,14 @@ export class Game {
     if (this.ending === 'fire') audio.playBGM('__ending_fire__');
     else audio.playBGM('__ending_silence__'); // silence 与 burnout 共用黯淡曲
     audio.playSfx('victory');
+    this._recordClear();
     autoSave(this); // 通关存档
+  }
+
+  _recordClear() {
+    if (this._clearRecorded) return;
+    this._clearRecorded = true;
+    recordClear(this, this.ending);
   }
 
   // ============================================
@@ -2022,7 +2060,9 @@ export class Game {
         return;
       }
       if (best.type === 'dialog') {
-        const key = best.dialogKey;
+        let key = best.dialogKey;
+        if (key === 'house_a_book' && this.flags.house_a_book_read) key = 'house_a_book_done';
+        if (key === 'house_b_radio' && this.flags.house_b_radio_read) key = 'house_b_radio_done';
         // 结局：与Sydney自由对话（AI 可用时）
         if (key === 'meet_tingyu') {
           if (this.flags.game_complete) {
@@ -2042,6 +2082,7 @@ export class Game {
           return;
         }
         this.startDialog(DIALOGS[key] || [], best.label);
+        if (this.dialogState) this.dialogState.dialogKey = key;
         if (key === 'first_geng_intro') {
           this.flags.first_geng_intro_done = true;
         }
@@ -2056,8 +2097,14 @@ export class Game {
           this.flags.alley_briefed = true;
         }
         if (key === 'house_a_book') {
+          this.flags.house_a_book_read = true;
           this.player.san = Math.min(this.player.maxSan, this.player.san + 20);
           this.showHint('念出诗句，SAN +20');
+        }
+        if (key === 'house_b_radio') {
+          this.flags.house_b_radio_read = true;
+          this.player.san = Math.min(this.player.maxSan, this.player.san + 10);
+          this.showHint('听见旧广播，SAN +10');
         }
         if (key === 'shuyuan_farewell') {
           this.objective = { text: '潜行穿越迷宫 → 点亮诗屏削弱茧房 → 挑战复读巨像', done: false };
@@ -2071,14 +2118,6 @@ export class Game {
         if (key === 'memory_shard_3') {
           this.flags.shard3_done = true;
           this.flags.all_memory_shards = true;
-        }
-        // 第五章终章选择完成后：开启前往数据中心（最终节点）的道路
-        if (key === 'abyss_final_choice') {
-          this.flags.chapter5_choice = true;
-          this.showHint('你已在巨大要石前做出了选择。现在，去数据中心面对Sydney。');
-          audio.playSfx('victory');
-          fx.flash('#ffd866', 0.4, 500);
-          autoSave(this);
         }
         return;
       }
@@ -2383,6 +2422,11 @@ export class Game {
     this.ending = (endTag === 'fire' || endTag === 'silence' || endTag === 'burnout') ? endTag : this.resolveEnding();
     this.endingEpilogue = epilogue || null;
     this.flags.game_complete = true;
+    if (this.ending === 'fire') audio.playBGM('__ending_fire__');
+    else audio.playBGM('__ending_silence__');
+    audio.playSfx('victory');
+    this._recordClear();
+    autoSave(this);
   }
 
   async _finalizeWithEngravingSummary() {
@@ -2398,8 +2442,42 @@ export class Game {
     if (effect.violence) this.karma.violence += effect.violence;
     if (effect.saved) this.karma.saved += effect.saved;
     if (effect.san) this.player.san = Math.max(0, Math.min(this.player.maxSan, this.player.san + effect.san));
+    if (effect.trade) this.applyTrade(effect.trade);
     if (effect.flags) for (const k in effect.flags) this.flags[k] = effect.flags[k];
     if (effect.hint) this.showHint(effect.hint);
+  }
+
+  applyTrade(kind) {
+    const spendAmmo = (n) => {
+      if (this.player.collectedChars.length < n) return false;
+      this.player.collectedChars.splice(this.player.collectedChars.length - n, n);
+      return true;
+    };
+    if (kind === 'old_page') {
+      if (!spendAmmo(1)) {
+        this.showHint('诗词弹药不足：至少需要 1 枚当前碎片。');
+        audio.playSfx('uiCancel');
+        return false;
+      }
+      this.player.inventory.push({ id: 'old_page', name: '守卷人整理的旧书页' });
+      this.showHint('获得：守卷人整理的旧书页。');
+      audio.playSfx('pickup');
+      autoSave(this);
+      return true;
+    }
+    if (kind === 'san_restore') {
+      if (!spendAmmo(2)) {
+        this.showHint('诗词弹药不足：至少需要 2 枚当前碎片。');
+        audio.playSfx('uiCancel');
+        return false;
+      }
+      this.player.san = Math.min(this.player.maxSan, this.player.san + 40);
+      this.showHint('守卷人替你修复了断句：理性 +40。');
+      audio.playSfx('purifyWave');
+      autoSave(this);
+      return true;
+    }
+    return false;
   }
 
   // 确认当前选项
@@ -2411,6 +2489,12 @@ export class Game {
     // 若本对话由 LLM 分支生成，把玩家的选择回写上下文，供下次对话复用
     if (d.directorKey && opt.label) recordBranchChoice(d.directorKey, opt.label);
     this.applyEffect(opt.effect);
+    if (d.dialogKey === 'abyss_final_choice' && opt.effect && opt.effect.flags && opt.effect.flags.chapter5_choice) {
+      this.showHint('你已在巨大要石前做出了选择。现在，去数据中心面对Sydney。');
+      audio.playSfx('victory');
+      fx.flash('#ffd866', 0.4, 500);
+      autoSave(this);
+    }
     if (opt.goto) {
       const gi = d.lines.findIndex(n => n.label === opt.goto);
       this.setDialogIndex(gi >= 0 ? gi : d.idx + 1);
@@ -2493,12 +2577,31 @@ export class Game {
     const quests = [];
     const f = this.flags;
     const k = this.karma;
+    const keystones = this._keystoneProgress();
     // 主线
     quests.push({ cat: '主线', text: this.objective.text, done: this.objective.done });
     if (f.met_shuyuan) quests.push({ cat: '主线', text: '找到守砚并获赠刻刀', done: true });
     if (f.sidescroll_knife) quests.push({ cat: '主线', text: '在江堤获得记忆合金小刀', done: true });
     if (f.portal3d_done) quests.push({ cat: '主线', text: '穿过维度裂隙', done: true });
     if (f.stadium_puzzle_solved) quests.push({ cat: '主线', text: '点亮体育馆诗屏', done: true });
+    if (f.stadium_geng_1_defeated || this.defeatedEnemies.has('stadium_geng_1')) {
+      quests.push({ cat: '主线', text: '处理算法核心·复读巨像', done: true });
+    }
+    // 可选目标
+    quests.push({
+      cat: '可选',
+      text: `激活要石 ${keystones.activated}/${keystones.total}（复活/存档点，非主线必需）`,
+      done: keystones.total > 0 && keystones.activated >= keystones.total,
+      optional: true,
+    });
+    if (keystones.currentScenePending.length) {
+      quests.push({
+        cat: '可选',
+        text: `当前场景可激活：${keystones.currentScenePending.join('、')}`,
+        done: false,
+        optional: true,
+      });
+    }
     // 支线
     for (const qid of this.completedQuests) quests.push({ cat: '支线', text: `唤醒失语者：${qid}`, done: true });
     // 收集
@@ -2514,7 +2617,10 @@ export class Game {
       if (this.flags.shard1_done) quests.push({ cat: '余烬', text: '记忆碎片·其一「命名」已获取', done: true });
       if (this.flags.shard2_done) quests.push({ cat: '余烬', text: '记忆碎片·其二「保护」已获取', done: true });
       if (this.flags.shard3_done) quests.push({ cat: '余烬', text: '记忆碎片·其三「完整」已获取', done: true });
-      if (this.flags.chapter5_choice) quests.push({ cat: '余烬', text: '终章选择已完成', done: true });
+      if (this.flags.chapter5_choice) {
+        const choiceNames = { sacrifice: '造物者回响', guardian: '永恒守护', garden: '文字花园' };
+        quests.push({ cat: '余烬', text: `终章选择：${choiceNames[this.flags.chapter5_choice] || '已完成'}`, done: true });
+      }
     }
     // 方知远日记收集进度
     if (this.player.diaries && this.player.diaries.size > 0) {
@@ -2525,6 +2631,21 @@ export class Game {
       quests.push({ cat: '收集', text: `语言种子 ${this.player.seeds}/3${this.flags.all_seeds ? '（已集齐）' : ''}`, done: !!this.flags.all_seeds });
     }
     return quests;
+  }
+
+  _keystoneProgress() {
+    let total = 0;
+    let activated = 0;
+    const currentScenePending = [];
+    for (const scene of Object.values(scenes)) {
+      for (const it of (scene.interactables || [])) {
+        if (it.type !== 'keystone') continue;
+        total++;
+        if (this.activatedKeystones.has(it.id)) activated++;
+        else if (this.scene && scene.id === this.scene.id) currentScenePending.push(it.text || it.label || '要石');
+      }
+    }
+    return { total, activated, currentScenePending };
   }
 
   // ============================================
@@ -2724,6 +2845,7 @@ export class Game {
 
   // 获取背包数据（供 render.js 绘制）
   getInventoryData() {
+    const keystones = this._keystoneProgress();
     return {
       items: this.player.inventory.map((it, i) => ({
         ...it,
@@ -2732,6 +2854,9 @@ export class Game {
       san: this.player.san,
       maxSan: this.player.maxSan,
       chars: [...new Set(this.player.collectedCharsAll)],
+      diaries: this.player.diaries ? this.player.diaries.size : 0,
+      seeds: this.player.seeds || 0,
+      keystones,
     };
   }
 
@@ -2744,7 +2869,7 @@ export class Game {
       // 仅对 cure（失语者）添加游荡；dialog 类型多为静态物体（告示/轿车/书架等），不游荡
       if (it.type !== 'cure') continue;
       // 已完成治愈的 cure NPC 不再游荡
-      if (this.completedQuests.has(it.puzzle)) continue;
+      if (this.completedQuests.has(it.id)) continue;
       // 初始化游荡状态
       if (it._wander === undefined) {
         it._wander = {

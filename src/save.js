@@ -6,6 +6,7 @@
 import * as minimap from './minimap.js';
 
 const SAVE_KEY = 'keheng_saves';
+const META_KEY = 'keheng_meta';
 const AUTOSAVE_SLOT = 'auto';
 const SLOT_COUNT = 3; // 手动槽位 1-3，外加自动槽
 const SAVE_VERSION = 1;
@@ -25,6 +26,7 @@ function snapshot(game) {
     collectedCharsAll: game.player.collectedCharsAll.slice(),
     inventory: game.player.inventory.slice(),
     diaries: game.player.diaries ? Array.from(game.player.diaries) : [],
+    seeds: game.player.seeds || 0,
     flags: { ...game.flags },
     karma: { ...game.karma },
     collected: Array.from(game.collected),
@@ -36,6 +38,7 @@ function snapshot(game) {
     engravings: Array.isArray(game.engravings) ? game.engravings.slice() : [],
     gameTime: game.gameTime || 0,
     difficultyId: game.difficultyId || 'normal',
+    newGamePlus: !!game.flags.new_game_plus,
     explored: minimap.snapshotExplored(),
   };
 }
@@ -122,12 +125,15 @@ export function restore(game, snap) {
     game.player.collectedCharsAll = (snap.collectedCharsAll || []).slice();
     game.player.inventory = (snap.inventory || []).slice();
     game.player.diaries = new Set(snap.diaries || []);
+    game.player.seeds = snap.seeds || 0;
     game.player.invulnerable = 0;
     game.player.hurtFlash = false;
     game.player.dialogGrace = 0;
 
     // 游戏状态
     game.flags = { ...game.flags, ...(snap.flags || {}) };
+    game.flags.new_game_plus = !!(snap.newGamePlus || (snap.flags && snap.flags.new_game_plus));
+    game.player.ngPlus = !!game.flags.new_game_plus;
     game.karma = { ...game.karma, ...(snap.karma || {}) };
     game.collected = new Set(snap.collected || []);
     game.activatedKeystones = new Set(snap.activatedKeystones || []);
@@ -190,3 +196,35 @@ export function summarize(snap) {
 }
 
 export const SAVE_SLOTS = SLOT_COUNT;
+
+export function loadMeta() {
+  try {
+    const raw = localStorage.getItem(META_KEY);
+    if (!raw) return { clearCount: 0, lastEnding: null, lastKarma: null, updatedAt: 0 };
+    const meta = JSON.parse(raw);
+    return {
+      clearCount: Math.max(0, Number(meta.clearCount || 0)),
+      lastEnding: meta.lastEnding || null,
+      lastKarma: meta.lastKarma || null,
+      updatedAt: meta.updatedAt || 0,
+    };
+  } catch (e) {
+    return { clearCount: 0, lastEnding: null, lastKarma: null, updatedAt: 0 };
+  }
+}
+
+export function recordClear(game, ending) {
+  try {
+    const prev = loadMeta();
+    const meta = {
+      clearCount: prev.clearCount + 1,
+      lastEnding: ending || game.ending || null,
+      lastKarma: { ...game.karma },
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+    return meta;
+  } catch (e) {
+    return null;
+  }
+}
