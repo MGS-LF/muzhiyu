@@ -4,12 +4,12 @@
 //       prop 的碰撞由 collidable 字段控制（数据驱动），不再在 game.collides 中硬编码 name
 
 // 各场景敌人掉落表（数据驱动）：key = 场景id，value = 该场景敌人击败后掉落的汉字碎片池
-// 碎片与门禁需求对应：街道→关雎(洲/逑)，居民区→滕王阁序+正气歌(鹜/天/气/形)，体育馆→岳阳楼记(岳/星/然/冥)
+// 碎片与门禁需求对应：街道→关雎(洲/逑)，居民区→滕王阁序+正气歌(鹜/天/气/形)，体育馆→春晓(眠/处/风/少)
 export const DROP_TABLES = {
   street_01: ['洲', '洲', '逑', '逑'], // 关雎：洲/逑
   subway: ['洲', '逑', '鹜', '天'], // 过渡：混杂街道和居民区碎片
   alley_district: ['鹜', '鹜', '天', '天', '气', '形'], // 滕王阁序+正气歌
-  stadium: ['岳', '星', '然', '冥'], // 岳阳楼记（体育馆深处）
+  stadium: ['眠', '处', '风', '少'], // 春晓（体育馆深处）
   ruined_library: ['河', '河', '海', '海'], // 将进酒：河/海
   network_nexus: ['山', '山', '春', '春'], // 春望：山/春
   memory_abyss: ['月', '月', '秋', '秋'], // 月夜忆舍弟：月/秋
@@ -857,20 +857,20 @@ export const scenes = {
         target: 'ruined_library',
         spawn: { x: 100, y: 300 },
         gate: {
-          chars: ['岳', '星', '然', '冥'],
+          chars: ['眠', '处', '风', '少'],
           flag: 'stadium_puzzle_solved',
           puzzle: 'voidverse',
           defeatedEnemy: 'stadium_geng_1',
-          msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「岳」「星」「然」「冥」，点亮诗屏，并处理复读巨像——只有完整的诗，能在虚无里点出一条路。',
+          msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「眠」「处」「风」「少」，点亮诗屏，并处理复读巨像——只有完整的诗，能在虚无里点出一条路。',
         },
       },
     ],
 
     items: [
-      { id: 'char_yue', x: 350, y: 1000, type: 'char_fragment', char: '岳' },
-      { id: 'char_xing2', x: 1650, y: 500, type: 'char_fragment', char: '星' },
-      { id: 'char_ran', x: 500, y: 1750, type: 'char_fragment', char: '然' },
-      { id: 'char_ming', x: 1500, y: 1350, type: 'char_fragment', char: '冥' },
+      { id: 'char_mian', x: 350, y: 1000, type: 'char_fragment', char: '眠' },
+      { id: 'char_chu', x: 1650, y: 500, type: 'char_fragment', char: '处' },
+      { id: 'char_feng', x: 500, y: 1750, type: 'char_fragment', char: '风' },
+      { id: 'char_shao', x: 1500, y: 1350, type: 'char_fragment', char: '少' },
       { id: 'page_stadium_1', x: 600, y: 1500, type: 'page', name: '旧书页' },
       { id: 'page_stadium_2', x: 1700, y: 1100, type: 'page', name: '旧书页' },
     ],

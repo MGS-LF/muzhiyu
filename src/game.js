@@ -424,10 +424,10 @@ export class Game {
       text = '查看屋内的旧物，然后离开';
       target = point(it('house_a_exit') || it('house_b_exit'));
     } else if (sid === 'stadium') {
-      const need = ['岳', '星', '然', '冥'];
-      progress = { title: '岳阳·正气', chars: charProgress(need) };
+      const need = ['眠', '处', '风', '少'];
+      progress = { title: '春晓', chars: charProgress(need) };
       if (!need.every(has)) {
-        text = '在茧房迷宫收集「岳」「星」「然」「冥」';
+        text = '在茧房迷宫收集「眠」「处」「风」「少」';
         target = point(nearestChar(need)) || point(it('keystone_stadium'));
       } else if (!this.solvedPuzzles.has('zhengqi')) {
         text = '点亮熄灭的诗屏，削弱复读巨像';
