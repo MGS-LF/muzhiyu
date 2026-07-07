@@ -104,7 +104,7 @@ export class Game {
       bullets: [],
       // 待显示的粒子
       particles: [],
-      // 上次释放 J 的时间
+      // 上次释放诗词净化的时间
       lastPurify: 0,
       purifyCooldown: 600,
       // 冲刺
@@ -594,10 +594,10 @@ export class Game {
     const sanRatio = this.player.san / this.player.maxSan;
     fx.setDistortion(sanRatio < 0.4 ? (0.4 - sanRatio) / 0.4 : 0);
 
-    // === UI 面板切换（J=任务，M=地图，I=背包，F2=调试）===
+    // === UI 面板切换（Q=任务，M=地图，I=背包，F2=调试）===
     // 面板打开时冻结世界，仅处理面板内导航
     if (this.uiPanel) {
-      if (input.wasPressed('j')) {
+      if (input.wasPressed('q')) {
         this.uiPanel = null;
         return;
       }
@@ -621,7 +621,7 @@ export class Game {
       this.updateParticles(dt);
       return;
     }
-    if (input.wasPressed('j')) {
+    if (input.wasPressed('q')) {
       this.uiPanel = 'quest';
       audio.playSfx('ui');
       return;

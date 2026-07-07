@@ -102,7 +102,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
   ctx.font = '11px serif';
   ctx.textAlign = 'center';
   ctx.fillText(
-    '主线是通关所需；可选目标提供复活点、补给或剧情记录。按 J / Esc 关闭',
+    '主线是通关所需；可选目标提供复活点、补给或剧情记录。按 Q / Esc 关闭',
     px + pw / 2,
     py + ph - 16
   );

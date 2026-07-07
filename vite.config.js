@@ -1,4 +1,7 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
+
+const page = (name) => fileURLToPath(new URL(name, import.meta.url));
 
 export default defineConfig({
   server: {
@@ -16,6 +19,10 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
+      input: {
+        main: page('index.html'),
+        intro3d: page('intro_3d.html'),
+      },
       output: {
         manualChunks: {
           three: ['three'],

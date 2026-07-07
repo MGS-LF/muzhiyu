@@ -291,7 +291,7 @@ export class Battle {
       this.attackBar.pos = 0;
       this.attackBar.dir = 1;
     }
-    // E / 空格停下，避免和 J 任务面板快捷键冲突
+    // E / 空格停下。
     if (input.wasPressed('e') || input.wasPressed(' ')) {
       input.wasPressed(' ');
       this.resolveAttack();
