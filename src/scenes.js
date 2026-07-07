@@ -72,9 +72,9 @@ export const scenes = {
     ],
 
     interactables: [
-      { id: 'player_pod', x: 360, y: 530, label: '我的冷冻仓', type: 'pod' },
+      { id: 'player_pod', x: 360, y: 450, label: '我的冷冻仓', type: 'pod' },
       { id: 'terminal', x: 520, y: 435, label: '终端机', type: 'terminal' },
-      { id: 'locker', x: 650, y: 495, label: '储物柜', type: 'locker' },
+      { id: 'locker', x: 560, y: 470, label: '储物柜', type: 'locker' },
       {
         id: 'broken_pods',
         x: 180,
@@ -84,7 +84,7 @@ export const scenes = {
         dialogKey: 'broken_pods',
       },
       { id: 'fallen_sign', x: 60, y: 100, label: '标牌', type: 'dialog', dialogKey: 'fallen_sign' },
-      { id: 'exit_door', x: 380, y: 560, label: '推开大门', type: 'exit' },
+      { id: 'exit_door', x: 375, y: 560, label: '推开大门', type: 'exit' },
     ],
 
     items: [],
