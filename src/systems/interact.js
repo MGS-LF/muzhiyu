@@ -6,6 +6,20 @@ import * as fx from '../fx.js';
 import { AI } from '../ai/config.js';
 
 export const methods = {
+  applySceneTransition(sceneId) {
+    const trans = SCENE_TRANSITIONS[sceneId];
+    if (!trans) return;
+    const shouldPlayDialog =
+      trans.dialog &&
+      (!trans.dialogCond || this.flags[trans.dialogCond]) &&
+      (!trans.dialogOnceFlag || !this.flags[trans.dialogOnceFlag]);
+    if (shouldPlayDialog) {
+      this.startDialog(DIALOGS[trans.dialog] || [], '系统');
+    }
+    if (trans.flag) this.flags[trans.flag] = true;
+    this.objective = { text: trans.objective, done: false };
+  },
+
   // ============================================
   // 交互
   // ============================================
@@ -116,19 +130,15 @@ export const methods = {
           if (best.gate.puzzle && !this.solvedPuzzles.has(best.gate.puzzle)) {
             const tgt = best.target,
               spawn = best.spawn;
-            this.startCompose(best.gate.puzzle, () => this.loadScene(tgt, spawn));
+            this.startCompose(best.gate.puzzle, () => {
+              this.loadScene(tgt, spawn);
+              this.applySceneTransition(tgt);
+            });
             return;
           }
         }
         this.loadScene(best.target, best.spawn);
-        const trans = SCENE_TRANSITIONS[best.target];
-        if (trans) {
-          if (trans.dialog && (!trans.dialogCond || this.flags[trans.dialogCond])) {
-            this.startDialog(DIALOGS[trans.dialog] || [], '系统');
-          }
-          if (trans.flag) this.flags[trans.flag] = true;
-          this.objective = { text: trans.objective, done: false };
-        }
+        this.applySceneTransition(best.target);
         return;
       }
       if (best.type === 'dialog') {
@@ -145,6 +155,13 @@ export const methods = {
             return;
           }
           audio.playBGM('__meet_tingyu__'); // 遇Sydney专属BGM
+          const chapter5Finale = this.getChapter5FinaleConfig && this.getChapter5FinaleConfig();
+          if (chapter5Finale) {
+            this.startDialog(DIALOGS[chapter5Finale.dialogKey] || [], best.label, () =>
+              this.finishGameWith(chapter5Finale.ending, chapter5Finale.epilogue)
+            );
+            return;
+          }
           if (AI.llm) {
             this.startTingyuConverse();
             return;

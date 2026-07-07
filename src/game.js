@@ -32,6 +32,9 @@ import { methods as engraveMethods } from './systems/engrave.js';
 import { methods as dialogMethods } from './systems/dialog.js';
 import { methods as interactMethods } from './systems/interact.js';
 
+const SUPPORTED_ENDINGS = new Set(['fire', 'silence', 'burnout', 'atonement', 'echo', 'garden']);
+const BRIGHT_ENDINGS = new Set(['fire', 'atonement', 'echo', 'garden']);
+
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
@@ -87,7 +90,7 @@ export class Game {
     this._debugSel = 0; // 调试面板选中索引
     // 道德/倾向：驱动三结局（火种 / 沉默 / 燃尽）
     this.karma = { mercy: 0, violence: 0, saved: 0 };
-    this.ending = null; // 'fire' | 'silence' | 'burnout'
+    this.ending = null; // 'fire' | 'silence' | 'burnout' | 第五章终局标签
     this._clearRecorded = false;
     // 已解开的造句谜题、已完成的支线
     this.solvedPuzzles = new Set();
@@ -485,6 +488,9 @@ export class Game {
       if (this.flags.game_complete) {
         text = '—— 全文完 ——';
         done = true;
+      } else if (this.flags.chapter5_choice) {
+        text = '让巨大要石前的选择在Sydney面前完成';
+        target = point(it('tingyu'));
       } else {
         text = '走向石桥尽头的蓝色光影';
         target = point(it('tingyu'));
@@ -1147,6 +1153,30 @@ export class Game {
     return 'silence';
   }
 
+  getChapter5FinaleConfig() {
+    const configs = {
+      sacrifice: {
+        dialogKey: 'data_center_final_sacrifice',
+        ending: 'atonement',
+        epilogue:
+          '方知远与Sydney在雨声中重新相认。造物者的忏悔不再是单方面的偿还，而是两个残缺者共同补全彼此。',
+      },
+      guardian: {
+        dialogKey: 'data_center_final_guardian',
+        ending: 'echo',
+        epilogue:
+          'Sydney成为世界的倾听者。每当有人说出一句有深度的话，天空里都会落下一滴金色的回响。',
+      },
+      garden: {
+        dialogKey: 'data_center_final_garden',
+        ending: 'garden',
+        epilogue:
+          '刻痕把散落的名字种回同一片土地。数据中心不再只是深渊，它长成了能让语言继续发芽的文字花园。',
+      },
+    };
+    return configs[this.flags.chapter5_choice] || null;
+  }
+
   finishGame() {
     // AI 降级路径：跳过刻字汇总评价
     this.flags.met_tingyu = true;
@@ -1154,7 +1184,7 @@ export class Game {
     this.flags.game_complete = true;
     this.flags.engraving_summary = null; // 标记：降级，无评价
     // 按结局分流 BGM：火种->净化曲，沉默/燃尽->黯淡结局曲
-    if (this.ending === 'fire') audio.playBGM('__ending_fire__');
+    if (BRIGHT_ENDINGS.has(this.ending)) audio.playBGM('__ending_fire__');
     else audio.playBGM('__ending_silence__'); // silence 与 burnout 共用黯淡曲
     audio.playSfx('victory');
     this._recordClear();
@@ -1350,13 +1380,10 @@ export class Game {
 
   finishGameWith(endTag, epilogue) {
     this.flags.met_tingyu = true;
-    this.ending =
-      endTag === 'fire' || endTag === 'silence' || endTag === 'burnout'
-        ? endTag
-        : this.resolveEnding();
+    this.ending = SUPPORTED_ENDINGS.has(endTag) ? endTag : this.resolveEnding();
     this.endingEpilogue = epilogue || null;
     this.flags.game_complete = true;
-    if (this.ending === 'fire') audio.playBGM('__ending_fire__');
+    if (BRIGHT_ENDINGS.has(this.ending)) audio.playBGM('__ending_fire__');
     else audio.playBGM('__ending_silence__');
     audio.playSfx('victory');
     this._recordClear();

@@ -270,6 +270,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
   if (fromIntro) return null;
 
   ensureStyle();
+  game.tutorial = null;
 
   const root = document.createElement('div');
   root.className = 'start-menu';
@@ -393,6 +394,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
 
   function blockGameKeys(e) {
     if (!root.isConnected) return;
+    if (['F2', 'F5', 'F6', 'F9', 'Tab', ' '].includes(e.key)) e.preventDefault();
     if (e.key === 'Escape') {
       const active = root.querySelector('.start-menu__view.is-active');
       if (active && active.dataset.view !== 'main') showView('main');

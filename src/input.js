@@ -29,7 +29,9 @@ window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (!keys[k]) justPressed[k] = true;
   keys[k] = true;
-  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab'].includes(k))
+  if (
+    ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab', 'f2', 'f5', 'f6', 'f9'].includes(k)
+  )
     e.preventDefault();
 });
 window.addEventListener('keyup', (e) => {
@@ -106,18 +108,20 @@ function mountMobileControls() {
   root.innerHTML = `
     <div id="joystick-zone" aria-label="移动摇杆"><div id="joystick-knob"></div></div>
     <button id="action-zone" type="button" aria-label="交互">E</button>
+    <button id="ultimate-zone" type="button" aria-label="诗词大招">K</button>
     <button id="jump-zone" type="button" aria-label="跳跃或冲刺">Space</button>
   `;
   const style = document.createElement('style');
   style.textContent = `
-    #mobile-controls{position:absolute;inset:0;z-index:30;pointer-events:none}
-    #joystick-zone,#action-zone,#jump-zone{display:none}
+    #mobile-controls{position:absolute;inset:0;z-index:9;pointer-events:none}
+    #joystick-zone,#action-zone,#jump-zone,#ultimate-zone{display:none}
     @media (pointer:coarse){
-      #joystick-zone,#action-zone,#jump-zone{display:block;position:absolute;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+      #joystick-zone,#action-zone,#jump-zone,#ultimate-zone{display:block;position:absolute;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
       #joystick-zone{left:22px;bottom:24px;width:126px;height:126px;border:2px solid rgba(255,220,160,.22);border-radius:50%;background:rgba(0,0,0,.18)}
       #joystick-knob{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,220,160,.28);box-shadow:0 0 18px rgba(255,210,120,.18)}
-      #action-zone,#jump-zone{right:24px;width:76px;height:76px;border-radius:50%;border:1px solid rgba(255,220,160,.36);color:rgba(255,235,190,.82);background:rgba(0,0,0,.32);font:700 14px serif;letter-spacing:.04em}
-      #action-zone{bottom:110px}
+      #action-zone,#jump-zone,#ultimate-zone{right:24px;width:76px;height:76px;border-radius:50%;border:1px solid rgba(255,220,160,.36);color:rgba(255,235,190,.82);background:rgba(0,0,0,.32);font:700 14px serif;letter-spacing:.04em}
+      #action-zone{bottom:196px}
+      #ultimate-zone{bottom:110px}
       #jump-zone{bottom:24px}
     }
   `;
@@ -127,6 +131,7 @@ function mountMobileControls() {
   const joy = root.querySelector('#joystick-zone');
   const knob = root.querySelector('#joystick-knob');
   const action = root.querySelector('#action-zone');
+  const ultimate = root.querySelector('#ultimate-zone');
   const jump = root.querySelector('#jump-zone');
   let joyPointer = null;
 
@@ -181,6 +186,7 @@ function mountMobileControls() {
     el.addEventListener('pointerleave', up);
   };
   bindButton(action, 'e');
+  bindButton(ultimate, 'k');
   bindButton(jump, ' ');
 }
 

@@ -46,9 +46,10 @@ export const scenes = {
       { x: 480, y: 574, w: 300, h: 6 },
       { x: 20, y: 20, w: 6, h: 560 },
       { x: 774, y: 20, w: 6, h: 560 },
-      // 更衣室隔断墙
+      // 更衣室隔断墙：左侧留出门洞，玩家可进入储物柜区域
       { x: 580, y: 380, w: 200, h: 6 },
-      { x: 580, y: 380, w: 6, h: 130 },
+      { x: 580, y: 380, w: 6, h: 44 },
+      { x: 580, y: 486, w: 6, h: 24 },
       { x: 774, y: 380, w: 6, h: 130 },
       { x: 580, y: 510, w: 200, h: 6 },
     ],
@@ -74,7 +75,7 @@ export const scenes = {
     interactables: [
       { id: 'player_pod', x: 360, y: 450, label: '我的冷冻仓', type: 'pod' },
       { id: 'terminal', x: 520, y: 435, label: '终端机', type: 'terminal' },
-      { id: 'locker', x: 560, y: 470, label: '储物柜', type: 'locker' },
+      { id: 'locker', x: 642, y: 448, label: '储物柜', type: 'locker' },
       {
         id: 'broken_pods',
         x: 180,
@@ -117,8 +118,6 @@ export const scenes = {
       // 返回冷冻中心的门口（北侧缺口）
       { x: 350, y: 0, w: 6, h: 200 },
       { x: 540, y: 0, w: 6, h: 200 },
-      // 防止玩家卡进地铁站入口
-      { x: 700, y: 500, w: 220, h: 6 },
     ],
 
     props: [
@@ -130,7 +129,7 @@ export const scenes = {
       { x: 1400, y: 110, w: 150, h: 280, name: '高楼' },
       { x: 1600, y: 100, w: 110, h: 300, name: '高楼' },
       { x: 1900, y: 130, w: 130, h: 260, name: '高楼' },
-      { x: 700, y: 500, w: 220, h: 60, name: '地铁站入口', collidable: true },
+      { x: 700, y: 500, w: 220, h: 60, name: '地铁站入口' },
       { x: 600, y: 700, w: 55, h: 30, name: '废弃车辆', collidable: true },
       { x: 900, y: 850, w: 60, h: 32, name: '废弃车辆', collidable: true },
       { x: 1400, y: 750, w: 50, h: 28, name: '废弃车辆', collidable: true },
@@ -331,10 +330,6 @@ export const scenes = {
       { x: 0, y: 994, w: 1400, h: 6 },
       { x: 0, y: 0, w: 6, h: 1000 },
       { x: 1394, y: 0, w: 6, h: 1000 },
-      // 月台与轨道之间的墙
-      { x: 0, y: 600, w: 400, h: 6 },
-      { x: 600, y: 600, w: 400, h: 6 },
-      { x: 1200, y: 600, w: 200, h: 6 },
       // 立柱
       { x: 300, y: 300, w: 30, h: 30, name: '立柱' },
       { x: 700, y: 300, w: 30, h: 30, name: '立柱' },
@@ -349,11 +344,11 @@ export const scenes = {
     props: [
       { x: 450, y: 700, w: 200, h: 80, name: '列车车厢', collidable: true },
       { x: 850, y: 750, w: 180, h: 70, name: '列车车厢', collidable: true },
-      // 月台边缘：分段留出缺口，与 walls 缺口对应，玩家可从缺口下到轨道区
-      { x: 0, y: 580, w: 400, h: 20, name: '月台', collidable: true },
-      { x: 600, y: 580, w: 400, h: 20, name: '月台', collidable: true },
-      { x: 1000, y: 580, w: 200, h: 20, name: '月台', collidable: true },
-      { x: 1250, y: 580, w: 150, h: 20, name: '月台', collidable: true },
+      // 月台边缘仅作视觉层，不再阻挡玩家，避免和小地图探索范围不一致
+      { x: 0, y: 580, w: 400, h: 20, name: '月台' },
+      { x: 600, y: 580, w: 400, h: 20, name: '月台' },
+      { x: 1000, y: 580, w: 200, h: 20, name: '月台' },
+      { x: 1250, y: 580, w: 150, h: 20, name: '月台' },
     ],
 
     enemies: [

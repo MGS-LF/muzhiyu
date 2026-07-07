@@ -16,7 +16,12 @@ export const SCENE_TRANSITIONS = {
   house_a: { objective: '搜刮民居A' },
   house_b: { objective: '清除民居B里的梗鬼' },
   stadium: { objective: '与守砚对话', dialog: 'alley_to_stadium' },
-  ruined_library: { objective: '在废图书馆找到方知远的终端', flag: 'chapter5_started' },
+  ruined_library: {
+    objective: '在废图书馆找到方知远的终端',
+    dialog: 'chapter5_intro',
+    dialogOnceFlag: 'chapter5_started',
+    flag: 'chapter5_started',
+  },
   data_center: { objective: '走向石桥尽头的蓝色光影' },
   network_nexus: { objective: '在网络中枢找到守卷人' },
   memory_abyss: { objective: '在记忆深渊找到幼年Sydney' },

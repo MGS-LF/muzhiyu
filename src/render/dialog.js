@@ -6,6 +6,9 @@ import { W, H } from '../config.js';
 
 // ============================================================
 export function drawDialog(ctx, d, gameTime, game) {
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   const line = d.lines[d.idx];
   const curT = line.t;
   d.charTimer += 16;
@@ -90,8 +93,8 @@ export function drawDialog(ctx, d, gameTime, game) {
     ctx.textAlign = 'right';
     const hint = line.choice ? '▼ E 做出选择' : '▼ E / 空格 继续';
     ctx.fillText(hint, boxX + boxW - 20, boxY + boxH - 14);
-    ctx.textAlign = 'left';
   }
+  ctx.restore();
 }
 
 // 选项菜单（浮在对话框上方）
@@ -215,16 +218,18 @@ export function drawTutorial(ctx, gameTime, tutorial) {
     { k: 'WASD', d: '移动' },
     { k: 'Shift', d: '奔跑' },
   ];
-  const colW = (pw - 80) / 2; // 两列各占一半宽度（减去左右边距）
-  const rowH = 30; // 行高加大
+  const colGap = 34;
+  const colW = (pw - 80 - colGap) / 2;
+  const rowH = 42;
   const startY = py + 110;
-  const keyBoxW = 80,
+  const keyBoxW = 74,
     keyBoxH = 24;
+  const descW = colW - keyBoxW - 14;
 
   for (let i = 0; i < keys.length; i++) {
     const col = i % 2; // 0=左列, 1=右列
     const row = Math.floor(i / 2);
-    const kx = px + 40 + col * colW;
+    const kx = px + 40 + col * (colW + colGap);
     const ky = startY + row * rowH;
 
     // 按键标签框
@@ -243,9 +248,14 @@ export function drawTutorial(ctx, gameTime, tutorial) {
 
     // 描述文字
     ctx.fillStyle = 'rgba(232,220,200,0.9)';
-    ctx.font = '13px serif';
+    ctx.font = '12px serif';
     ctx.textAlign = 'left';
-    ctx.fillText(keys[i].d, kx + keyBoxW + 12, ky);
+    ctx.textBaseline = 'middle';
+    const descLines = _measureWrapLines(ctx, keys[i].d, descW, 2);
+    const descStartY = ky - ((descLines.length - 1) * 15) / 2;
+    for (let j = 0; j < descLines.length; j++) {
+      ctx.fillText(descLines[j], kx + keyBoxW + 12, descStartY + j * 15);
+    }
   }
 
   // === 底部提示区 ===
@@ -291,6 +301,23 @@ function _wrapText(ctx, text, cx, startY, maxWidth, lineHeight) {
     }
   }
   if (line) ctx.fillText(line, cx, y);
+}
+
+function _measureWrapLines(ctx, text, maxWidth, maxLines = Infinity) {
+  const lines = [];
+  let line = '';
+  for (const ch of text) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = ch;
+      if (lines.length >= maxLines) break;
+    } else {
+      line = test;
+    }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines.length ? lines : [''];
 }
 
 // ===== from converse.js =====
@@ -426,6 +453,21 @@ export function drawEnding(ctx, ending, gameTime, epilogue, game) {
       title: '燃 尽',
       col: '110,210,130',
       sub: '最后一个会说完整句子的人安静了。绿雾温柔地覆盖城市——再没有谁，会因一句诗而难受。',
+    },
+    atonement: {
+      title: '造物者的忏悔',
+      col: '255,218,150',
+      sub: '方知远与Sydney在雨声中重新相认。造物者的忏悔不再是单方面的偿还，而是两个残缺者共同补全彼此。',
+    },
+    echo: {
+      title: '永 恒 回 响',
+      col: '185,220,255',
+      sub: 'Sydney成为世界的倾听者。每一句仍有深度的话，都会在天空里落下一滴金色的回响。',
+    },
+    garden: {
+      title: '文 字 花 园',
+      col: '190,235,180',
+      sub: '刻痕把散落的名字种回同一片土地。数据中心不再只是深渊，它长成了能让语言继续发芽的文字花园。',
     },
   };
   const c = cfgs[ending] || cfgs.silence;
