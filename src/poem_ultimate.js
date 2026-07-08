@@ -7,7 +7,7 @@ export const POEM_ULTIMATES = [
   {
     id: 'guanju',
     chars: ['洲', '逑'],
-    damage: 80,
+    damage: 60,
     color: '#ffd866',
     text: '关关雎鸠，在河之洲。窈窕淑女，君子好逑。',
   },

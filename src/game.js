@@ -88,6 +88,8 @@ export class Game {
     // UI 面板状态：null=关闭，'quest'=任务列表，'map'=地图面板，'debug'=调试面板
     this.uiPanel = null;
     this._debugSel = 0; // 调试面板选中索引
+    this.settings = this._loadSettings();
+    this._settingsSel = 0;
     // 道德/倾向：驱动三结局（火种 / 沉默 / 燃尽）
     this.karma = { mercy: 0, violence: 0, saved: 0 };
     this.ending = null; // 'fire' | 'silence' | 'burnout' | 第五章终局标签
@@ -133,6 +135,7 @@ export class Game {
     this.difficultyId = difficulty.loadDifficulty();
     difficulty.setCurrent(this.difficultyId);
     this._applyDifficulty();
+    this._applySettingsRuntime();
     // 背包面板状态（I 键切换）
     // uiPanel 已支持 'quest'/'map'/'debug'，新增 'inventory'
     // 小地图显示开关（默认开）
@@ -161,6 +164,93 @@ export class Game {
     difficulty.setCurrent(id);
     this._applyDifficulty();
     this.showHint(`难度已切换：${difficulty.getDifficultyDef(id).name}`);
+  }
+
+  _loadSettings() {
+    const defaults = {
+      dialogSpeed: 'normal',
+      highContrast: false,
+      colorblind: false,
+      reducedFx: false,
+      muted: false,
+    };
+    try {
+      const raw = localStorage.getItem('keheng_settings');
+      if (!raw) return defaults;
+      return { ...defaults, ...JSON.parse(raw) };
+    } catch (e) {
+      return defaults;
+    }
+  }
+
+  _saveSettings() {
+    try {
+      localStorage.setItem('keheng_settings', JSON.stringify(this.settings));
+    } catch (e) {
+      console.warn('[设置] 保存失败', e);
+    }
+  }
+
+  _applySettingsRuntime() {
+    audio.setMuted(!!(this.settings && this.settings.muted));
+  }
+
+  dialogTypeInterval() {
+    const speed = this.settings && this.settings.dialogSpeed;
+    if (speed === 'fast') return 12;
+    if (speed === 'slow') return 42;
+    return 25;
+  }
+
+  _settingsRows() {
+    const def = difficulty.getDifficultyDef(this.difficultyId);
+    return [
+      {
+        id: 'dialogSpeed',
+        label: '对话速度',
+        value: this.settings.dialogSpeed === 'fast' ? '快' : this.settings.dialogSpeed === 'slow' ? '慢' : '标准',
+      },
+      {
+        id: 'highContrast',
+        label: '高对比字幕',
+        value: this.settings.highContrast ? '开' : '关',
+      },
+      {
+        id: 'colorblind',
+        label: '色盲辅助',
+        value: this.settings.colorblind ? '开' : '关',
+      },
+      {
+        id: 'reducedFx',
+        label: '降低特效',
+        value: this.settings.reducedFx ? '开' : '关',
+      },
+      { id: 'muted', label: '声音', value: audio.isMuted() ? '静音' : '开启' },
+      { id: 'difficulty', label: '难度', value: def ? def.name : this.difficultyId },
+    ];
+  }
+
+  _cycleSetting(id, dir = 1) {
+    const toggle = (key) => {
+      this.settings[key] = !this.settings[key];
+    };
+    if (id === 'dialogSpeed') {
+      const values = ['slow', 'normal', 'fast'];
+      const cur = values.indexOf(this.settings.dialogSpeed);
+      this.settings.dialogSpeed = values[(cur + dir + values.length) % values.length];
+    } else if (id === 'difficulty') {
+      const values = ['easy', 'normal', 'hard'];
+      const cur = values.indexOf(this.difficultyId);
+      this.changeDifficulty(values[(cur + dir + values.length) % values.length]);
+    } else if (id === 'muted') {
+      this.settings.muted = !audio.isMuted();
+      audio.setMuted(this.settings.muted);
+      this.showHint(this.settings.muted ? '已静音' : '已开启声音');
+    } else if (id === 'highContrast' || id === 'colorblind' || id === 'reducedFx') {
+      toggle(id);
+    }
+    this._saveSettings();
+    audio.playSfx('ui');
   }
 
   start() {
@@ -546,6 +636,7 @@ export class Game {
         input.wasPressed('a') ||
         input.wasPressed('s') ||
         input.wasPressed('d') ||
+        input.wasPressed('o') ||
         input.wasPressed(' ') ||
         input.mousePressed();
       if (anyKey) {
@@ -564,6 +655,8 @@ export class Game {
     }
     if (input.wasPressed('n')) {
       audio.setMuted(!audio.isMuted());
+      this.settings.muted = audio.isMuted();
+      this._saveSettings();
       this.showHint(audio.isMuted() ? '🔇 已静音' : '🔊 已开启声音');
       audio.playSfx('ui');
       return true;
@@ -600,7 +693,7 @@ export class Game {
     const sanRatio = this.player.san / this.player.maxSan;
     fx.setDistortion(sanRatio < 0.4 ? (0.4 - sanRatio) / 0.4 : 0);
 
-    // === UI 面板切换（Q=任务，M=地图，I=背包，F2=调试）===
+    // === UI 面板切换（Q=任务，M=地图，I=背包，O=设置，F2=调试）===
     // 面板打开时冻结世界，仅处理面板内导航
     if (this.uiPanel) {
       if (input.wasPressed('q')) {
@@ -612,6 +705,10 @@ export class Game {
         return;
       }
       if (input.wasPressed('i')) {
+        this.uiPanel = null;
+        return;
+      }
+      if (input.wasPressed('o')) {
         this.uiPanel = null;
         return;
       }
@@ -639,6 +736,11 @@ export class Game {
     }
     if (input.wasPressed('m')) {
       this.uiPanel = 'map';
+      return;
+    }
+    if (input.wasPressed('o')) {
+      this.uiPanel = 'settings';
+      audio.playSfx('ui');
       return;
     }
     if (input.wasPressed('f2')) {
@@ -923,10 +1025,15 @@ export class Game {
   // 战斗系统
   // ============================================
   startBattle(enemy) {
-    this.battle = new Battle(enemy, this.player, (result, e) => {
-      this.battleResult = result;
-      this.battleEnemy = e;
-    });
+    this.battle = new Battle(
+      enemy,
+      this.player,
+      (result, e) => {
+        this.battleResult = result;
+        this.battleEnemy = e;
+      },
+      this
+    );
     // 战斗 BGM：BOSS 与普通敌人区分（均使用 bgm_02_battle，BOSS 同曲不额外切）
     audio.playBGM(enemy && enemy.boss ? '__boss__' : '__battle__');
   }
@@ -1451,6 +1558,28 @@ export class Game {
     if (!d || !d.choosing) return;
     const node = d.lines[d.idx];
     const opt = node.choice[d.choiceIndex];
+    const chapter5Choice = opt.effect && opt.effect.flags && opt.effect.flags.chapter5_choice;
+    if (d.dialogKey === 'abyss_final_choice' && chapter5Choice === 'garden') {
+      const check = this.canChooseGardenEnding();
+      if (!check.ok) {
+        this.startDialog(
+          [
+            {
+              s: '巨大要石',
+              t: `要石表面的字没有连成花园。还缺：${check.missing.join('、')}。`,
+            },
+            {
+              s: 'Sydney',
+              t: '这条路需要你一路尽量宽恕、补全关键诗句，并把方知远散落的日记收齐。我们仍然可以选择别的方式结束这一切。',
+            },
+          ],
+          '巨大要石'
+        );
+        if (this.dialogState) this.dialogState.dialogKey = 'garden_locked';
+        audio.playSfx('uiCancel');
+        return;
+      }
+    }
     // 若本对话由 LLM 分支生成，把玩家的选择回写上下文，供下次对话复用
     if (d.directorKey && opt.label) recordBranchChoice(d.directorKey, opt.label);
     this.applyEffect(opt.effect);
@@ -1471,6 +1600,18 @@ export class Game {
     } else {
       this.setDialogIndex(d.idx + 1);
     }
+  }
+
+  canChooseGardenEnding() {
+    const missing = [];
+    if ((this.karma && this.karma.violence) > 0) missing.push('全程宽恕');
+    const requiredPuzzles = Object.keys(PUZZLES).filter((id) => !id.startsWith('cure_'));
+    const unsolved = requiredPuzzles.filter((id) => !this.solvedPuzzles.has(id));
+    if (unsolved.length) missing.push(`关键诗词 ${this.solvedPuzzles.size}/${requiredPuzzles.length}`);
+    if (!this.flags.all_memory_shards) missing.push('三枚记忆碎片');
+    if (!this.flags.all_diaries && (!this.player.diaries || this.player.diaries.size < 6))
+      missing.push(`方知远日记 ${(this.player.diaries && this.player.diaries.size) || 0}/6`);
+    return { ok: missing.length === 0, missing };
   }
 
   advanceDialog() {
@@ -1509,6 +1650,24 @@ export class Game {
   _updatePanel(dt) {
     if (this.uiPanel === 'inventory') {
       this._updateInventoryPanel(dt);
+      return;
+    }
+    if (this.uiPanel === 'settings') {
+      const rows = this._settingsRows();
+      const n = rows.length;
+      if (input.wasPressed('arrowup') || input.wasPressed('w'))
+        this._settingsSel = (this._settingsSel - 1 + n) % n;
+      if (input.wasPressed('arrowdown') || input.wasPressed('s'))
+        this._settingsSel = (this._settingsSel + 1) % n;
+      if (input.wasPressed('arrowleft') || input.wasPressed('a'))
+        this._cycleSetting(rows[this._settingsSel].id, -1);
+      if (
+        input.wasPressed('arrowright') ||
+        input.wasPressed('d') ||
+        input.wasPressed('e') ||
+        input.wasPressed('enter')
+      )
+        this._cycleSetting(rows[this._settingsSel].id, 1);
       return;
     }
     if (this.uiPanel === 'debug') {

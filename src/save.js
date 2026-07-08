@@ -38,6 +38,7 @@ function snapshot(game) {
     engravings: Array.isArray(game.engravings) ? game.engravings.slice() : [],
     gameTime: game.gameTime || 0,
     difficultyId: game.difficultyId || 'normal',
+    settings: game.settings ? { ...game.settings } : null,
     newGamePlus: !!game.flags.new_game_plus,
     explored: minimap.snapshotExplored(),
   };
@@ -141,6 +142,11 @@ export function restore(game, snap) {
     if (snap.difficultyId) {
       game.difficultyId = snap.difficultyId;
       game._applyDifficulty();
+    }
+    if (snap.settings) {
+      game.settings = { ...game.settings, ...snap.settings };
+      if (typeof game._applySettingsRuntime === 'function') game._applySettingsRuntime();
+      if (typeof game._saveSettings === 'function') game._saveSettings();
     }
     minimap.restoreExplored(snap.explored);
 

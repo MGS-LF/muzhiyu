@@ -27,6 +27,8 @@ export function drawUIPanel(ctx, game, gameTime) {
   else if (game.uiPanel === 'map') drawMapPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'inventory')
     drawInventoryPanel(ctx, game, px, py, panelW, panelH, gameTime);
+  else if (game.uiPanel === 'settings')
+    drawSettingsPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'debug') drawDebugPanel(ctx, game, px, py, panelW, panelH, gameTime);
 }
 
@@ -243,6 +245,61 @@ export function drawDebugPanel(ctx, game, px, py, pw, ph, gameTime) {
   ctx.font = '11px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('↑↓ 选择   E 传送   F2/Esc 关闭', px + pw / 2, py + ph - 16);
+  ctx.textAlign = 'left';
+}
+
+export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
+  const rows = game._settingsRows ? game._settingsRows() : [];
+  ctx.fillStyle = '#e8dcc8';
+  ctx.font = 'bold 18px "SimSun","Songti SC",serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('设置', px + pw / 2, py + 34);
+  ctx.textAlign = 'left';
+
+  const startY = py + 76;
+  const rowH = 46;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const y = startY + i * rowH;
+    const sel = i === (game._settingsSel || 0);
+    if (sel) {
+      ctx.fillStyle = 'rgba(255,220,100,0.14)';
+      ctx.fillRect(px + 32, y - 24, pw - 64, 34);
+      ctx.strokeStyle = 'rgba(255,220,100,0.44)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 32, y - 24, pw - 64, 34);
+    }
+    ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
+    ctx.font = sel ? 'bold 15px "SimSun",serif' : '14px "SimSun",serif';
+    ctx.fillText(row.label, px + 52, y);
+
+    const valueW = 132;
+    const valueX = px + pw - valueW - 52;
+    ctx.fillStyle = sel ? 'rgba(255,220,100,0.9)' : 'rgba(120,135,155,0.82)';
+    roundRect(ctx, valueX, y - 22, valueW, 26, 4);
+    ctx.fill();
+    ctx.fillStyle = sel ? '#101018' : '#f2eadc';
+    ctx.font = 'bold 12px "SimSun",serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(row.value, valueX + valueW / 2, y - 4);
+    ctx.textAlign = 'left';
+  }
+
+  const notes = [
+    '高对比字幕会加深对话框并提高文字亮度。',
+    '色盲辅助会减少红绿依赖，战斗提示改用更高对比的蓝黄标记。',
+    '降低特效会关闭强闪光、扭曲与部分粒子叠加。',
+  ];
+  let ny = py + ph - 92;
+  ctx.fillStyle = 'rgba(190,180,155,0.68)';
+  ctx.font = '11px "SimSun",serif';
+  for (const note of notes) {
+    ctx.fillText(note, px + 44, ny);
+    ny += 18;
+  }
+  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.textAlign = 'center';
+  ctx.fillText('↑↓ 选择   ←→ / E 调整   O/Esc 关闭', px + pw / 2, py + ph - 16);
   ctx.textAlign = 'left';
 }
 

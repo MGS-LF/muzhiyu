@@ -12,7 +12,9 @@ export function drawDialog(ctx, d, gameTime, game) {
   const line = d.lines[d.idx];
   const curT = line.t;
   d.charTimer += 16;
-  if (!d.done && curT !== undefined && d.charTimer > 25) {
+  const typeInterval =
+    game && typeof game.dialogTypeInterval === 'function' ? game.dialogTypeInterval() : 25;
+  if (!d.done && curT !== undefined && d.charTimer > typeInterval) {
     d.charTimer = 0;
     d.charIdx++;
     if (d.charIdx >= curT.length) {
@@ -26,13 +28,14 @@ export function drawDialog(ctx, d, gameTime, game) {
     boxY = H - 170,
     boxW = W - 160,
     boxH = 130;
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  const highContrast = !!(game && game.settings && game.settings.highContrast);
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.82)' : 'rgba(0,0,0,0.5)';
   ctx.fillRect(boxX + 4, boxY + 4, boxW, boxH);
-  ctx.fillStyle = 'rgba(15,12,8,0.95)';
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.98)' : 'rgba(15,12,8,0.95)';
   ctx.fillRect(boxX, boxY, boxW, boxH);
   ctx.fillStyle = 'rgba(180,140,80,0.5)';
   ctx.fillRect(boxX, boxY, boxW, 3);
-  ctx.strokeStyle = 'rgba(180,140,80,0.7)';
+  ctx.strokeStyle = highContrast ? 'rgba(255,235,160,0.95)' : 'rgba(180,140,80,0.7)';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(boxX, boxY, boxW, boxH);
 
@@ -49,7 +52,7 @@ export function drawDialog(ctx, d, gameTime, game) {
   ctx.fill();
   ctx.fillRect(cx - 12, cy, 24, 20);
 
-  ctx.fillStyle = 'rgba(255,210,120,0.95)';
+  ctx.fillStyle = highContrast ? '#fff0a8' : 'rgba(255,210,120,0.95)';
   ctx.font = 'bold 16px serif';
   ctx.textBaseline = 'top';
   ctx.fillText(d.name || line.s, boxX + 90, boxY + 18);
@@ -61,7 +64,7 @@ export function drawDialog(ctx, d, gameTime, game) {
   ctx.lineTo(boxX + boxW - 20, boxY + 40);
   ctx.stroke();
 
-  ctx.fillStyle = 'rgba(232,220,200,0.95)';
+  ctx.fillStyle = highContrast ? '#ffffff' : 'rgba(232,220,200,0.95)';
   ctx.font = '15px serif';
   let y = boxY + 60;
   const maxW = boxW - 110;

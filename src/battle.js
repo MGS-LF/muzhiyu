@@ -14,7 +14,7 @@ const BOX_W = 280;
 const BOX_H = 200;
 
 export class Battle {
-  constructor(enemy, player, onEnd) {
+  constructor(enemy, player, onEnd, game = null) {
     // 应用全局难度倍率到敌人 HP
     const mul = difficulty.currentMul();
     const ngPlusMul = player.ngPlus
@@ -32,6 +32,7 @@ export class Battle {
     this.ngPlusMul = ngPlusMul;
     this.player = player;
     this.onEnd = onEnd;
+    this.game = game;
 
     // 战斗状态机
     // intro → menu → act → enemyTurn → result

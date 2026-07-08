@@ -138,7 +138,8 @@ export function render(game, gameTime) {
   player.draw(ctx, camera, gameTime, hurt);
 
   // 粒子
-  if (game.combat.particles.length) drawParticles(ctx, W2S, game.combat.particles);
+  if (game.combat.particles.length && !(game.settings && game.settings.reducedFx))
+    drawParticles(ctx, W2S, game.combat.particles);
 
   // 目标指引箭头
   drawObjectiveArrow(ctx, W2S, game, gameTime);
@@ -184,7 +185,7 @@ export function render(game, gameTime) {
   if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
 
   // === 视觉特效叠加层（震动偏移已在上方 ctx.save/translate 应用，此处仅画覆盖物）===
-  fx.drawOverlay(ctx, gameTime);
+  if (!(game.settings && game.settings.reducedFx)) fx.drawOverlay(ctx, gameTime);
 
   // 存档成功闪烁提示
   if (game._saveFlash > 0) {

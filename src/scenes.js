@@ -204,6 +204,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_jingye',
         introKey: 'cure_intro_a',
+        doneKey: 'cured_street_done',
       },
       {
         id: 'subway_entrance',
@@ -393,6 +394,30 @@ export const scenes = {
         type: 'dialog',
         dialogKey: 'subway_map',
       },
+      {
+        id: 'subway_poem_cache',
+        x: 920,
+        y: 520,
+        label: '站长诗集',
+        type: 'dialog',
+        dialogKey: 'subway_poem_cache',
+      },
+      {
+        id: 'subway_ticket_machine',
+        x: 760,
+        y: 220,
+        label: '坏掉的售票机',
+        type: 'dialog',
+        dialogKey: 'subway_ticket_machine',
+      },
+      {
+        id: 'subway_train_window',
+        x: 560,
+        y: 720,
+        label: '列车窗',
+        type: 'dialog',
+        dialogKey: 'subway_train_window',
+      },
       // 维度裂隙：通往3D深渊关卡的传送点（原"黑暗深处"位置）
       { id: 'portal_3d', x: 1300, y: 800, label: '维度裂隙', type: 'portal3d' },
     ],
@@ -544,6 +569,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_dengguan',
         introKey: 'cure_intro_b',
+        doneKey: 'cured_alley_done',
       },
       // 民居A 可进入
       {
@@ -669,9 +695,28 @@ export const scenes = {
         type: 'dialog',
         dialogKey: 'house_a_book',
       },
+      {
+        id: 'house_a_photo',
+        x: 120,
+        y: 110,
+        label: '褪色相框',
+        type: 'dialog',
+        dialogKey: 'house_a_photo',
+      },
+      {
+        id: 'house_a_desk',
+        x: 160,
+        y: 160,
+        label: '抽屉',
+        type: 'dialog',
+        dialogKey: 'house_a_desk',
+      },
     ],
 
-    items: [{ id: 'house_a_page', x: 130, y: 150, type: 'page', name: '旧书页' }],
+    items: [
+      { id: 'house_a_page', x: 130, y: 150, type: 'page', name: '旧书页' },
+      { id: 'house_a_hidden_page', x: 410, y: 260, type: 'page', name: '夹在墙缝里的纸页' },
+    ],
 
     spawn: { x: 240, y: 300 },
   },
@@ -726,9 +771,28 @@ export const scenes = {
         type: 'dialog',
         dialogKey: 'house_b_radio',
       },
+      {
+        id: 'house_b_wall_notes',
+        x: 360,
+        y: 110,
+        label: '墙上便签',
+        type: 'dialog',
+        dialogKey: 'house_b_wall_notes',
+      },
+      {
+        id: 'house_b_tape',
+        x: 220,
+        y: 260,
+        label: '磁带盒',
+        type: 'dialog',
+        dialogKey: 'house_b_tape',
+      },
     ],
 
-    items: [{ id: 'house_b_page', x: 130, y: 150, type: 'page', name: '旧书页' }],
+    items: [
+      { id: 'house_b_page', x: 130, y: 150, type: 'page', name: '旧书页' },
+      { id: 'house_b_seed_note', x: 390, y: 260, type: 'page', name: '写着完整句子的便条' },
+    ],
 
     spawn: { x: 240, y: 300 },
   },
@@ -1479,6 +1543,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_jingye',
         introKey: 'villager_old_intro',
+        doneKey: 'villager_old_done',
       },
       {
         id: 'villager_boy',
@@ -1488,6 +1553,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_dengguan',
         introKey: 'villager_boy_intro',
+        doneKey: 'villager_boy_done',
       },
       {
         id: 'villager_soldier',
@@ -1497,6 +1563,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_cangsang',
         introKey: 'villager_soldier_intro',
+        doneKey: 'villager_soldier_done',
       },
       {
         id: 'villager_teacher',
@@ -1506,6 +1573,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_chuncan',
         introKey: 'villager_teacher_intro',
+        doneKey: 'villager_teacher_done',
       },
       {
         id: 'villager_child',
@@ -1515,6 +1583,7 @@ export const scenes = {
         type: 'cure',
         puzzle: 'cure_e',
         introKey: 'villager_child_intro',
+        doneKey: 'villager_child_done',
       },
     ],
 

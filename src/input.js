@@ -110,19 +110,21 @@ function mountMobileControls() {
     <button id="action-zone" type="button" aria-label="交互">E</button>
     <button id="ultimate-zone" type="button" aria-label="诗词大招">K</button>
     <button id="jump-zone" type="button" aria-label="跳跃或冲刺">Space</button>
+    <button id="settings-zone" type="button" aria-label="设置">O</button>
   `;
   const style = document.createElement('style');
   style.textContent = `
     #mobile-controls{position:absolute;inset:0;z-index:9;pointer-events:none}
-    #joystick-zone,#action-zone,#jump-zone,#ultimate-zone{display:none}
+    #joystick-zone,#action-zone,#jump-zone,#ultimate-zone,#settings-zone{display:none}
     @media (pointer:coarse){
-      #joystick-zone,#action-zone,#jump-zone,#ultimate-zone{display:block;position:absolute;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-      #joystick-zone{left:22px;bottom:24px;width:126px;height:126px;border:2px solid rgba(255,220,160,.22);border-radius:50%;background:rgba(0,0,0,.18)}
+      #joystick-zone,#action-zone,#jump-zone,#ultimate-zone,#settings-zone{display:block;position:absolute;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+      #joystick-zone{left:max(18px,env(safe-area-inset-left));bottom:max(20px,env(safe-area-inset-bottom));width:132px;height:132px;border:2px solid rgba(255,220,160,.26);border-radius:50%;background:rgba(0,0,0,.24)}
       #joystick-knob{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,220,160,.28);box-shadow:0 0 18px rgba(255,210,120,.18)}
-      #action-zone,#jump-zone,#ultimate-zone{right:24px;width:76px;height:76px;border-radius:50%;border:1px solid rgba(255,220,160,.36);color:rgba(255,235,190,.82);background:rgba(0,0,0,.32);font:700 14px serif;letter-spacing:.04em}
-      #action-zone{bottom:196px}
-      #ultimate-zone{bottom:110px}
-      #jump-zone{bottom:24px}
+      #action-zone,#jump-zone,#ultimate-zone,#settings-zone{right:max(20px,env(safe-area-inset-right));width:82px;height:82px;border-radius:50%;border:1px solid rgba(255,220,160,.42);color:rgba(255,235,190,.9);background:rgba(0,0,0,.38);font:700 14px serif;letter-spacing:.02em}
+      #action-zone{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 184px)}
+      #ultimate-zone{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 92px)}
+      #jump-zone{bottom:max(20px,env(safe-area-inset-bottom))}
+      #settings-zone{right:auto;left:max(22px,env(safe-area-inset-left));top:max(18px,env(safe-area-inset-top));width:54px;height:54px;font-size:16px}
     }
   `;
   document.head.appendChild(style);
@@ -133,6 +135,7 @@ function mountMobileControls() {
   const action = root.querySelector('#action-zone');
   const ultimate = root.querySelector('#ultimate-zone');
   const jump = root.querySelector('#jump-zone');
+  const settings = root.querySelector('#settings-zone');
   let joyPointer = null;
 
   const setStick = (clientX, clientY) => {
@@ -188,6 +191,7 @@ function mountMobileControls() {
   bindButton(action, 'e');
   bindButton(ultimate, 'k');
   bindButton(jump, ' ');
+  bindButton(settings, 'o');
 }
 
 export const input = {

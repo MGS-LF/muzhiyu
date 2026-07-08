@@ -145,6 +145,10 @@ export const methods = {
         let key = best.dialogKey;
         if (key === 'house_a_book' && this.flags.house_a_book_read) key = 'house_a_book_done';
         if (key === 'house_b_radio' && this.flags.house_b_radio_read) key = 'house_b_radio_done';
+        if (key === 'meet_shuyuan' && this.flags.new_game_plus && !this.flags.ngplus_shuyuan_seen) {
+          key = 'meet_shuyuan_ngplus';
+          this.flags.ngplus_shuyuan_seen = true;
+        }
         // 结局：与Sydney自由对话（AI 可用时）
         if (key === 'meet_tingyu') {
           if (this.flags.game_complete) {
@@ -186,7 +190,7 @@ export const methods = {
         if (key === 'first_geng_intro') {
           this.flags.first_geng_intro_done = true;
         }
-        if (key === 'meet_shuyuan' && !this.flags.met_shuyuan) {
+        if ((key === 'meet_shuyuan' || key === 'meet_shuyuan_ngplus') && !this.flags.met_shuyuan) {
           this.flags.met_shuyuan = true;
           this.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
           this.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
@@ -227,7 +231,7 @@ export const methods = {
       }
       if (best.type === 'cure') {
         if (this.completedQuests.has(best.id)) {
-          this.startDialog(DIALOGS.cured_done, best.label);
+          this.startDialog(DIALOGS[best.doneKey] || DIALOGS.cured_done, best.label);
           return;
         }
         const reward = () => {

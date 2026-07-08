@@ -318,7 +318,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
           <ul>
             <li>移动：WASD / 方向键，交互：E，冲刺：Space</li>
             <li>战斗：← → 选择，E / Space 确认，K 释放诗词大招</li>
-            <li>菜单：Q 任务，I 背包，M 地图，F5/F9 快速存读档</li>
+            <li>菜单：Q 任务，I 背包，M 地图，O 设置，F5/F9 快速存读档</li>
           </ul>
         </div>
       </div>

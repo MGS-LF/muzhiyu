@@ -247,7 +247,10 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     // 提示
-    ctx.fillStyle = 'rgba(180,180,190,0.6)';
+    ctx.fillStyle =
+      battle.game && battle.game.settings && battle.game.settings.colorblind
+        ? 'rgba(255,230,120,0.82)'
+        : 'rgba(180,180,190,0.6)';
     ctx.font = '11px serif';
     ctx.textAlign = 'center';
     let hintText = '← → 选择    E / 空格 确认';
@@ -255,6 +258,15 @@ export function drawBattle(ctx, battle, gameTime) {
       hintText += `    K ${battle.availableUltimate ? battle.availableUltimate.name : '诗词大招'}`;
     }
     ctx.fillText(hintText, W / 2, H - 20);
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(pointer: coarse)').matches
+    ) {
+      ctx.fillStyle = 'rgba(255,230,150,0.72)';
+      ctx.font = '10px serif';
+      ctx.fillText('触屏：右侧 E/Space/K 按钮对应确认、闪避与诗词大招', W / 2, H - 34);
+    }
     ctx.fillStyle = 'rgba(150,150,160,0.5)';
     ctx.font = '10px serif';
     ctx.fillText('调查＝看清它残存的"人"，集满清醒可宽恕（不沾血也能脱战）', W / 2, H - 6);
@@ -301,13 +313,19 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.textAlign = 'left';
     }
   } else if (battle.phase === 'enemyTurn') {
-    ctx.fillStyle = 'rgba(255,100,100,0.8)';
+    ctx.fillStyle =
+      battle.game && battle.game.settings && battle.game.settings.colorblind
+        ? 'rgba(255,225,80,0.9)'
+        : 'rgba(255,100,100,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
     ctx.fillText('⚠ 躲避弹幕！用 WASD / 方向键移动红心', W / 2, H - 30);
     ctx.textAlign = 'left';
   } else if (battle.phase === 'attack_aim') {
-    ctx.fillStyle = 'rgba(255,220,120,0.8)';
+    ctx.fillStyle =
+      battle.game && battle.game.settings && battle.game.settings.colorblind
+        ? 'rgba(120,210,255,0.9)'
+        : 'rgba(255,220,120,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
     ctx.fillText('按 E / 空格在中心位置停下，造成最大伤害', W / 2, H - 30);
