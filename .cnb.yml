@@ -12,9 +12,7 @@ main:
 
 $:
   vscode:
-    - docker:
-        image: node:22
-      stages:
+    - stages:
         - name: install dependencies
           script: npm install
         - name: start server
