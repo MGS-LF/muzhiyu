@@ -49,6 +49,20 @@
     letter-spacing: 1px;
   }
 
+  #bootLoader {
+    position: fixed; inset: 0; z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+    background: #050403;
+    transition: opacity 400ms ease;
+  }
+  #bootLoader .boot-inner { text-align: center; }
+  #bootLoader .boot-kicker { color: rgba(210,165,92,0.6); font-size: 12px; letter-spacing: 0.34em; }
+  #bootLoader .boot-title { margin: 14px 0 26px; color: rgba(246,226,185,0.94); font-size: 40px; letter-spacing: 0.34em; text-shadow: 0 0 22px rgba(212,168,90,0.3); }
+  #bootLoader .boot-progress { width: 220px; height: 2px; margin: 0 auto; background: rgba(238,218,178,0.16); overflow: hidden; }
+  #bootProgressFill { width: 0; height: 100%; background: rgba(210,165,92,0.9); animation: bootFill 2600ms ease-out forwards; }
+  @keyframes bootFill { from { width: 0; } to { width: 92%; } }
+  #bootLoader .boot-status { margin-top: 14px; color: rgba(238,218,178,0.5); font-size: 12px; letter-spacing: 0.22em; }
+
 </style>
 </head>
 <body>
@@ -58,5 +72,13 @@
 </div>
 <script type="module" src="src/main.js"></script>
 <div id="introWrap" style="display:none; position:fixed; inset:0; z-index:2000; background:#050403;"></div>
+<div id="bootLoader">
+  <div class="boot-inner">
+    <div class="boot-kicker">公元 2147 · 上海废墟</div>
+    <div class="boot-title">墓 之 语</div>
+    <div class="boot-progress"><div id="bootProgressFill"></div></div>
+    <div id="bootStatus" class="boot-status">正在加载…</div>
+  </div>
+</div>
 </body>
 </html>

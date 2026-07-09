@@ -13,9 +13,6 @@ initAI(); // 后台探测 AI 服务（失败则自动降级为纯文字），不
 // 初始化难度系统（从 localStorage 读取上次选择）
 difficulty.setCurrent(difficulty.loadDifficulty());
 
-// 预加载全部 BGM mp3（后台异步，不阻塞启动）
-audio.preloadBGM();
-
 // 来自序幕（intro_3d.html）？序幕已经把"世界背景+前情提要+苏醒"演完了，
 // 主屏里再播一遍 wake 长对白就重复了。无感衔接：直接把 wake_done 置位，
 // 让 checkAutoTriggers 跳过开局叙述，玩家直接控制顾言。
@@ -47,11 +44,39 @@ const _playTitleBGM = () => {
 window.addEventListener('pointerdown', _playTitleBGM, { once: true });
 window.addEventListener('keydown', _playTitleBGM, { once: true });
 
-game.start();
 let startMenu = null;
-if (!FROM_INTRO) {
-  startMenu = mountStartMenu(game, { fromIntro: false });
+
+// === 启动加载页 ===
+// 音频不再一次性全部下载：仅预加载标题曲，其余 BGM 按场景按需加载（流式边下边播）。
+// 加载页覆盖到标题曲就绪（或超时兜底）后淡出，再启动游戏/显示开始菜单，
+// 避免加载期间游戏在幕后接收输入或触发开场对话。
+const bootLoader = document.getElementById('bootLoader');
+const bootFill = document.getElementById('bootProgressFill');
+const bootStatus = document.getElementById('bootStatus');
+let _bootDone = false;
+function finishBoot() {
+  if (_bootDone) return;
+  _bootDone = true;
+  if (bootFill) {
+    bootFill.style.animation = 'none';
+    bootFill.style.width = '100%';
+  }
+  if (bootStatus) bootStatus.textContent = '即 将 开 始';
+  setTimeout(() => {
+    game.start();
+    if (bootLoader) {
+      bootLoader.style.opacity = '0';
+      setTimeout(() => { bootLoader.style.display = 'none'; }, 420);
+    }
+    if (!FROM_INTRO && !startMenu) {
+      startMenu = mountStartMenu(game, { fromIntro: false });
+    }
+  }, 280);
 }
+if (bootStatus) bootStatus.textContent = '正 在 加 载 资 源 …';
+audio.preloadEssential().then(finishBoot).catch(finishBoot);
+// 兜底：音频加载过慢或失败时最多等 4 秒即放行，避免卡死
+setTimeout(finishBoot, 4000);
 
 window.addEventListener('keheng:startIntro', () => {
   const wrap = document.getElementById('introWrap');

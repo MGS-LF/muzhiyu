@@ -74,20 +74,6 @@ const bgmStreamNodes = new Map(); // bgmId -> { source, gain }（MediaElementSou
 let currentMp3El = null; // 当前流式播放的 audio 元素
 let currentMp3Gain = null; // 当前 mp3 的增益节点
 
-// 优先级：首场景 > 高频 > 其余。用于提前缓存排序
-const BGM_PRELOAD_PRIORITY = [
-  'bgm_01_prologue',
-  'bgm_06_void',
-  'bgm_07_ruins', // 冷冻中心+街道（开局必经）
-  'bgm_02_battle',
-  'bgm_08_stealth', // 战斗+地铁（高频）
-  'bgm_09_river',
-  'bgm_10_ember',
-  'bgm_03_purify',
-  'bgm_04_tingyu',
-  'bgm_05_ending',
-];
-
 // 获取/创建流式 audio 元素（浏览器原生边下边播+缓冲，无需等完整下载）
 function getStreamAudioEl(bgmId) {
   if (bgmAudioEls.has(bgmId)) return bgmAudioEls.get(bgmId);
@@ -126,17 +112,16 @@ async function loadBgmFile(bgmId) {
   return p;
 }
 
-// 预加载：按优先级提前缓存（游戏启动时调用）
-// 优先用 fetch 预热浏览器 HTTP 缓存 + 解码为 AudioBuffer
-export async function preloadBGM() {
-  // 第一阶段：立即为所有 BGM 创建 audio 元素触发浏览器流式预缓冲（非阻塞）
-  for (const id of Object.keys(BGM_FILES)) {
-    getStreamAudioEl(id); // 创建即触发 preload='auto' 缓冲
-  }
-  // 第二阶段：按优先级解码完整 AudioBuffer（用于后续无缝切换）
-  for (const id of BGM_PRELOAD_PRIORITY) {
-    loadBgmFile(id).catch(() => {});
-  }
+// 启动时仅预加载标题曲（序章主题）；其余 BGM 按场景按需加载
+// （preloadScene 在场景切换时预热相邻场景，playMp3BGM 提供流式边下边播回退）
+// 返回 Promise：标题曲解码完成（或失败）时 resolve
+export function preloadEssential() {
+  return loadBgmFile('bgm_01_prologue');
+}
+
+// 兼容旧调用：非阻塞预加载标题曲
+export function preloadBGM() {
+  preloadEssential().catch(() => {});
 }
 
 // 预加载单个 BGM（场景切换前预测调用）
