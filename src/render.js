@@ -1,4 +1,4 @@
-// 渲染器入口 — 编排各子模块的绘制调用
+﻿// 娓叉煋鍣ㄥ叆鍙?鈥?缂栨帓鍚勫瓙妯″潡鐨勭粯鍒惰皟鐢?
 import { W, H } from './config.js';
 import * as fx from './fx.js';
 import { isMuted } from './audio.js';
@@ -11,6 +11,7 @@ import {
   drawKeystones,
   drawRiverside,
   drawSubway,
+  drawSubwayDepth,
   drawAlley,
   drawHouse,
   drawStadium,
@@ -44,36 +45,45 @@ import { drawUIPanel, drawSaveMenu } from './render/panels.js';
 export { Camera } from './render/util.js';
 
 // ============================================================
-// 主渲染
+// 涓绘覆鏌?
 // ============================================================
 export function render(game, gameTime) {
   const { ctx, camera, scene, player, dialogState, hints, tutorial, objective } = game;
 
-  // 战斗模式：独立渲染
+  // 鎴樻枟妯″紡锛氱嫭绔嬫覆鏌?
   if (game.battle) {
     drawBattle(ctx, game.battle, gameTime);
     return;
   }
 
-  // 造句模式：独立渲染
+  if (game.endless) {
+    game.endless.render(ctx, gameTime);
+    return;
+  }
+
+  // 閫犲彞妯″紡锛氱嫭绔嬫覆鏌?
   if (game.compose) {
     drawCompose(ctx, game.compose, gameTime);
     return;
   }
 
-  // Sydney自由对话：独立渲染
+  // Sydney鑷敱瀵硅瘽锛氱嫭绔嬫覆鏌?
   if (game.converse) {
     drawConverse(ctx, game.converse, gameTime);
     return;
   }
 
-  // 江堤横版关卡：独立渲染（叠加对话/提示）
+  // 姹熷牑妯増鍏冲崱锛氱嫭绔嬫覆鏌擄紙鍙犲姞瀵硅瘽/鎻愮ず锛?
   if (game.sidescroll) {
     game.sidescroll.render(ctx, gameTime);
     if (dialogState) drawDialog(ctx, dialogState, gameTime, game);
     if (hints.length) drawHints(ctx, hints);
     if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
     if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
+    if (game.engraveState) {
+      drawEngraving(ctx, game.engraveState, gameTime, game);
+      ensureEngraveInput(game);
+    }
     return;
   }
 
@@ -82,7 +92,7 @@ export function render(game, gameTime) {
   ctx.fillStyle = scene.bgColor;
   ctx.fillRect(0, 0, W, H);
 
-  // 屏幕震动偏移（仅在非战斗/非对话的探索模式下应用，避免影响独立模式）
+  // 灞忓箷闇囧姩鍋忕Щ锛堜粎鍦ㄩ潪鎴樻枟/闈炲璇濈殑鎺㈢储妯″紡涓嬪簲鐢紝閬垮厤褰卞搷鐙珛妯″紡锛?
   const shakeOff = fx.getShakeOffset();
   ctx.save();
   if (shakeOff.x !== 0 || shakeOff.y !== 0) {
@@ -98,12 +108,13 @@ export function render(game, gameTime) {
   else if (scene.id === 'street_01') drawStreet(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'riverside') drawRiverside(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'subway') drawSubway(ctx, W2S, scene, gameTime, game);
+  else if (scene.id === 'subway_depth') drawSubwayDepth(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'alley_district') drawAlley(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'house_a' || scene.id === 'house_b')
     drawHouse(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'stadium') drawStadium(ctx, W2S, scene, gameTime, game);
   else if (scene.id === 'data_center') drawDataCenter(ctx, W2S, scene, gameTime, game);
-  // 第五章新场景：复用通用渲染（props/walls/装饰物由通用层绘制）
+  // 绗簲绔犳柊鍦烘櫙锛氬鐢ㄩ€氱敤娓叉煋锛坧rops/walls/瑁呴グ鐗╃敱閫氱敤灞傜粯鍒讹級
   else if (
     scene.id === 'ruined_library' ||
     scene.id === 'network_nexus' ||
@@ -113,49 +124,49 @@ export function render(game, gameTime) {
     drawGenericScene(ctx, W2S, scene, gameTime, game);
   }
 
-  // 交互点远距离视觉标识（为仅有靠近触发圈、却无实体模型的交互点补可见物）
+  // 浜や簰鐐硅繙璺濈瑙嗚鏍囪瘑锛堜负浠呮湁闈犺繎瑙﹀彂鍦堛€佸嵈鏃犲疄浣撴ā鍨嬬殑浜や簰鐐硅ˉ鍙鐗╋級
   drawInteractableMarkers(ctx, W2S, scene, game, gameTime);
 
-  // 章节门禁的可视化（屏障/光柱）
+  // 绔犺妭闂ㄧ鐨勫彲瑙嗗寲锛堝睆闅?鍏夋煴锛?
   drawGates(ctx, W2S, scene, game, gameTime);
 
   drawInteractHints(ctx, W2S, scene, player, game.collected, gameTime);
 
-  // 敌人（在玩家之下，大地图上显示位置）
+  // 鏁屼汉锛堝湪鐜╁涔嬩笅锛屽ぇ鍦板浘涓婃樉绀轰綅缃級
   if (scene.enemies) drawEnemies(ctx, W2S, scene.enemies, gameTime, game);
 
-  // 掉落物
+  // 鎺夎惤鐗?
   drawItems(ctx, W2S, scene, gameTime, game.collected);
 
-  // 失语者支线 NPC
+  // 澶辫鑰呮敮绾?NPC
   drawCureNPCs(ctx, W2S, scene, game, gameTime);
 
-  // 要石
+  // 瑕佺煶
   drawKeystones(ctx, W2S, scene, game.activatedKeystones, gameTime);
 
-  // 玩家（只有真正受伤时才闪烁）
+  // 鐜╁锛堝彧鏈夌湡姝ｅ彈浼ゆ椂鎵嶉棯鐑侊級
   const hurt = game.player.invulnerable > 0 && game.player.hurtFlash;
   player.draw(ctx, camera, gameTime, hurt);
 
-  // 粒子
+  // 绮掑瓙
   if (game.combat.particles.length && !(game.settings && game.settings.reducedFx))
     drawParticles(ctx, W2S, game.combat.particles);
 
-  // 目标指引箭头
+  // 鐩爣鎸囧紩绠ご
   drawObjectiveArrow(ctx, W2S, game, gameTime);
 
-  // 氛围层（尘埃 / 雾气 / 色彩分级）
+  // 姘涘洿灞傦紙灏樺焹 / 闆炬皵 / 鑹插僵鍒嗙骇锛?
   drawAtmosphere(ctx, scene, gameTime, camera);
 
   drawLighting(ctx, player, camera, scene.id);
 
-  // 受伤红屏（只有真正受伤时）
+  // 鍙椾激绾㈠睆锛堝彧鏈夌湡姝ｅ彈浼ゆ椂锛?
   if (game.player.hurtFlash && game.player.invulnerable > 0)
     drawDamageOverlay(ctx, player, gameTime);
 
   drawHUD(ctx, player, game, objective);
 
-  // 恢复震动偏移的 save（HUD 之后的内容不受震动影响）
+  // 鎭㈠闇囧姩鍋忕Щ鐨?save锛圚UD 涔嬪悗鐨勫唴瀹逛笉鍙楅渿鍔ㄥ奖鍝嶏級
   ctx.restore();
 
   if (dialogState) drawDialog(ctx, dialogState, gameTime, game);
@@ -164,10 +175,10 @@ export function render(game, gameTime) {
 
   if (tutorial) drawTutorial(ctx, gameTime, tutorial);
 
-  // 等待 LLM 的提示
+  // 绛夊緟 LLM 鐨勬彁绀?
   if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
 
-  // 刻字模式
+  // 鍒诲瓧妯″紡
   if (game.engraveState) {
     drawEngraving(ctx, game.engraveState, gameTime, game);
     ensureEngraveInput(game);
@@ -176,18 +187,18 @@ export function render(game, gameTime) {
     game._engraveInput = null;
   }
 
-  // 结局卡（对话结束后，game_complete 时覆盖显示）
+  // 缁撳眬鍗★紙瀵硅瘽缁撴潫鍚庯紝game_complete 鏃惰鐩栨樉绀猴級
   if (game.flags && game.flags.game_complete && !dialogState && !game.engraveState) {
     drawEnding(ctx, game.ending, gameTime, game.endingEpilogue, game);
   }
 
-  // UI 面板（任务/地图/调试）
+  // UI 闈㈡澘锛堜换鍔?鍦板浘/璋冭瘯锛?
   if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
 
-  // === 视觉特效叠加层（震动偏移已在上方 ctx.save/translate 应用，此处仅画覆盖物）===
+  // === 瑙嗚鐗规晥鍙犲姞灞傦紙闇囧姩鍋忕Щ宸插湪涓婃柟 ctx.save/translate 搴旂敤锛屾澶勪粎鐢昏鐩栫墿锛?==
   if (!(game.settings && game.settings.reducedFx)) fx.drawOverlay(ctx, gameTime);
 
-  // 存档成功闪烁提示
+  // 瀛樻。鎴愬姛闂儊鎻愮ず
   if (game._saveFlash > 0) {
     ctx.save();
     ctx.globalAlpha = Math.min(1, game._saveFlash / 500);
@@ -198,17 +209,17 @@ export function render(game, gameTime) {
     ctx.restore();
   }
 
-  // 静音指示
+  // 闈欓煶鎸囩ず
   if (isMuted()) {
     ctx.save();
     ctx.fillStyle = 'rgba(200,200,200,0.6)';
     ctx.font = '11px "SimSun",serif';
     ctx.textAlign = 'right';
-    ctx.fillText('🔇 静音中 (N 取消)', W - 12, 50);
+    ctx.fillText('静音中 (N 取消)', W - 12, 50);
     ctx.restore();
   }
 
-  // 小地图（右上角，Tab 切换显示，非面板/对话/战斗时显示）
+  // 灏忓湴鍥撅紙鍙充笂瑙掞紝Tab 鍒囨崲鏄剧ず锛岄潪闈㈡澘/瀵硅瘽/鎴樻枟鏃舵樉绀猴級
   if (
     game._showMinimap &&
     !game.uiPanel &&
@@ -226,7 +237,7 @@ export function render(game, gameTime) {
     drawMinimap(ctx, game, gameTime);
   }
 
-  // 难度指示（左下角小字）
+  // 闅惧害鎸囩ず锛堝乏涓嬭灏忓瓧锛?
   if (game.difficultyId) {
     ctx.save();
     const def = getDifficultyDef(game.difficultyId);
@@ -234,10 +245,12 @@ export function render(game, gameTime) {
     ctx.font = '10px "SimSun",serif';
     ctx.textAlign = 'left';
     ctx.globalAlpha = 0.6;
-    ctx.fillText(`难度：${def.name}`, 12, H - 12);
+    ctx.fillText(`闅惧害锛?{def.name}`, 12, H - 12);
     ctx.restore();
   }
 
-  // 存档菜单
+  // 瀛樻。鑿滃崟
   if (game._saveMenu) drawSaveMenu(ctx, game, gameTime);
 }
+
+

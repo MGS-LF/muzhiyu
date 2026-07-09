@@ -50,6 +50,7 @@ const SCENE_TO_BGM = {
   data_center: 'bgm_06_void',
   memory_abyss: 'bgm_06_void',
   network_nexus: 'bgm_06_void',
+  subway_depth: 'bgm_08_stealth',
   // BGM-07 废墟探索：街道/居民区/民居A/民居B
   street_01: 'bgm_07_ruins',
   alley_district: 'bgm_07_ruins',

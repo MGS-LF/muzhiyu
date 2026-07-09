@@ -30,6 +30,9 @@ if (NG_PLUS) {
   const meta = loadMeta();
   game.flags.new_game_plus = true;
   game.player.ngPlus = true;
+  game.flags.ngplus_last_ending = meta.lastEnding || null;
+  game.flags.ngplus_clear_count = meta.clearCount || 0;
+  game.flags.ngplus_cleared_endings = meta.clearedEndings || [];
   if (meta.lastKarma) game.karma = { ...game.karma, ...meta.lastKarma };
   game.objective = { text: '二周目：带着旧刻痕重新醒来', done: false };
 }
@@ -47,7 +50,13 @@ window.addEventListener('keydown', _playTitleBGM, { once: true });
 game.start();
 mountStartMenu(game, { fromIntro: FROM_INTRO });
 if (FROM_INTRO && NG_PLUS) {
-  setTimeout(() => game.showHint('二周目：刻字记录与上次旅程的倾向已继承，敌人也更危险。'), 500);
+  setTimeout(() => {
+    const count = game.flags.ngplus_clear_count || 0;
+    const endings = Array.isArray(game.flags.ngplus_cleared_endings)
+      ? game.flags.ngplus_cleared_endings.length
+      : 0;
+    game.showHint(`二周目：刻字记录与上次旅程的倾向已继承，通关 ${count} 次，见证 ${endings} 种结局。`);
+  }, 500);
 }
 
 console.log(

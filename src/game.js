@@ -31,9 +31,17 @@ import { POEM_LINES, PUZZLES } from './data/puzzles.js';
 import { methods as engraveMethods } from './systems/engrave.js';
 import { methods as dialogMethods } from './systems/dialog.js';
 import { methods as interactMethods } from './systems/interact.js';
+import { EndlessMode } from './systems/endless.js';
 
 const SUPPORTED_ENDINGS = new Set(['fire', 'silence', 'burnout', 'atonement', 'echo', 'garden']);
 const BRIGHT_ENDINGS = new Set(['fire', 'atonement', 'echo', 'garden']);
+const VILLAGER_CURE_IDS = [
+  'villager_old',
+  'villager_boy',
+  'villager_soldier',
+  'villager_teacher',
+  'villager_child',
+];
 
 export class Game {
   constructor(canvas) {
@@ -71,6 +79,7 @@ export class Game {
     this.collected = new Set();
     this.activatedKeystones = new Set();
     this.battle = null; // 战斗实例（非 null 时处于战斗界面）
+    this.endless = null; // 无尽模式实例
     this.defeatedEnemies = new Set(); // 已击败的敌人 id
     this.visitedScenes = new Set(); // 已首次进入的场景（用于一次性引导提示）
     // 自定义刻字记录（要石/残碑），持久化到 localStorage
@@ -84,6 +93,8 @@ export class Game {
       met_shuyuan: false,
       alley_briefed: false,
       in_battle_hint: false,
+      subway_depth_log_read: false,
+      all_villagers_cured: false,
     };
     // UI 面板状态：null=关闭，'quest'=任务列表，'map'=地图面板，'debug'=调试面板
     this.uiPanel = null;
@@ -94,6 +105,7 @@ export class Game {
     this.karma = { mercy: 0, violence: 0, saved: 0 };
     this.ending = null; // 'fire' | 'silence' | 'burnout' | 第五章终局标签
     this._clearRecorded = false;
+    this.clearedEndings = new Set();
     // 已解开的造句谜题、已完成的支线
     this.solvedPuzzles = new Set();
     this.completedQuests = new Set();
@@ -327,7 +339,8 @@ export class Game {
     const adjacency = {
       freeze_center: ['street_01'],
       street_01: ['freeze_center', 'subway', 'riverside'],
-      subway: ['street_01'],
+      subway: ['street_01', 'subway_depth'],
+      subway_depth: ['subway'],
       riverside: ['street_01', 'alley_district'],
       alley_district: ['riverside', 'stadium', 'house_a', 'house_b'],
       house_a: ['alley_district'],
@@ -498,8 +511,24 @@ export class Game {
         target = point(it('to_alley'));
       }
     } else if (sid === 'subway') {
-      text = '探索旧地铁站，搜集线索后从台阶返回地面';
-      target = point(it('subway_exit'));
+      if (this.flags.portal3d_done && !this.flags.subway_depth_log_read) {
+        text = '维修通道已经稳定，去看看深层检修门。';
+        target = point(it('subway_depth_door'));
+      } else if (this.flags.portal3d_done && this.flags.subway_depth_log_read) {
+        text = '从台阶返回地面，继续主线';
+        target = point(it('subway_exit'));
+      } else {
+        text = '探索旧地铁站，搜集线索后从台阶返回地面';
+        target = point(it('subway_exit'));
+      }
+    } else if (sid === 'subway_depth') {
+      if (!this.flags.subway_depth_log_read) {
+        text = '查看检修通道深处的站长日志';
+        target = point(it('subway_depth_terminal'));
+      } else {
+        text = '返回地铁站大厅';
+        target = point(it('subway_depth_return'));
+      }
     } else if (sid === 'alley_district') {
       const need = ['鹜', '天', '气', '形'];
       progress = { title: '滕王阁序·正气歌', chars: charProgress(need) };
@@ -586,8 +615,13 @@ export class Game {
         target = point(it('tingyu'));
       }
     } else if (sid === 'lost_village') {
-      text = '唤醒失语者聚居地中的 5 位失语者';
-      target = null;
+      if (this._allVillagersCured()) {
+        text = '失语者聚居地已全部唤醒';
+        done = true;
+      } else {
+        text = '唤醒失语者聚居地中的 5 位失语者';
+        target = null;
+      }
     }
     this.objective = { text, target, progress, done };
   }
@@ -680,6 +714,18 @@ export class Game {
 
   update(dt) {
     if (this._handleGlobalInput(dt)) return;
+    if (typeof this._refreshDerivedProgress === 'function') this._refreshDerivedProgress();
+
+    if (this.endless && !this.battle) {
+      if (this.endless.state === 'gameover') {
+        if (input.wasPressed('escape') || input.wasPressed('e') || input.wasPressed(' ') || input.wasPressed('enter')) {
+          this.endless.quit();
+        }
+        return;
+      }
+      this.endless.update(dt);
+      return;
+    }
 
     // 集中刷新当前目标与指引（廉价，保证始终正确）
     this.refreshObjective();
@@ -1024,6 +1070,15 @@ export class Game {
   // ============================================
   // 战斗系统
   // ============================================
+  startEndlessMode() {
+    if (this.battle || this.dialogState || this.compose || this.converse || this.level3d || this.sidescroll) {
+      return false;
+    }
+    this.endless = new EndlessMode(this);
+    this.endless.start();
+    return true;
+  }
+
   startBattle(enemy) {
     this.battle = new Battle(
       enemy,
@@ -1045,6 +1100,11 @@ export class Game {
     this.battleResult = null;
     this.battleEnemy = null;
     this._encounterGrace = PACE.exploration.encounterGraceMs;
+
+    if (this.endless) {
+      this.endless.onBattleEnd(result, enemy);
+      return;
+    }
 
     // 恢复场景 BGM
     if (this._audioUnlocked && this.scene) {
@@ -1611,6 +1671,7 @@ export class Game {
     if (!this.flags.all_memory_shards) missing.push('三枚记忆碎片');
     if (!this.flags.all_diaries && (!this.player.diaries || this.player.diaries.size < 6))
       missing.push(`方知远日记 ${(this.player.diaries && this.player.diaries.size) || 0}/6`);
+    if (!this._allVillagersCured()) missing.push('失语者村落全员唤醒');
     return { ok: missing.length === 0, missing };
   }
 
@@ -1703,6 +1764,7 @@ export class Game {
       { id: 'network_nexus', name: '网络中枢' },
       { id: 'memory_abyss', name: '记忆深渊' },
       { id: 'lost_village', name: '失语者聚居地' },
+      { id: 'subway_depth', name: '检修通道深处' },
     ];
   }
 
@@ -1712,6 +1774,7 @@ export class Game {
     const f = this.flags;
     const k = this.karma;
     const keystones = this._keystoneProgress();
+    const allVillagersCured = this._allVillagersCured();
     // 主线
     quests.push({ cat: '主线', text: this.objective.text, done: this.objective.done });
     if (f.met_shuyuan) quests.push({ cat: '主线', text: '找到守砚并获赠刻刀', done: true });
@@ -1738,6 +1801,9 @@ export class Game {
       });
     }
     // 支线
+    if (allVillagersCured) {
+      quests.push({ cat: '支线', text: '失语者村落已全员唤醒', done: true });
+    }
     for (const qid of this.completedQuests)
       quests.push({ cat: '支线', text: `唤醒失语者：${qid}`, done: true });
     // 收集
@@ -1804,6 +1870,17 @@ export class Game {
       }
     }
     return { total, activated, currentScenePending };
+  }
+
+  _allVillagersCured() {
+    return !!this.flags.all_villagers_cured || VILLAGER_CURE_IDS.every((id) => this.completedQuests.has(id));
+  }
+
+  _refreshDerivedProgress() {
+    this.flags.all_villagers_cured = this._allVillagersCured();
+    if (this.clearedEndings && !(this.clearedEndings instanceof Set)) {
+      this.clearedEndings = new Set(this.clearedEndings);
+    }
   }
 
   // ============================================

@@ -36,10 +36,12 @@ function snapshot(game) {
     completedQuests: Array.from(game.completedQuests),
     visitedScenes: Array.from(game.visitedScenes),
     engravings: Array.isArray(game.engravings) ? game.engravings.slice() : [],
+    ending: game.ending || null,
     gameTime: game.gameTime || 0,
     difficultyId: game.difficultyId || 'normal',
     settings: game.settings ? { ...game.settings } : null,
     newGamePlus: !!game.flags.new_game_plus,
+    clearedEndings: Array.isArray(game.clearedEndings) ? Array.from(new Set(game.clearedEndings)) : [],
     explored: minimap.snapshotExplored(),
   };
 }
@@ -134,8 +136,10 @@ export function restore(game, snap) {
     game.solvedPuzzles = new Set(snap.solvedPuzzles || []);
     game.completedQuests = new Set(snap.completedQuests || []);
     game.visitedScenes = new Set(snap.visitedScenes || []);
+    game.clearedEndings = new Set(snap.clearedEndings || []);
     if (snap.engravings)
       game.engravings = Array.isArray(snap.engravings) ? snap.engravings.slice() : [];
+    game.ending = snap.ending || game.ending || null;
     game.gameTime = snap.gameTime || 0;
 
     // 难度与探索区域
@@ -148,6 +152,7 @@ export function restore(game, snap) {
       if (typeof game._applySettingsRuntime === 'function') game._applySettingsRuntime();
       if (typeof game._saveSettings === 'function') game._saveSettings();
     }
+    if (typeof game._refreshDerivedProgress === 'function') game._refreshDerivedProgress();
     minimap.restoreExplored(snap.explored);
 
     // 清空运行时临时状态
@@ -183,6 +188,7 @@ export function summarize(snap) {
     street_01: '废弃街道',
     riverside: '江堤',
     subway: '地铁站',
+    subway_depth: '检修通道深处',
     alley_district: '居民区',
     house_a: '民居A',
     house_b: '民居B',
@@ -208,26 +214,29 @@ export const SAVE_SLOTS = SLOT_COUNT;
 export function loadMeta() {
   try {
     const raw = localStorage.getItem(META_KEY);
-    if (!raw) return { clearCount: 0, lastEnding: null, lastKarma: null, updatedAt: 0 };
+    if (!raw) return { clearCount: 0, lastEnding: null, lastKarma: null, clearedEndings: [], updatedAt: 0 };
     const meta = JSON.parse(raw);
     return {
       clearCount: Math.max(0, Number(meta.clearCount || 0)),
       lastEnding: meta.lastEnding || null,
       lastKarma: meta.lastKarma || null,
+      clearedEndings: Array.isArray(meta.clearedEndings) ? meta.clearedEndings : [],
       updatedAt: meta.updatedAt || 0,
     };
   } catch (e) {
-    return { clearCount: 0, lastEnding: null, lastKarma: null, updatedAt: 0 };
+    return { clearCount: 0, lastEnding: null, lastKarma: null, clearedEndings: [], updatedAt: 0 };
   }
 }
 
 export function recordClear(game, ending) {
   try {
     const prev = loadMeta();
+    const endingId = ending || game.ending || null;
     const meta = {
       clearCount: prev.clearCount + 1,
-      lastEnding: ending || game.ending || null,
+      lastEnding: endingId,
       lastKarma: { ...game.karma },
+      clearedEndings: Array.from(new Set([...(prev.clearedEndings || []), endingId].filter(Boolean))),
       updatedAt: Date.now(),
     };
     localStorage.setItem(META_KEY, JSON.stringify(meta));

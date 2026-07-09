@@ -124,6 +124,7 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
     { id: 'freeze_center', name: '冷冻中心', x: 0.1, y: 0.75 },
     { id: 'street_01', name: '废弃街道', x: 0.28, y: 0.55 },
     { id: 'subway', name: '地铁站', x: 0.28, y: 0.85 },
+    { id: 'subway_depth', name: '检修通道深处', x: 0.37, y: 0.91 },
     { id: 'riverside', name: '江堤', x: 0.28, y: 0.3 },
     { id: 'alley_district', name: '居民区', x: 0.46, y: 0.45 },
     { id: 'house_a', name: '民居A', x: 0.46, y: 0.25 },
@@ -139,6 +140,7 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
   const links = [
     ['freeze_center', 'street_01'],
     ['street_01', 'subway'],
+    ['subway', 'subway_depth'],
     ['street_01', 'riverside'],
     ['riverside', 'alley_district'],
     ['alley_district', 'house_a'],

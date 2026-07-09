@@ -297,6 +297,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
             <div class="start-menu__actions">
               <button type="button" data-action="start">开始游戏</button>
               <button type="button" data-action="ngplus" data-ngplus hidden>二周目</button>
+              <button type="button" data-action="endless">无尽回响</button>
               <button type="button" data-action="saves">存档</button>
               <button type="button" data-action="about">关于游戏</button>
             </div>
@@ -333,7 +334,8 @@ export function mountStartMenu(game, { fromIntro } = {}) {
   const meta = loadMeta();
   if (ngPlusButton && meta.clearCount > 0) {
     ngPlusButton.hidden = false;
-    ngPlusButton.textContent = `二周目（已通关 ${meta.clearCount} 次）`;
+    const endings = Array.isArray(meta.clearedEndings) ? new Set(meta.clearedEndings).size : 0;
+    ngPlusButton.textContent = `二周目（已通关 ${meta.clearCount} 次，见证 ${endings} 种结局）`;
   }
 
   const showView = (name) => {
@@ -411,6 +413,8 @@ export function mountStartMenu(game, { fromIntro } = {}) {
     } else if (action === 'ngplus') {
       localStorage.setItem('keheng_new_game_plus', '1');
       window.location.href = 'intro_3d.html';
+    } else if (action === 'endless') {
+      if (game.startEndlessMode()) dismiss();
     } else if (action === 'saves') {
       showView('saves');
     } else if (action === 'about') {

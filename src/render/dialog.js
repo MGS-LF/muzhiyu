@@ -55,7 +55,7 @@ export function drawDialog(ctx, d, gameTime, game) {
   ctx.fillStyle = highContrast ? '#fff0a8' : 'rgba(255,210,120,0.95)';
   ctx.font = 'bold 16px serif';
   ctx.textBaseline = 'top';
-  ctx.fillText(d.name || line.s, boxX + 90, boxY + 18);
+  ctx.fillText(line.s || d.name || '', boxX + 90, boxY + 18);
 
   ctx.strokeStyle = 'rgba(180,140,80,0.4)';
   ctx.lineWidth = 1;

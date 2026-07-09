@@ -420,6 +420,16 @@ export const scenes = {
       },
       // 维度裂隙：通往3D深渊关卡的传送点（原"黑暗深处"位置）
       { id: 'portal_3d', x: 1300, y: 800, label: '维度裂隙', type: 'portal3d' },
+      {
+        id: 'subway_depth_door',
+        x: 1180,
+        y: 920,
+        label: '检修通道门',
+        type: 'scene_change',
+        target: 'subway_depth',
+        spawn: { x: 120, y: 760 },
+        _cond: 'portal3d_done',
+      },
     ],
 
     items: [
@@ -430,6 +440,69 @@ export const scenes = {
     ],
 
     spawn: { x: 100, y: 100 },
+  },
+
+  // ==========================================
+  // 检修通道深处（3D 裂隙之后的 2D 后续区域）
+  // ==========================================
+  subway_depth: {
+    id: 'subway_depth',
+    name: '检修通道深处',
+    width: 1200,
+    height: 900,
+    bgColor: '#171822',
+    atmosphere: {
+      tint: 'rgba(120,145,200,0.1)',
+      motes: { n: 24, color: '145,170,220', speed: 0.18, size: 1.3 },
+      fog: 0.62,
+    },
+
+    walls: [
+      { x: 0, y: 0, w: 1200, h: 8 },
+      { x: 0, y: 892, w: 1200, h: 8 },
+      { x: 0, y: 0, w: 8, h: 900 },
+      { x: 1192, y: 0, w: 8, h: 900 },
+      { x: 260, y: 170, w: 14, h: 300, name: '维修架' },
+      { x: 560, y: 470, w: 220, h: 14, name: '倒塌的管道' },
+      { x: 900, y: 110, w: 14, h: 340, name: '电缆井' },
+    ],
+
+    props: [
+      { x: 340, y: 160, w: 90, h: 52, name: '工具箱', collidable: true },
+      { x: 520, y: 690, w: 140, h: 34, name: '翻倒的推车', collidable: true },
+      { x: 800, y: 300, w: 78, h: 78, name: '备用发电机', collidable: true },
+    ],
+
+    enemies: [
+      { id: 'subdepth_geng_1', typeId: 'geng_medium', x: 710, y: 280, hp: 60, maxHp: 60, name: '裂隙梗鬼' },
+      { id: 'subdepth_geng_2', typeId: 'geng_weak', x: 1030, y: 640, hp: 30, maxHp: 30, name: '回音梗鬼' },
+    ],
+
+    interactables: [
+      {
+        id: 'subway_depth_return',
+        x: 120,
+        y: 760,
+        label: '返回地铁站',
+        type: 'scene_change',
+        target: 'subway',
+        spawn: { x: 1180, y: 900 },
+      },
+      {
+        id: 'subway_depth_terminal',
+        x: 500,
+        y: 330,
+        label: '站长日志终端',
+        type: 'dialog',
+        dialogKey: 'subway_depth_terminal',
+      },
+    ],
+
+    items: [
+      { id: 'seed_subway_depth', x: 960, y: 600, type: 'language_seed', name: '语言种子·裂隙深处' },
+    ],
+
+    spawn: { x: 120, y: 760 },
   },
 
   // ==========================================

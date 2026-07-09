@@ -149,6 +149,10 @@ export const methods = {
           key = 'meet_shuyuan_ngplus';
           this.flags.ngplus_shuyuan_seen = true;
         }
+        if (key === 'subway_depth_terminal') {
+          this.flags.subway_depth_log_read = true;
+          this.objective = { text: '返回地铁站，继续主线', done: false };
+        }
         // 结局：与Sydney自由对话（AI 可用时）
         if (key === 'meet_tingyu') {
           if (this.flags.game_complete) {
@@ -241,6 +245,11 @@ export const methods = {
           this.player.san = this.player.maxSan;
           this.showHint('你唤醒了一个失语者！理性上限 +10。（救助 +1）');
           audio.playBGM('__cure__'); // 治愈净化BGM（短暂氛围，结束后由场景恢复）
+          // 检查失语者村落全唤醒
+          if (this._allVillagersCured && !this.flags.all_villagers_cured) {
+            this.flags.all_villagers_cured = true;
+            setTimeout(() => this.showHint?.('失语者村落全员唤醒！文字花园的种子已埋下。'), 600);
+          }
         };
         this.startDialog(
           DIALOGS[best.introKey] || [{ s: '系统', t: '你在他面前蹲下。' }],

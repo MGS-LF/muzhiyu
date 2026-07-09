@@ -4,6 +4,7 @@
 // 后段：精准平台跳跃 + 精英梗鬼 + 出口通向居民区
 // 重力 + 跳跃（轻跳/重跳）+ 平台 + 梯子；鼠标左键小刀近战；空格跳跃踩踏
 import { W, H } from './config.js';
+import { DIALOGS } from './data/dialogs.js';
 
 // === 物理参数 ===
 const GRAVITY = 0.55;
@@ -42,7 +43,8 @@ const KNIFE_DIALOG = [
 
 const EXIT_DIALOG = [
   { s: '系统', t: '你穿过长堤，踩过最后一片芦苇。东面的路口通向废墟居民区。' },
-  { s: '守砚', t: '（远处传来老人的声音）我在前面等你——居民区里，有更深的的东西。' },
+  { s: '系统', t: '身后远远传来守砚的声音——' },
+  { s: '守砚', t: '路通了！好孩子。居民区里还有你要找的东西，我在那边的老巷子等你——我知道另一条路。' },
 ];
 
 const KEYSTONE_DIALOG = [
@@ -220,10 +222,24 @@ export class SideScrollLevel {
     // 老人对话触发
     if (!this.npc.talked && Math.abs(p.x - this.npc.x) < 50 && p.onGround) {
       this.npc.talked = true;
-      this.p.hasKnife = true;
-      this.game.flags.sidescroll_knife = true;
-      this.game.startDialog(KNIFE_DIALOG, '守砚', () => {
-        // 刀给完后，再交付提灯（返回传送点）
+      // 使用完整剧情对话（支持二周目分支）
+      let dialogKey = 'meet_shuyuan';
+      if (this.game.flags.new_game_plus && !this.game.flags.ngplus_shuyuan_seen) {
+        dialogKey = 'meet_shuyuan_ngplus';
+        this.game.flags.ngplus_shuyuan_seen = true;
+      }
+      this.game.startDialog(DIALOGS[dialogKey], '守砚', () => {
+        // 对话完成后：设置 flags 和物品（sidescroll 模式下 interact.js 不触发）
+        if (!this.game.flags.met_shuyuan) {
+          this.game.flags.met_shuyuan = true;
+          this.game.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
+          this.game.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
+          this.game.showHint('获得：刻刀、诗词纸片《关雎》');
+          this.game.objective = { text: '穿过江堤，前往废墟居民区', done: false };
+        }
+        this.p.hasKnife = true;
+        this.game.flags.sidescroll_knife = true;
+        // 交付提灯（返回传送点）
         this.returnPortal.active = true;
         this.game.flags.sidescroll_lantern = true;
         this.game.startDialog(RETURN_DIALOG, '守砚', () => {
