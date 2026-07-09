@@ -1,8 +1,11 @@
-# CNB.run 部署配置
-# 自动检测 Node.js 项目，运行 server.js
+# CNB 部署配置
 main:
-  - name: game-server
-    description: 刻痕游戏服务器
-    runtime: node
-    start: node server/index.js
-    port: 8080
+  push:
+    - docker:
+        image: node:22
+      stages:
+        - name: install dependencies
+          script: npm install
+        - name: start server
+          script: node server.js
+          port: 8080
