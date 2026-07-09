@@ -12,9 +12,8 @@ main:
 
 $:
   vscode:
-    - stages:
+    - env:
+        CNB_WELCOME_CMD: "npm start"
+      stages:
         - name: install dependencies
           script: npm install
-        - name: start server
-          script: npm start
-          port: 8080
