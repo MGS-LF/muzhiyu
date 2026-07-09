@@ -1,7 +1,8 @@
 // 渲染模块：panels
 import { W, H } from '../config.js';
 import { roundRect, wrapText } from './util.js';
-import { listSaves, summarize } from '../save.js';
+import { loadAllSaves, SAVE_SLOTS, summarize } from '../save.js';
+import { CONTROL_HINTS } from '../data/controls.js';
 
 // ============================================================
 // UI 面板：任务列表 / 地图 / 调试传送
@@ -310,6 +311,7 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
 // ============================================================
 export function drawSaveMenu(ctx, game, gameTime) {
   if (!game._saveMenu) return;
+  const mode = game._saveMenu === 'load' ? 'load' : 'save';
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.fillRect(0, 0, W, H);
@@ -326,12 +328,26 @@ export function drawSaveMenu(ctx, game, gameTime) {
   ctx.fillStyle = '#e8dcc8';
   ctx.font = 'bold 20px "SimSun","Songti SC",serif';
   ctx.textAlign = 'center';
-  ctx.fillText('📜 存档管理', px + pw / 2, py + 38);
+  ctx.fillText('存档管理', px + pw / 2, py + 38);
 
-  const saves = _readSavesForMenu();
-  const items = [...saves, { slot: 'new', isNew: true }];
-  let yy = py + 70;
-  const lineH = 72;
+  const tabY = py + 58;
+  const tabW = 110;
+  for (const [i, tab] of ['save', 'load'].entries()) {
+    const selected = mode === tab;
+    const tx = px + pw / 2 - tabW + i * tabW;
+    ctx.fillStyle = selected ? 'rgba(255,220,100,0.16)' : 'rgba(20,20,30,0.55)';
+    ctx.fillRect(tx, tabY, tabW, 28);
+    ctx.strokeStyle = selected ? 'rgba(255,220,100,0.65)' : 'rgba(120,120,140,0.35)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tx, tabY, tabW, 28);
+    ctx.fillStyle = selected ? '#ffdd66' : 'rgba(200,200,200,0.65)';
+    ctx.font = selected ? 'bold 13px "SimSun",serif' : '13px "SimSun",serif';
+    ctx.fillText(tab === 'save' ? '保存' : '读取', tx + tabW / 2, tabY + 18);
+  }
+
+  const items = _readSaveMenuItems(mode);
+  let yy = py + 105;
+  const lineH = 76;
   game._saveMenuIdx = Math.min(game._saveMenuIdx, items.length - 1);
 
   for (let i = 0; i < items.length; i++) {
@@ -345,17 +361,20 @@ export function drawSaveMenu(ctx, game, gameTime) {
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 20, iy - 6, pw - 40, lineH - 10);
     }
-    if (it.isNew) {
-      ctx.fillStyle = sel ? '#ffdd66' : 'rgba(200,200,200,0.6)';
-      ctx.font = sel ? 'bold 15px "SimSun",serif' : '14px "SimSun",serif';
-      ctx.textAlign = 'left';
-      ctx.fillText((sel ? '▶ ' : '  ') + '＋ 新建存档（存入第一个空槽位）', px + 40, iy + 28);
+    ctx.textAlign = 'left';
+    if (it.empty) {
+      const tag = it.slot === 'auto' ? '自动' : '槽位 ' + it.slot;
+      ctx.fillStyle = sel ? '#ffdd66' : 'rgba(200,200,200,0.48)';
+      ctx.font = sel ? 'bold 14px "SimSun",serif' : '14px "SimSun",serif';
+      ctx.fillText((sel ? '> ' : '  ') + `[${tag}]  空`, px + 40, iy + 24);
+      ctx.fillStyle = 'rgba(180,170,150,0.48)';
+      ctx.font = '11px "SimSun",serif';
+      ctx.fillText(mode === 'save' ? '按 E 写入此槽位' : '没有可读取的记录', px + 40, iy + 46);
     } else {
       const tag = it.slot === 'auto' ? '自动' : '槽位 ' + it.slot;
       ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
       ctx.font = 'bold 14px "SimSun",serif';
-      ctx.textAlign = 'left';
-      ctx.fillText((sel ? '▶ ' : '  ') + `[${tag}]  ${it.scene}`, px + 40, iy + 22);
+      ctx.fillText((sel ? '> ' : '  ') + `[${tag}]  ${it.scene}`, px + 40, iy + 22);
       ctx.fillStyle = 'rgba(180,170,150,0.7)';
       ctx.font = '11px "SimSun",serif';
       ctx.fillText(
@@ -363,25 +382,39 @@ export function drawSaveMenu(ctx, game, gameTime) {
         px + 40,
         iy + 42
       );
+      if (mode === 'save' && it.slot !== 'auto') {
+        ctx.fillStyle = 'rgba(220,190,130,0.46)';
+        ctx.fillText('按 E 覆盖此槽位', px + 40, iy + 60);
+      }
     }
   }
 
   ctx.fillStyle = 'rgba(180,170,150,0.5)';
   ctx.font = '11px "SimSun",serif';
   ctx.textAlign = 'center';
-  ctx.fillText('↑↓ 选择   E 读取/新建   F6/Esc 关闭', px + pw / 2, py + ph - 16);
+  const hint = mode === 'save' ? CONTROL_HINTS.saveMenuSave : CONTROL_HINTS.saveMenuLoad;
+  const hintLines = wrapText(ctx, hint, pw - 48).slice(0, 2);
+  const hintStartY = py + ph - 16 - (hintLines.length - 1) * 12;
+  for (let i = 0; i < hintLines.length; i++) {
+    ctx.fillText(hintLines[i], px + pw / 2, hintStartY + i * 13);
+  }
   ctx.textAlign = 'left';
   ctx.restore();
 }
 
 // 从存档系统读取菜单摘要，避免渲染层复制存档格式细节。
-function _readSavesForMenu() {
-  return listSaves()
-    .map((snap) => {
-      const summary = summarize(snap);
-      return summary ? { slot: snap.slot, ...summary } : null;
-    })
-    .filter(Boolean);
+function _readSaveMenuItems(mode) {
+  const saves = loadAllSaves();
+  const manual = [];
+  for (let i = 1; i <= SAVE_SLOTS; i++) {
+    const snap = saves.slots[i - 1];
+    const summary = summarize(snap);
+    manual.push(summary ? { slot: i, ...summary } : { slot: i, empty: true });
+  }
+  if (mode === 'save') return manual;
+
+  const autoSummary = summarize(saves.auto);
+  return [autoSummary ? { slot: 'auto', ...autoSummary } : { slot: 'auto', empty: true }, ...manual];
 }
 
 // ============================================================

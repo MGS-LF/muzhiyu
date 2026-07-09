@@ -4,7 +4,13 @@ import { initAI } from './ai/config.js';
 import * as difficulty from './difficulty.js';
 import * as audio from './audio.js';
 import { mountStartMenu } from './start_menu.js';
-import { loadMeta } from './save.js';
+import {
+  clearRefreshResume,
+  loadMeta,
+  loadRefreshResume,
+  restore,
+  saveRefreshResume,
+} from './save.js';
 
 const canvas = document.getElementById('c');
 const game = new Game(canvas);
@@ -23,6 +29,7 @@ if (FROM_INTRO) {
 }
 
 const NG_PLUS = localStorage.getItem('keheng_new_game_plus') === '1';
+const REFRESH_RESUME = !FROM_INTRO ? loadRefreshResume() : null;
 if (NG_PLUS) {
   const meta = loadMeta();
   game.flags.new_game_plus = true;
@@ -45,6 +52,64 @@ window.addEventListener('pointerdown', _playTitleBGM, { once: true });
 window.addEventListener('keydown', _playTitleBGM, { once: true });
 
 let startMenu = null;
+let introFrame = null;
+let didRestoreRefreshResume = false;
+
+function shouldWriteRefreshResume() {
+  if (!game.scene) return false;
+  if (game.endless) return false;
+  return game.scene.id !== 'freeze_center' || !!game.flags.wake_done;
+}
+
+function writeRefreshResume() {
+  if (shouldWriteRefreshResume()) saveRefreshResume(game);
+}
+
+function restoreRefreshResumeIfNeeded() {
+  if (!REFRESH_RESUME || didRestoreRefreshResume) return false;
+  const ok = restore(game, REFRESH_RESUME);
+  if (!ok || !game._pendingScene) {
+    clearRefreshResume();
+    return false;
+  }
+  game.loadScene(game._pendingScene, game._pendingSpawn);
+  game._pendingScene = null;
+  game._pendingSpawn = null;
+  didRestoreRefreshResume = true;
+  clearRefreshResume();
+  game.showHint('已恢复刷新前的位置');
+  return true;
+}
+
+function finishIntroOverlay() {
+  const wrap = document.getElementById('introWrap');
+  if (wrap) {
+    // 淡出幕布，避免结束硬切闪烁
+    wrap.style.transition = 'opacity 340ms ease';
+    wrap.style.opacity = '0';
+    setTimeout(() => {
+      wrap.style.display = 'none';
+      wrap.style.opacity = '';
+      wrap.style.transition = '';
+      wrap.innerHTML = '';
+    }, 360);
+  }
+  window.removeEventListener('keydown', skipIntroFromParent, true);
+  introFrame = null;
+  game.flags.wake_done = true;
+}
+
+function skipIntroFromParent(e) {
+  const key = e.key.toLowerCase();
+  if (key !== 'escape' && key !== 's') return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (introFrame && introFrame.contentWindow) {
+    introFrame.contentWindow.postMessage({ type: 'intro:skip' }, '*');
+  } else {
+    finishIntroOverlay();
+  }
+}
 
 // === 启动加载页 ===
 // 音频不再一次性全部下载：仅预加载标题曲，其余 BGM 按场景按需加载（流式边下边播）。
@@ -64,11 +129,12 @@ function finishBoot() {
   if (bootStatus) bootStatus.textContent = '即 将 开 始';
   setTimeout(() => {
     game.start();
+    const restoredRefresh = restoreRefreshResumeIfNeeded();
     if (bootLoader) {
       bootLoader.style.opacity = '0';
       setTimeout(() => { bootLoader.style.display = 'none'; }, 420);
     }
-    if (!FROM_INTRO && !startMenu) {
+    if (!FROM_INTRO && !restoredRefresh && !startMenu) {
       startMenu = mountStartMenu(game, { fromIntro: false });
     }
   }, 280);
@@ -112,27 +178,24 @@ window.addEventListener('keheng:startIntro', () => {
     });
   });
   wrap.appendChild(iframe);
+  introFrame = iframe;
+  window.addEventListener('keydown', skipIntroFromParent, true);
 
   if (startMenu && startMenu.close) startMenu.close();
 });
 
 window.addEventListener('message', (e) => {
   if (e.data && e.data.type === 'intro:done') {
-    const wrap = document.getElementById('introWrap');
-    if (wrap) {
-      // 淡出幕布，避免结束硬切闪烁
-      wrap.style.transition = 'opacity 340ms ease';
-      wrap.style.opacity = '0';
-      setTimeout(() => {
-        wrap.style.display = 'none';
-        wrap.style.opacity = '';
-        wrap.style.transition = '';
-        wrap.innerHTML = '';
-      }, 360);
-    }
-    game.flags.wake_done = true;
+    finishIntroOverlay();
   }
 });
+
+window.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  if (key === 'f5' || ((e.ctrlKey || e.metaKey) && key === 'r')) writeRefreshResume();
+}, true);
+window.addEventListener('pagehide', writeRefreshResume);
+window.addEventListener('beforeunload', writeRefreshResume);
 
 if (FROM_INTRO && NG_PLUS) {
   setTimeout(() => {

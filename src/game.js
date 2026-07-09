@@ -15,9 +15,9 @@ import { PACE } from './pacing.js';
 import {
   autoSave,
   saveToSlot,
+  deleteSaveSlot,
   loadSnapshot,
   restore,
-  listSaves,
   SAVE_SLOTS,
   recordClear,
 } from './save.js';
@@ -348,6 +348,12 @@ export class Game {
     // 江堤横版模式：进入 riverside 时启动
     if (this.scene.mode === 'sidescroll') {
       this.sidescroll = new SideScrollLevel(this);
+      if (this._pendingSideScroll && typeof this.sidescroll.restoreFromResumeSnapshot === 'function') {
+        this.sidescroll.restoreFromResumeSnapshot(this._pendingSideScroll);
+        this._pendingSideScroll = null;
+      }
+    } else {
+      this._pendingSideScroll = null;
     }
   }
 
@@ -709,7 +715,7 @@ export class Game {
       audio.setMuted(!audio.isMuted());
       this.settings.muted = audio.isMuted();
       this._saveSettings();
-      this.showHint(audio.isMuted() ? '🔇 已静音' : '🔊 已开启声音');
+      this.showHint(audio.isMuted() ? '已静音' : '已开启声音');
       audio.playSfx('ui');
       return true;
     }
@@ -903,7 +909,7 @@ export class Game {
         if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' '))
           this.confirmChoice();
       } else {
-        // 空格 / 回车 / E / 鼠标左键 = 下一句或补全文本
+        // 空格 / 回车 / E / 点击 = 下一句或补全文本
         if (
           input.wasPressed('e') ||
           input.wasPressed('enter') ||
@@ -1947,10 +1953,10 @@ export class Game {
     const ok = autoSave(this);
     if (ok) {
       this._saveFlash = 1500;
-      this.showHint('✓ 已自动存档（F4）');
+      this.showHint('已自动存档（F4）');
       audio.playSfx('save');
     } else {
-      this.showHint('✗ 存档失败（localStorage 不可用）');
+      this.showHint('存档失败（localStorage 不可用）');
     }
   }
 
@@ -1969,7 +1975,7 @@ export class Game {
         this.loadScene(this._pendingScene, this._pendingSpawn);
         this._pendingScene = null;
         this._pendingSpawn = null;
-        this.showHint('✓ 已读取自动存档（F9）');
+        this.showHint('已读取自动存档（F9）');
       }
     });
   }
@@ -1984,39 +1990,60 @@ export class Game {
       audio.playSfx('uiCancel');
       return;
     }
-    const saves = listSaves();
-    const n = saves.length + 1; // +1 为"新建存档"行
+    if (input.wasPressed('arrowleft') || input.wasPressed('arrowright')) {
+      this._saveMenu = menu === 'save' ? 'load' : 'save';
+      this._saveMenuIdx = 0;
+      audio.playSfx('ui');
+      return;
+    }
+    const n = menu === 'load' ? SAVE_SLOTS + 1 : SAVE_SLOTS;
     if (input.wasPressed('arrowup') || input.wasPressed('w'))
       this._saveMenuIdx = (this._saveMenuIdx - 1 + n) % n;
     if (input.wasPressed('arrowdown') || input.wasPressed('s'))
       this._saveMenuIdx = (this._saveMenuIdx + 1) % n;
+    this._saveMenuIdx = Math.max(0, Math.min(this._saveMenuIdx, n - 1));
+
+    if (input.wasPressed('delete') || input.wasPressed('backspace')) {
+      const slot = menu === 'save' ? this._saveMenuIdx + 1 : this._saveMenuIdx;
+      if (slot >= 1 && slot <= SAVE_SLOTS && deleteSaveSlot(slot)) {
+        this.showHint(`已删除槽位 ${slot}`);
+        audio.playSfx('uiCancel');
+      } else {
+        this.showHint('这个槽位不能删除或没有存档');
+        audio.playSfx('uiCancel');
+      }
+      return;
+    }
+
     if (input.wasPressed('e') || input.wasPressed('enter')) {
-      if (this._saveMenuIdx < saves.length) {
-        // 读取已有存档
-        const snap = saves[this._saveMenuIdx];
+      if (menu === 'save') {
+        const slot = this._saveMenuIdx + 1;
+        const ok = saveToSlot(this, slot);
+        if (ok) {
+          this.showHint(`已保存到槽位 ${slot}`);
+          audio.playSfx('save');
+          this._saveFlash = 1200;
+          this._saveMenu = null;
+        } else {
+          this.showHint('存档失败（localStorage 不可用）');
+          audio.playSfx('uiCancel');
+        }
+      } else {
+        const slot = this._saveMenuIdx === 0 ? 'auto' : this._saveMenuIdx;
+        const snap = loadSnapshot(slot);
+        if (!snap) {
+          this.showHint('这个槽位没有存档');
+          audio.playSfx('uiCancel');
+          return;
+        }
         const ok = restore(this, snap);
         if (ok && this._pendingScene) {
           this.loadScene(this._pendingScene, this._pendingSpawn);
           this._pendingScene = null;
           this._pendingSpawn = null;
-          this.showHint(`✓ 已读取存档（${snap.slot === 'auto' ? '自动' : '槽位 ' + snap.slot}）`);
+          this.showHint(`已读取存档（${slot === 'auto' ? '自动' : '槽位 ' + slot}）`);
           audio.playSfx('load');
         }
-        this._saveMenu = null;
-      } else {
-        // 新建存档到第一个空槽位
-        let slot = 0;
-        const allSaves = listSaves();
-        for (let i = 1; i <= SAVE_SLOTS; i++) {
-          if (!allSaves.find((s) => s.slot === i)) {
-            slot = i;
-            break;
-          }
-        }
-        if (slot === 0) slot = 1; // 全满则覆盖槽位1
-        saveToSlot(this, slot);
-        this.showHint(`✓ 已存档到槽位 ${slot}`);
-        audio.playSfx('save');
         this._saveMenu = null;
       }
     }

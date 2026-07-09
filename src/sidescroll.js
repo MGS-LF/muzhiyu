@@ -5,6 +5,8 @@
 // 重力 + 跳跃（轻跳/重跳）+ 平台 + 梯子；J 键挥剑近战；空格跳跃踩踏
 import { W, H } from './config.js';
 import { DIALOGS } from './data/dialogs.js';
+import { CONTROL_HINTS } from './data/controls.js';
+import * as audio from './audio.js';
 
 // === 物理参数 ===
 const GRAVITY = 0.55;
@@ -12,10 +14,14 @@ const MOVE_SPD = 2.5; // 江堤区域专属移速（低于大地图，仅本关�
 const CLIMB_SPD = 2.0;
 const GROUND_Y = 624;
 const LEVEL_W = 3400;
-const KNIFE_REACH = 66;
-const KNIFE_COOLDOWN = 320;
+const KNIFE_COOLDOWN = 260;
 const KNIFE_DMG = 34;
-const ATTACK_DURATION = 260; // 剑挥砍动画总时长（ms）
+const ATTACK_DURATION = 300; // 剑挥砍动画总时长（ms）
+const ATTACK_ACTIVE_START = 0.16;
+const ATTACK_ACTIVE_END = 0.72;
+const KNIFE_ARM_LEN = 22;
+const KNIFE_BLADE_LEN = 38;
+const KNIFE_HIT_RADIUS = 13;
 const COYOTE_TIME = 90; // 离开地面后仍可起跳的缓冲时间（ms）
 const JUMP_BUFFER = 110; // 落地前提前按跳跃的缓冲时间（ms）
 
@@ -79,6 +85,8 @@ export class SideScrollLevel {
       walkCycle: 0,
       attacking: 0,
       attackCD: 0,
+      attackHitIds: new Set(),
+      attackDidHit: false,
       hasKnife: !!game.flags.sidescroll_knife,
       hurt: 0,
       onLadder: false,
@@ -161,6 +169,7 @@ export class SideScrollLevel {
     this.exitTriggered = false;
     this.intent = 'forward'; // forward | back | dead
     this.gameTime = 0;
+    this.hitSparks = [];
 
     // === 探索元素 ===
     // 返回传送点（老人旁边的光圈）
@@ -213,6 +222,93 @@ export class SideScrollLevel {
       hurtKick: 0,
       stompCD: 0,
     };
+  }
+
+  createResumeSnapshot() {
+    return {
+      x: Math.round(this.p.x),
+      y: Math.round(this.p.y),
+      facing: this.p.facing,
+      hasKnife: !!this.p.hasKnife,
+      cameraX: Math.round(this.cameraX),
+      npcTalked: !!(this.npc && this.npc.talked),
+      exitTriggered: !!this.exitTriggered,
+      segHinted: { ...this._segHinted },
+      returnPortal: this.returnPortal
+        ? {
+            active: !!this.returnPortal.active,
+            cooldown: this.returnPortal.cooldown || 0,
+          }
+        : null,
+      pages: this.pages.map((p) => !!p.taken),
+      keystone: this.keystone
+        ? {
+            activated: !!this.keystone.activated,
+            engraved: this.keystone.engraved || null,
+          }
+        : null,
+      enemies: this.enemies.map((e) => ({
+        x: Math.round(e.x),
+        y: Math.round(e.y),
+        hp: e.hp,
+        alive: !!e.alive,
+        dir: e.dir,
+        baseX: Math.round(e.baseX),
+        range: e.range,
+      })),
+    };
+  }
+
+  restoreFromResumeSnapshot(snap) {
+    if (!snap) return;
+    this.p.x = Number.isFinite(snap.x) ? snap.x : this.p.x;
+    this.p.y = Number.isFinite(snap.y) ? snap.y : this.p.y;
+    this.p.vx = 0;
+    this.p.vy = 0;
+    this.p.facing = snap.facing === -1 ? -1 : 1;
+    this.p.hasKnife = snap.hasKnife !== undefined ? !!snap.hasKnife : this.p.hasKnife;
+    this.p.attacking = 0;
+    this.p.attackCD = 0;
+    this.p.hurt = 0;
+    this.p.attackHitIds.clear();
+    this.p.attackDidHit = false;
+    this.p.onGround = this.p.y >= GROUND_Y - 1;
+    this.p.wasOnGround = this.p.onGround;
+    this.cameraX = Number.isFinite(snap.cameraX) ? snap.cameraX : this.p.x - W / 2;
+    if (this.npc && snap.npcTalked !== undefined) this.npc.talked = !!snap.npcTalked;
+    if (snap.exitTriggered !== undefined) this.exitTriggered = !!snap.exitTriggered;
+    if (snap.segHinted) this._segHinted = { ...this._segHinted, ...snap.segHinted };
+    if (this.returnPortal && snap.returnPortal) {
+      this.returnPortal.active = !!snap.returnPortal.active;
+      this.returnPortal.cooldown = snap.returnPortal.cooldown || 0;
+    }
+    if (Array.isArray(snap.pages)) {
+      for (let i = 0; i < Math.min(this.pages.length, snap.pages.length); i++) {
+        this.pages[i].taken = !!snap.pages[i];
+      }
+    }
+    if (this.keystone && snap.keystone) {
+      this.keystone.activated = !!snap.keystone.activated;
+      this.keystone.engraved = snap.keystone.engraved || null;
+    }
+    if (Array.isArray(snap.enemies)) {
+      for (let i = 0; i < Math.min(this.enemies.length, snap.enemies.length); i++) {
+        const src = snap.enemies[i];
+        const e = this.enemies[i];
+        e.x = Number.isFinite(src.x) ? src.x : e.x;
+        e.y = Number.isFinite(src.y) ? src.y : e.y;
+        e.hp = Number.isFinite(src.hp) ? src.hp : e.hp;
+        e.alive = !!src.alive;
+        e.dir = src.dir === -1 ? -1 : 1;
+        e.baseX = Number.isFinite(src.baseX) ? src.baseX : e.baseX;
+        e.range = Number.isFinite(src.range) ? src.range : e.range;
+        e.vx = 0;
+        e.vy = 0;
+        e.hitFlash = 0;
+        e.hurtKick = 0;
+        e.stompCD = 0;
+      }
+    }
   }
 
   update(dt, input) {
@@ -434,10 +530,22 @@ export class SideScrollLevel {
 
     // 小刀攻击
     if (p.attackCD > 0) p.attackCD -= dt;
-    if (p.attacking > 0) p.attacking -= dt;
+    if (p.attacking > 0) {
+      p.attacking -= dt;
+      this._doKnifeHit();
+      if (p.attacking <= 0) {
+        p.attacking = 0;
+        p.attackHitIds.clear();
+        p.attackDidHit = false;
+      }
+    }
     if (p.hasKnife && input.wasPressed('j') && p.attackCD <= 0) {
       p.attacking = ATTACK_DURATION;
       p.attackCD = KNIFE_COOLDOWN;
+      p.attackHitIds.clear();
+      p.attackDidHit = false;
+      if (p.onGround && !p.onLadder) p.vx += p.facing * 1.1;
+      audio.playSfx('ui');
       this._doKnifeHit();
     }
 
@@ -561,10 +669,18 @@ export class SideScrollLevel {
       }
 
       // 侧向接触伤害
-      if (e.alive && p.hurt <= 0 && horizOverlap && p.y > headTop + 6) {
+      const playerThreatening = p.attacking > 0 && (e.x - p.x) * p.facing > -12;
+      if (
+        e.alive &&
+        e.hurtKick <= 0 &&
+        !playerThreatening &&
+        p.hurt <= 0 &&
+        horizOverlap &&
+        p.y > headTop + 6
+      ) {
         this.game.player.san = Math.max(0, this.game.player.san - 8);
         p.hurt = 700;
-        p.vx = -p.facing * 4;
+        p.vx = e.x >= p.x ? -4 : 4;
         this.game.player.invulnerable = 500;
         this.game.player.hurtFlash = true;
         if (this.game.player.san <= 0) {
@@ -576,6 +692,15 @@ export class SideScrollLevel {
 
     // === 摄像机 ===
     if (this.shake > 0) this.shake -= dt;
+    for (let i = this.hitSparks.length - 1; i >= 0; i--) {
+      const s = this.hitSparks[i];
+      s.x += s.vx;
+      s.y += s.vy;
+      s.vx *= 0.88;
+      s.vy *= 0.88;
+      s.life -= dt;
+      if (s.life <= 0) this.hitSparks.splice(i, 1);
+    }
     const targetCam = p.x - W / 2;
     this.cameraX += (targetCam - this.cameraX) * 0.12;
     this.cameraX = Math.max(0, Math.min(this.cameraX, LEVEL_W - W));
@@ -591,28 +716,109 @@ export class SideScrollLevel {
 
   _doKnifeHit() {
     const p = this.p;
-    const hx = p.x + p.facing * 20;
-    const hy = p.y - 14;
+    if (!this._isKnifeActive()) return false;
+    const blade = this._knifeBladeSegment();
     let hitAny = false;
     for (const e of this.enemies) {
       if (!e.alive) continue;
-      const ecy = e.y - e.h / 2;
-      const dx = e.x - hx,
-        dy = ecy - hy;
-      if (Math.hypot(dx, dy) < KNIFE_REACH && (Math.sign(dx) === p.facing || Math.abs(dx) < 18)) {
+      if (p.attackHitIds.has(e)) continue;
+      if (this._enemyIntersectsKnife(e, blade)) {
         e.hp -= KNIFE_DMG;
-        e.hitFlash = 120;
-        e.hurtKick = 160;
-        e.vx = -p.facing * 3;
+        e.hitFlash = 170;
+        e.hurtKick = 190;
+        e.vx = p.facing * 3.4;
         e.dir = -p.facing;
+        p.attackHitIds.add(e);
+        p.attackDidHit = true;
         hitAny = true;
+        this._spawnKnifeSparks(e.x, e.y - e.h / 2, p.facing);
+        audio.playSfx('hit');
         if (e.hp <= 0) {
           e.alive = false;
           this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
+          this.game.showHint('砍倒梗鬼！理性 +6');
         }
       }
     }
     if (hitAny) this.shake = 120;
+    return hitAny;
+  }
+
+  _attackProgress() {
+    if (this.p.attacking <= 0) return 1;
+    return 1 - this.p.attacking / ATTACK_DURATION;
+  }
+
+  _isKnifeActive() {
+    const t = this._attackProgress();
+    return this.p.attacking > 0 && t >= ATTACK_ACTIVE_START && t <= ATTACK_ACTIVE_END;
+  }
+
+  _knifeBladeSegment() {
+    const p = this.p;
+    const t = this._attackProgress();
+    let local;
+    if (t < 0.2) {
+      const u = t / 0.2;
+      local = -0.3 - u * 0.8;
+    } else if (t < 0.5) {
+      const u = (t - 0.2) / 0.3;
+      local = -1.1 + u * 1.9;
+    } else {
+      const u = (t - 0.5) / 0.5;
+      local = 0.8 - u * 1.1;
+    }
+    const fwd = p.facing > 0 ? 0 : Math.PI;
+    const angle = fwd + p.facing * local;
+    const shoulderX = p.x + p.facing * 3;
+    const shoulderY = p.y - 15;
+    const handX = shoulderX + Math.cos(angle) * KNIFE_ARM_LEN;
+    const handY = shoulderY + Math.sin(angle) * KNIFE_ARM_LEN;
+    const tipX = handX + Math.cos(angle) * KNIFE_BLADE_LEN;
+    const tipY = handY + Math.sin(angle) * KNIFE_BLADE_LEN;
+    return {
+      x1: handX,
+      y1: handY,
+      x2: tipX,
+      y2: tipY,
+      facing: p.facing,
+    };
+  }
+
+  _enemyIntersectsKnife(e, blade) {
+    const enemyAhead = (e.x - this.p.x) * blade.facing;
+    if (enemyAhead < -10) return false;
+
+    const targets = [
+      { x: e.x, y: e.y - e.h * 0.72 },
+      { x: e.x, y: e.y - e.h * 0.42 },
+      { x: e.x, y: e.y - e.h * 0.16 },
+    ];
+    const hitRadius = KNIFE_HIT_RADIUS + e.w * 0.35;
+    return targets.some((pt) => this._pointToSegmentDistance(pt.x, pt.y, blade) <= hitRadius);
+  }
+
+  _pointToSegmentDistance(x, y, seg) {
+    const vx = seg.x2 - seg.x1;
+    const vy = seg.y2 - seg.y1;
+    const lenSq = vx * vx + vy * vy || 1;
+    const t = Math.max(0, Math.min(1, ((x - seg.x1) * vx + (y - seg.y1) * vy) / lenSq));
+    const px = seg.x1 + vx * t;
+    const py = seg.y1 + vy * t;
+    return Math.hypot(x - px, y - py);
+  }
+
+  _spawnKnifeSparks(x, y, facing) {
+    for (let i = 0; i < 9; i++) {
+      this.hitSparks.push({
+        x,
+        y,
+        vx: facing * (1.2 + Math.random() * 2.2),
+        vy: -1.8 + Math.random() * 3.6,
+        life: 220 + Math.random() * 120,
+        maxLife: 340,
+      });
+    }
   }
 
   _onDeath() {
@@ -813,7 +1019,7 @@ export class SideScrollLevel {
           ctx.fillStyle = `rgba(255,220,140,${pulse})`;
           ctx.font = 'bold 11px serif';
           ctx.textAlign = 'center';
-          ctx.fillText('E · 老人', sx, this.npc.y - 56);
+          ctx.fillText(CONTROL_HINTS.interactElder, sx, this.npc.y - 56);
           ctx.textAlign = 'left';
         }
       }
@@ -843,7 +1049,7 @@ export class SideScrollLevel {
           ctx.fillStyle = `rgba(255,235,160,${0.85 + pulse * 0.15})`;
           ctx.font = 'bold 11px serif';
           ctx.textAlign = 'center';
-          ctx.fillText('E · 返回街道', sx, GROUND_Y - 30);
+          ctx.fillText(CONTROL_HINTS.interactReturn, sx, GROUND_Y - 30);
           ctx.textAlign = 'left';
         }
       }
@@ -914,7 +1120,7 @@ export class SideScrollLevel {
           ctx.fillStyle = `rgba(255,220,140,${0.8 + pulse * 0.2})`;
           ctx.font = 'bold 10px serif';
           ctx.textAlign = 'center';
-          ctx.fillText(ks.activated ? 'E · 刻字' : 'E · 激活要石', sx, GROUND_Y - 50);
+          ctx.fillText(ks.activated ? CONTROL_HINTS.interactEngrave : CONTROL_HINTS.interactKeystone, sx, GROUND_Y - 50);
           ctx.textAlign = 'left';
         }
       }
@@ -926,6 +1132,17 @@ export class SideScrollLevel {
       const sx = e.x - cam;
       if (sx < -40 || sx > W + 40) continue;
       this._drawGeng(ctx, sx, e.y, e, gameTime);
+    }
+
+    // === 命中火花 ===
+    for (const s of this.hitSparks) {
+      const sx = s.x - cam;
+      if (sx < -20 || sx > W + 20) continue;
+      const a = Math.max(0, s.life / s.maxLife);
+      ctx.fillStyle = `rgba(255,230,150,${a})`;
+      ctx.beginPath();
+      ctx.arc(sx, s.y, 1.5 + a * 2.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // === 玩家 ===
@@ -1119,39 +1336,26 @@ export class SideScrollLevel {
         local = 0.8 - u * 1.1; // 前下 → 收回待机
       }
       const armAngle = ang(local);
-      const armLen = 22;
-      const bladeLen = 38;
+      const armLen = KNIFE_ARM_LEN;
+      const bladeLen = KNIFE_BLADE_LEN;
       const shoulderX = cx + facing * 3;
       const handX = shoulderX + Math.cos(armAngle) * armLen;
       const handY = shoulderY + Math.sin(armAngle) * armLen;
       const tipX = handX + Math.cos(armAngle) * bladeLen;
       const tipY = handY + Math.sin(armAngle) * bladeLen;
 
-      // 剑光拖尾：只画最近一段挥砍轨迹（运动模糊感）
+      // 短刀反光：只贴着刀尖闪一下，不画夸张长弧。
       if (slashProg > 0 && slashProg < 1) {
         const peak = Math.sin(slashProg * Math.PI);
-        const trailR = armLen + bladeLen;
-        const startLocal = -1.1;
-        const endLocal = 0.8;
-        const curLocal = startLocal + (endLocal - startLocal) * slashProg;
-        const tailLocal = Math.max(startLocal, curLocal - 0.55);
-        const a0 = ang(tailLocal);
-        const a1 = ang(curLocal);
-        ctx.save();
-        ctx.translate(shoulderX, shoulderY);
-        // 始终走 a0→a1 的短弧，避免朝左时因角度递减被画成整圈
-        ctx.strokeStyle = `rgba(255, 240, 190, ${peak * 0.65})`;
-        ctx.lineWidth = 5;
+        const flashStartX = handX + Math.cos(armAngle) * bladeLen * 0.55;
+        const flashStartY = handY + Math.sin(armAngle) * bladeLen * 0.55;
+        ctx.strokeStyle = `rgba(255, 240, 190, ${peak * 0.5})`;
+        ctx.lineWidth = 2.2;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.arc(0, 0, trailR, a0, a1, a0 > a1);
+        ctx.moveTo(flashStartX, flashStartY);
+        ctx.lineTo(tipX, tipY);
         ctx.stroke();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${peak * 0.85})`;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.arc(0, 0, trailR, a0, a1, a0 > a1);
-        ctx.stroke();
-        ctx.restore();
       }
 
       // 持剑手臂

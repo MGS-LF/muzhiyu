@@ -1,6 +1,7 @@
 // 渲染模块：battle
 import { W, H } from '../config.js';
 import { roundRect } from './util.js';
+import { CONTROL_HINTS } from '../data/controls.js';
 
 // ============================================================
 // 战斗界面（Undertale 风格）
@@ -104,20 +105,30 @@ export function drawBattle(ctx, battle, gameTime) {
 
   if (battle.phase === 'enemyTurn') {
     // 红心
-    ctx.fillStyle = '#e33';
+    const heartBlink =
+      battle.heartInvulnerable > 0 && Math.floor(battle.heartInvulnerable / 90) % 2 === 0;
+    ctx.fillStyle = heartBlink ? 'rgba(255,120,120,0.45)' : '#e33';
     drawHeart(ctx, battle.heart.x, battle.heart.y, battle.heart.r);
     // 弹幕
     for (const b of battle.bullets) {
+      const warning = b.warn > 0;
       // 光晕
-      ctx.shadowColor = 'rgba(80,220,100,0.8)';
-      ctx.shadowBlur = 6;
-      ctx.fillStyle = 'rgba(80,220,100,0.3)';
+      ctx.shadowColor = warning ? 'rgba(255,220,100,0.7)' : 'rgba(80,220,100,0.8)';
+      ctx.shadowBlur = warning ? 3 : 6;
+      ctx.fillStyle = warning ? 'rgba(255,210,90,0.10)' : 'rgba(80,220,100,0.3)';
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r + 2, 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, b.r + (warning ? 7 : 2), 0, Math.PI * 2);
       ctx.fill();
+      if (warning) {
+        ctx.strokeStyle = 'rgba(255,220,120,0.75)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r + 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.shadowBlur = 0;
       // 文字
-      ctx.fillStyle = 'rgba(180,255,180,0.95)';
+      ctx.fillStyle = warning ? 'rgba(255,230,150,0.65)' : 'rgba(180,255,180,0.95)';
       ctx.font = 'bold 11px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -253,9 +264,9 @@ export function drawBattle(ctx, battle, gameTime) {
         : 'rgba(180,180,190,0.6)';
     ctx.font = '11px serif';
     ctx.textAlign = 'center';
-    let hintText = '← → 选择    E / 空格 确认';
+    let hintText = CONTROL_HINTS.battleConfirm;
     if (battle.ultimateReady && !battle.ultimateUsed) {
-      hintText += `    K ${battle.availableUltimate ? battle.availableUltimate.name : '诗词大招'}`;
+      hintText += `    ${battle.availableUltimate ? battle.availableUltimate.name : CONTROL_HINTS.battleUltimate}`;
     }
     ctx.fillText(hintText, W / 2, H - 20);
     if (
@@ -319,7 +330,7 @@ export function drawBattle(ctx, battle, gameTime) {
         : 'rgba(255,100,100,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⚠ 躲避弹幕！用 WASD / 方向键移动红心', W / 2, H - 30);
+    ctx.fillText(CONTROL_HINTS.battleDodge, W / 2, H - 30);
     ctx.textAlign = 'left';
   } else if (battle.phase === 'attack_aim') {
     ctx.fillStyle =
@@ -328,7 +339,7 @@ export function drawBattle(ctx, battle, gameTime) {
         : 'rgba(255,220,120,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('按 E / 空格在中心位置停下，造成最大伤害', W / 2, H - 30);
+    ctx.fillText(CONTROL_HINTS.battleAim, W / 2, H - 30);
     ctx.textAlign = 'left';
   }
 

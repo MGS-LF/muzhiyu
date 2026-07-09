@@ -373,6 +373,9 @@ window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (k === 'escape' || k === 's') goGame();
 });
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'intro:skip') goGame();
+});
 
 function step(now) {
   rafId = requestAnimationFrame(step);

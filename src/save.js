@@ -7,13 +7,15 @@ import * as minimap from './minimap.js';
 
 const SAVE_KEY = 'keheng_saves';
 const META_KEY = 'keheng_meta';
+const REFRESH_RESUME_KEY = 'keheng_refresh_resume';
 const AUTOSAVE_SLOT = 'auto';
 const SLOT_COUNT = 3; // 手动槽位 1-3，外加自动槽
 const SAVE_VERSION = 1;
+const REFRESH_RESUME_MAX_AGE = 10 * 60 * 1000;
 
 // 仅序列化可持久化的状态字段，剔除运行时临时对象（camera/dialog/battle/compose/sidescroll/level3d 等）
 function snapshot(game) {
-  return {
+  const snap = {
     version: SAVE_VERSION,
     time: Date.now(),
     sceneId: game.scene ? game.scene.id : 'freeze_center',
@@ -44,6 +46,13 @@ function snapshot(game) {
     clearedEndings: Array.isArray(game.clearedEndings) ? Array.from(new Set(game.clearedEndings)) : [],
     explored: minimap.snapshotExplored(),
   };
+  if (game.sidescroll && typeof game.sidescroll.createResumeSnapshot === 'function') {
+    snap.runtime = {
+      mode: 'sidescroll',
+      sidescroll: game.sidescroll.createResumeSnapshot(),
+    };
+  }
+  return snap;
 }
 
 // 读取全部存档槽位
@@ -79,12 +88,53 @@ export function autoSave(game) {
   return persist(saves);
 }
 
+export function saveRefreshResume(game) {
+  try {
+    localStorage.setItem(REFRESH_RESUME_KEY, JSON.stringify(snapshot(game)));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function loadRefreshResume() {
+  try {
+    const raw = localStorage.getItem(REFRESH_RESUME_KEY);
+    if (!raw) return null;
+    const snap = JSON.parse(raw);
+    if (!snap || snap.version !== SAVE_VERSION) return null;
+    if (Date.now() - (snap.time || 0) > REFRESH_RESUME_MAX_AGE) {
+      clearRefreshResume();
+      return null;
+    }
+    return snap;
+  } catch (e) {
+    return null;
+  }
+}
+
+export function clearRefreshResume() {
+  try {
+    localStorage.removeItem(REFRESH_RESUME_KEY);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
 // 手动存档到指定槽位（1-3）
 export function saveToSlot(game, slot) {
   if (slot < 1 || slot > SLOT_COUNT) return false;
   const saves = loadAllSaves();
   const snap = snapshot(game);
   saves.slots[slot - 1] = snap;
+  return persist(saves);
+}
+
+export function deleteSaveSlot(slot) {
+  if (slot < 1 || slot > SLOT_COUNT) return false;
+  const saves = loadAllSaves();
+  if (!saves.slots[slot - 1]) return false;
+  saves.slots[slot - 1] = null;
   return persist(saves);
 }
 
@@ -162,6 +212,7 @@ export function restore(game, snap) {
     game.converse = null;
     game.sidescroll = null;
     game.level3d = null;
+    game._pendingSideScroll = snap.runtime && snap.runtime.sidescroll ? snap.runtime.sidescroll : null;
     game.combat.bullets = [];
     game.combat.particles = [];
     game.combat.dead = false;

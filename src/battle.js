@@ -12,6 +12,8 @@ import { PACE } from './pacing.js';
 // 弹幕框尺寸（战斗界面中央的躲避区域）
 const BOX_W = 280;
 const BOX_H = 200;
+const BULLET_WARN_MS = 260;
+const HEART_IFRAME_MS = 650;
 
 export class Battle {
   constructor(enemy, player, onEnd, game = null) {
@@ -73,6 +75,7 @@ export class Battle {
     this.heart = { x: 0, y: 0, r: 6 };
     this.heartMaxHp = player.san;
     this.heartHp = player.san;
+    this.heartInvulnerable = 0;
 
     // 弹幕
     this.bullets = [];
@@ -418,12 +421,16 @@ export class Battle {
     this.timer = 0;
     this.bullets = [];
     this.bulletTimer = 0;
+    this.heartInvulnerable = 0;
     this.heart.x = 0;
     this.heart.y = 0;
     this.setEnemyText('绝绝子！YYDS！泰裤辣！');
   }
 
   updateEnemyTurn(dt) {
+    if (this.heartInvulnerable > 0) {
+      this.heartInvulnerable = Math.max(0, this.heartInvulnerable - dt);
+    }
     // 红心移动
     const speed = 0.18 * dt;
     let hx = 0,
@@ -449,12 +456,20 @@ export class Battle {
     this.bulletTimer += dt;
     if (this.bulletTimer > (this.isBoss ? 300 : 420)) {
       this.bulletTimer = 0;
+      const start = this.bullets.length;
       this.spawnBulletWave();
+      for (let i = start; i < this.bullets.length; i++) {
+        if (this.bullets[i].warn === undefined) this.bullets[i].warn = BULLET_WARN_MS;
+      }
     }
 
     // 更新弹幕
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i];
+      if (b.warn > 0) {
+        b.warn = Math.max(0, b.warn - dt);
+        continue;
+      }
       b.x += b.vx * dt * 0.06;
       b.y += b.vy * dt * 0.06;
       b.life -= dt;
@@ -487,8 +502,9 @@ export class Battle {
       }
       // 碰撞红心
       const d = Math.hypot(b.x - this.heart.x, b.y - this.heart.y);
-      if (d < this.heart.r + b.r) {
+      if (this.heartInvulnerable <= 0 && d < this.heart.r + b.r) {
         this.heartHp -= Math.round(6 * difficulty.currentMul().sanDamage);
+        this.heartInvulnerable = HEART_IFRAME_MS;
         // 格式化者弹幕：被击中时偷走一个已收集的汉字碎片（仅 collectedChars 弹药，不影响 collectedCharsAll 永久记录）
         if (
           b.stealFragment &&

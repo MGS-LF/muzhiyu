@@ -1,4 +1,5 @@
 import { roundRect } from './util.js';
+import { CONTROL_HINTS } from '../data/controls.js';
 import { W, H } from '../config.js';
 
 // ===== from hud.js =====
@@ -183,7 +184,7 @@ export function drawHUD(ctx, player, game, objective) {
   ctx.fillStyle = 'rgba(180,170,150,0.4)';
   ctx.font = '9px monospace';
   ctx.textAlign = 'right';
-  ctx.fillText('Q 任务 · M 地图 · I 背包', W - 12, H - 8);
+  ctx.fillText(CONTROL_HINTS.worldFooter, W - 12, H - 8);
   ctx.textAlign = 'left';
 }
 

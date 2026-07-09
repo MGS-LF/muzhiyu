@@ -1,4 +1,5 @@
 import { listSaves, loadSnapshot, restore, summarize, loadMeta } from './save.js';
+import { CONTROL_HINTS } from './data/controls.js';
 
 const STYLE_ID = 'start-menu-style';
 
@@ -319,9 +320,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
           <p>《墓之语》是一款废墟探索与诗词弹幕战斗游戏。你将扮演顾言，在 2147 年的上海废墟中收集散落文字，唤醒失语者，并追寻 Sydney 与方知远留下的记忆。</p>
           <p>当前版本包含主线章节、第五章「余烬」、江堤横版关卡、维度裂隙 3D 关卡、刻字、背包、存档、难度、诗词大招与二周目基础流程。</p>
           <ul>
-            <li>移动：WASD / 方向键，交互：E，冲刺：Space</li>
-            <li>战斗：← → 选择，E / Space 确认，K 释放诗词大招</li>
-            <li>菜单：Q 任务，I 背包，M 地图，O 设置，Esc 系统菜单，F4/F9 快速存读档</li>
+            ${CONTROL_HINTS.startMenu.map((line) => `<li>${line}</li>`).join('')}
           </ul>
         </div>
       </div>

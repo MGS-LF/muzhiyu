@@ -1,5 +1,6 @@
 // Tutorial and first-visit guidance copy.
 // Keep text data outside Game so the core state machine stays smaller.
+import { CONTROL_HINTS } from './data/controls.js';
 
 export const SCENE_INTROS = {
   freeze_center: '左上角是你的目标。靠近发光物体按 E 互动。',
@@ -18,21 +19,7 @@ export const SCENE_INTROS = {
 
 const START_TUTORIAL = {
   title: '刻 痕 · 遗 忘 的 文 字',
-  keys: [
-    { k: 'WASD', d: '移动　·　Shift 奔跑' },
-    { k: 'E', d: '交互 / 拾取 / 开始对话' },
-    { k: '方向键', d: '战斗中移动红心 / 选菜单' },
-    { k: 'Q', d: '任务面板' },
-    { k: 'Space', d: '对话文本确认 / 战斗确认 / 攻击瞄准确认 / 大地图冲刺' },
-    { k: 'Ctrl', d: '对话中按住快进（Skip）' },
-    { k: 'K', d: '战斗中释放诗词大招（需集齐完整诗句）' },
-    { k: 'I', d: '背包' },
-    { k: 'O', d: '设置 / 无障碍选项' },
-    { k: 'Tab', d: '小地图开关' },
-    { k: 'Esc', d: '系统菜单（存档 / 读档 / 设置）' },
-    { k: 'F4/F9', d: '快速存档 / 读档' },
-    { k: 'N', d: '静音切换' },
-  ],
+  keys: CONTROL_HINTS.tutorialKeys,
   tip: '左上角是当前目标，金色箭头指向下一步。靠近发光物按 E，靠近绿色梗鬼会进入战斗。',
 };
 
