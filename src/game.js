@@ -112,6 +112,7 @@ export class Game {
     this.compose = null; // 造句模式实例（非 null 时处于造句界面）
     this.aiThinking = false; // 等待 LLM 时冻结输入并提示
     this.converse = null; // Sydney自由对话模式（非 null 时处于对话界面）
+    this.engraveState = null; // 刻字模式状态（进入时刻字时设置）
     this.endingEpilogue = null; // LLM 生成的个性化结语（覆盖默认结局副标题）
     // 任务目标
     this.objective = { text: '换上衣服，离开冷冻中心', done: false };
@@ -160,6 +161,23 @@ export class Game {
     this._randomEventTimer = PACE.ambient.firstDelayMs;
     this._randomEventCooldown = PACE.ambient.cooldownMs;
   }
+
+  // ↓↓↓ 以下方法由文件末尾 Object.assign(Game.prototype, ...) 混入实现，
+  //    此处仅作类型声明；运行时被 systems/dialog.js / engrave.js / interact.js
+  //    的真实实现覆盖。删除会导致类型检查报错，但不影响运行。
+  /** @param {any} lines @param {any} name @param {any} [onComplete] */
+  startDialog(lines, name, onComplete) {}
+  /** @param {any} i */
+  setDialogIndex(i) {}
+  /** @param {any} dt */
+  updateConverse(dt) {}
+  /** @param {any} dt */
+  updateEngraving(dt) {}
+  /** @returns {any} */
+  summarizeEngravings() {}
+  /** @returns {any} */
+  _loadEngravings() {}
+  tryInteract() {}
 
   // 应用当前难度到游戏状态（SAN 上限等）
   _applyDifficulty() {
@@ -678,8 +696,8 @@ export class Game {
         this._audioUnlocked = true;
       }
     }
-    // F5 快速存档、F9 快速读档、N 静音、F6 存档菜单、Tab 小地图
-    if (input.wasPressed('f5')) {
+    // F4 快速存档、F9 快速读档、N 静音、F6 存档菜单、Tab 小地图
+    if (input.wasPressed('f4')) {
       this._quickSave();
       return true;
     }
@@ -702,6 +720,19 @@ export class Game {
     if (input.wasPressed('tab')) {
       this._showMinimap = !this._showMinimap;
       this.showHint(this._showMinimap ? '小地图已开启' : '小地图已关闭');
+      return true;
+    }
+    // Esc：呼出系统菜单；已打开时关闭，有 UI 面板时先关闭面板
+    if (input.wasPressed('escape')) {
+      if (this._saveMenu) {
+        this._saveMenu = null;
+        audio.playSfx('uiCancel');
+      } else if (this.uiPanel) {
+        this.uiPanel = null;
+        audio.playSfx('uiCancel');
+      } else {
+        this._saveMenu = 'save';
+      }
       return true;
     }
     // 存档菜单：冻结世界，仅处理菜单内导航
@@ -835,6 +866,24 @@ export class Game {
     // 对话中
     if (this.dialogState) {
       const d = this.dialogState;
+      const node = d.lines[d.idx];
+
+      // Ctrl 按住不放：快进/跳过当前及后续文本（遇到选项会停下）
+      if (input.isDown('ctrl') && !d.choosing) {
+        if (node.t !== undefined && !d.done) {
+          d.charIdx = node.t.length;
+          d.done = true;
+          voice.stop();
+        }
+        d.skipTimer -= dt;
+        if (d.skipTimer <= 0) {
+          d.skipTimer = 60;
+          this.advanceDialog();
+        }
+      } else {
+        d.skipTimer = 0;
+      }
+
       if (d.choosing) {
         const n = d.lines[d.idx].choice.length;
         if (
@@ -851,9 +900,16 @@ export class Game {
           input.wasPressed('d')
         )
           d.choiceIndex = (d.choiceIndex + 1) % n;
-        if (input.wasPressed('e') || input.wasPressed('enter')) this.confirmChoice();
-      } else {
         if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' '))
+          this.confirmChoice();
+      } else {
+        // 空格 / 回车 / E / 鼠标左键 = 下一句或补全文本
+        if (
+          input.wasPressed('e') ||
+          input.wasPressed('enter') ||
+          input.wasPressed(' ') ||
+          input.mousePressed()
+        )
           this.advanceDialog();
       }
       this.updateParticles(dt);
@@ -1276,19 +1332,19 @@ export class Game {
     if (input.wasPressed('arrowright') || input.wasPressed('d'))
       c.sel = this._composeStep(c.sel, 1);
 
-    if (input.wasPressed('e') || input.wasPressed('enter')) {
+    if (input.wasPressed(' ')) {
+      input.wasPressed(' '); // 消费空格，避免退出后立刻冲刺
       const empty = c.slots.indexOf(null);
-      if (empty >= 0) {
+      if (empty >= 0 && !c.used[c.sel]) {
         // 放入当前选中字
-        if (!c.used[c.sel]) {
-          c.slots[empty] = { char: c.pool[c.sel], poolIdx: c.sel };
-          c.used[c.sel] = true;
-          // 移到下一个可用
-          const nxt = this._composeStep(c.sel, 1);
-          if (nxt !== c.sel) c.sel = nxt;
-        }
-      } else {
-        // 判定
+        c.slots[empty] = { char: c.pool[c.sel], poolIdx: c.sel };
+        c.used[c.sel] = true;
+        // 移到下一个可用
+        const nxt = this._composeStep(c.sel, 1);
+        if (nxt !== c.sel) c.sel = nxt;
+      }
+      // 填满后自动判定，无需再按一次
+      if (c.slots.indexOf(null) === -1) {
         const ok = c.slots.every((s, i) => s && s.char === c.def.answer[i]);
         if (ok) {
           c.status = 'win';
@@ -1891,7 +1947,7 @@ export class Game {
     const ok = autoSave(this);
     if (ok) {
       this._saveFlash = 1500;
-      this.showHint('✓ 已自动存档（F5）');
+      this.showHint('✓ 已自动存档（F4）');
       audio.playSfx('save');
     } else {
       this.showHint('✗ 存档失败（localStorage 不可用）');

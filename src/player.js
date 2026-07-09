@@ -15,6 +15,18 @@ export class Player {
     this.blinking = false;
     this.blinkEnd = 0;
     this.hasClothes = false;
+    // 以下属性由 Game 在运行时赋值，此处声明默认值以便类型检查与安全访问
+    this.san = 100;
+    this.maxSan = 100;
+    this.collectedChars = [];
+    this.collectedCharsAll = [];
+    this.inventory = [];
+    this.diaries = new Set();
+    this.seeds = 0;
+    this.ngPlus = false;
+    this.invulnerable = 0;
+    this.hurtFlash = false;
+    this.dialogGrace = 0;
   }
 
   update(dt, input, scene) {

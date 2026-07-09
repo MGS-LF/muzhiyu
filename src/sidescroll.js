@@ -2,7 +2,7 @@
 // 前段：老人交付武器 + 基础踩踏/挥刀教学
 // 中段：梯子攀爬 + 核心要石（存档点/刻字）
 // 后段：精准平台跳跃 + 精英梗鬼 + 出口通向居民区
-// 重力 + 跳跃（轻跳/重跳）+ 平台 + 梯子；鼠标左键小刀近战；空格跳跃踩踏
+// 重力 + 跳跃（轻跳/重跳）+ 平台 + 梯子；J 键挥剑近战；空格跳跃踩踏
 import { W, H } from './config.js';
 import { DIALOGS } from './data/dialogs.js';
 
@@ -15,6 +15,9 @@ const LEVEL_W = 3400;
 const KNIFE_REACH = 46;
 const KNIFE_COOLDOWN = 320;
 const KNIFE_DMG = 34;
+const ATTACK_DURATION = 260; // 剑挥砍动画总时长（ms）
+const COYOTE_TIME = 90; // 离开地面后仍可起跳的缓冲时间（ms）
+const JUMP_BUFFER = 110; // 落地前提前按跳跃的缓冲时间（ms）
 
 // === 跳跃参数（轻跳 / 重跳）===
 // 轻跳：起跳快、滞空短、高度低 —— 适用于精准平台跳跃
@@ -35,7 +38,7 @@ const KNIFE_DIALOG = [
   { s: '守砚', t: '江堤这条路，被梗鬼堵了。它们在堤面与石板上来回踱步，碰到你就咬你的字。' },
   { s: '守砚', t: '近身的东西，诗一时半刻念不利索。这把小刀给你——记忆合金打的，专破那层绿皮。' },
   { s: '系统', t: '（A/D 左右走；空格/W 跳跃——短按为轻跳，精准落点；长按为重跳，跨越沟壑）' },
-  { s: '系统', t: '（从上方落下可踩死梗鬼；鼠标左键挥刀近战）' },
+  { s: '系统', t: '（从上方落下可踩死梗鬼；按 J 挥刀近战）' },
   { s: '守砚', t: '砍通这条堤，东头就是去居民区的路。我在出口等你。' },
   { s: '顾言', t: '……多谢。' },
   { s: '系统', t: '（获得：记忆合金小刀）' },
@@ -83,8 +86,15 @@ export class SideScrollLevel {
       jumpCharge: 0, // 蓄力计时（>0 表示正在蓄力）
       jumpHolding: false, // 跳跃键是否仍按住（用于可变重力延长滞空）
       jumpType: null, // 'light' | 'heavy' | null（当前跳跃类型）
+      // 手感缓冲
+      coyote: 0,
+      jumpBuffer: 0,
+      wasOnGround: true,
+      landTimer: 0,
     };
     this.cameraX = 0;
+    this.shake = 0;
+    this._jumpHintShown = false;
 
     // === 平台 {x,y,w,h} —— y 是平台顶面 ===
     // 前段：基础跳跃教学平台
@@ -244,7 +254,7 @@ export class SideScrollLevel {
         this.game.flags.sidescroll_lantern = true;
         this.game.startDialog(RETURN_DIALOG, '守砚', () => {
           this.game.showHint(
-            '空格跳跃踩踏梗鬼 · 鼠标左键挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石'
+            '空格跳跃踩踏梗鬼 · J 挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石'
           );
         });
       });
@@ -331,6 +341,11 @@ export class SideScrollLevel {
       input.wasPressed(' ') || input.wasPressed('w') || input.wasPressed('arrowup');
     const jumpDown = input.isDown(' ') || input.isDown('w') || input.isDown('arrowup');
 
+    // 手感缓冲计时器
+    if (p.coyote > 0) p.coyote -= dt;
+    if (p.jumpBuffer > 0) p.jumpBuffer -= dt;
+    if (p.landTimer > 0) p.landTimer -= dt;
+
     if (p.onLadder) {
       // 梯子上：忽略重力，上下移动
       p.vy = 0;
@@ -346,6 +361,8 @@ export class SideScrollLevel {
         p.onLadder = false;
         p.jumpType = 'light';
         p.jumpHolding = jumpDown;
+        p.coyote = 0;
+        p.jumpBuffer = 0;
       }
       p.walkCycle += dt * 0.015;
     } else {
@@ -359,12 +376,31 @@ export class SideScrollLevel {
       }
 
       // === 跳跃状态机（轻跳 / 重跳）===
-      if (p.onGround) {
-        // 在地面：开始蓄力或立即起跳
-        if (jumpPressed) {
+      const canJump = p.onGround || p.coyote > 0;
+      if (jumpPressed && canJump) {
+        if (p.onGround) {
           p.jumpCharge = 1; // 开始蓄力计时
           p.jumpHolding = true;
+        } else {
+          // 土狼时间：空中直接轻跳
+          p.vy = JUMP_LIGHT_V;
+          p.jumpType = 'light';
+          p.jumpHolding = jumpDown;
+          p.coyote = 0;
         }
+        p.jumpBuffer = 0;
+      } else if (jumpPressed && !canJump) {
+        p.jumpBuffer = JUMP_BUFFER;
+      }
+
+      if (p.onGround) {
+        // 落地前按下的跳跃被缓冲，立即开始蓄力
+        if (p.jumpBuffer > 0 && p.jumpCharge <= 0) {
+          p.jumpCharge = 1;
+          p.jumpHolding = jumpDown;
+          p.jumpBuffer = 0;
+        }
+        // 在地面：继续蓄力或起跳
         if (p.jumpCharge > 0) {
           p.jumpCharge += dt;
           // 松开跳跃键 或 蓄力超过重跳阈值 → 起跳
@@ -399,8 +435,8 @@ export class SideScrollLevel {
     // 小刀攻击
     if (p.attackCD > 0) p.attackCD -= dt;
     if (p.attacking > 0) p.attacking -= dt;
-    if (p.hasKnife && input.mousePressed() && p.attackCD <= 0) {
-      p.attacking = 200;
+    if (p.hasKnife && input.wasPressed('j') && p.attackCD <= 0) {
+      p.attacking = ATTACK_DURATION;
       p.attackCD = KNIFE_COOLDOWN;
       this._doKnifeHit();
     }
@@ -446,6 +482,11 @@ export class SideScrollLevel {
         }
       }
     }
+    // 土狼时间与落地反馈
+    if (p.wasOnGround && !p.onGround) p.coyote = COYOTE_TIME;
+    if (!p.wasOnGround && p.onGround) p.landTimer = 120;
+    p.wasOnGround = p.onGround;
+
     if (p.hurt > 0) p.hurt -= dt;
 
     // === 敌人（地面行走 · 重力 · 可踩踏）===
@@ -510,6 +551,7 @@ export class SideScrollLevel {
         p.vy = JUMP_LIGHT_V * 0.65; // 踩踏后轻弹（用轻跳速度，手感更利落）
         p.jumpType = 'light';
         p.onGround = false;
+        this.shake = 100;
         this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
         if (!this._stompHint) {
           this._stompHint = true;
@@ -533,6 +575,7 @@ export class SideScrollLevel {
     }
 
     // === 摄像机 ===
+    if (this.shake > 0) this.shake -= dt;
     const targetCam = p.x - W / 2;
     this.cameraX += (targetCam - this.cameraX) * 0.12;
     this.cameraX = Math.max(0, Math.min(this.cameraX, LEVEL_W - W));
@@ -550,6 +593,7 @@ export class SideScrollLevel {
     const p = this.p;
     const hx = p.x + p.facing * 18;
     const hy = p.y - 14;
+    let hitAny = false;
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const ecy = e.y - e.h / 2;
@@ -561,12 +605,14 @@ export class SideScrollLevel {
         e.hurtKick = 160;
         e.vx = -p.facing * 3;
         e.dir = -p.facing;
+        hitAny = true;
         if (e.hp <= 0) {
           e.alive = false;
           this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
         }
       }
     }
+    if (hitAny) this.shake = 120;
   }
 
   _onDeath() {
@@ -647,6 +693,13 @@ export class SideScrollLevel {
       ctx.fillStyle = rg;
       ctx.fillRect(sunX - 50, waterY, 100, 120);
     }
+
+    // 屏幕震动（仅世界层）
+    const shakeAmp = Math.max(0, this.shake / 120) * 3;
+    const shakeX = (Math.random() - 0.5) * shakeAmp;
+    const shakeY = (Math.random() - 0.5) * shakeAmp;
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
 
     // === 段落分界标记（地面颜色变化）===
     ctx.fillStyle = '#4a4540';
@@ -897,6 +950,8 @@ export class SideScrollLevel {
       }
     }
 
+    ctx.restore();
+
     // === HUD ===
     this._drawHUD(ctx);
   }
@@ -904,99 +959,274 @@ export class SideScrollLevel {
   _drawPlayer(ctx, sx, sy, gameTime) {
     const p = this.p;
     if (p.hurt > 0 && Math.floor(gameTime / 60) % 2 === 0) return;
-    const bob = p.onGround && p.vx !== 0 ? Math.sin(p.walkCycle * 2) * 1.5 : 0;
-    const y = sy + bob;
-    // 阴影
+
+    const t = gameTime * 0.001;
+    const onGround = p.onGround;
+    const facing = p.facing;
+    const vx = p.vx;
+    const vy = p.vy;
+
+    // 落地时的轻微挤压 & 扬起尘土
+    let squash = 0;
+    if (p.landTimer > 0) {
+      squash = (p.landTimer / 120) * 2.5;
+      const u = p.landTimer / 120;
+      ctx.fillStyle = `rgba(200,190,170,${0.45 * u})`;
+      for (let side = -1; side <= 1; side += 2) {
+        ctx.beginPath();
+        ctx.arc(sx + side * (10 + u * 12), sy - u * 4, 2 + u * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const walkBob = onGround && Math.abs(vx) > 0.1 ? Math.sin(p.walkCycle * 2) * 1.5 : 0;
+    const cy = sy + walkBob - squash;
+
+    // 阴影（空中缩小）
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
-    ctx.ellipse(sx, sy + 2, 10, 3, 0, 0, Math.PI * 2);
+    const shadowR = Math.max(4, 10 - Math.abs(vy) * 0.25);
+    ctx.ellipse(sx, sy + 2, shadowR, 3, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 腿
-    const legSwing = p.onLadder
-      ? Math.sin(p.walkCycle * 2) * 3
-      : p.onGround && p.vx !== 0
-        ? Math.sin(p.walkCycle * 2) * 6
-        : p.onGround
-          ? 0
-          : 4;
-    ctx.strokeStyle = '#3a4858';
-    ctx.lineWidth = 3.4;
+
+    // 攻击进度（挥砍发生在 0.2-0.5）
+    let aProg = 0;
+    let slashProg = 0;
+    if (p.attacking > 0) {
+      aProg = 1 - p.attacking / ATTACK_DURATION;
+      slashProg = Math.max(0, Math.min(1, (aProg - 0.2) / 0.3));
+    }
+
+    // 身体前倾 / 起跳倾斜
+    let lean = 0;
+    if (p.attacking > 0) {
+      lean = facing * (1.2 + slashProg * 1.2);
+    } else if (!onGround) {
+      lean = facing * 2 + vx * 0.6;
+    } else if (Math.abs(vx) > 0.1) {
+      lean = facing * 1.2;
+    }
+
+    // 攻击时轻微前冲（不影响判定）
+    let lunge = 0;
+    if (p.attacking > 0) {
+      lunge = facing * Math.sin(slashProg * Math.PI) * 4;
+    }
+    const cx = sx + lunge;
+
+    const hipY = cy - 6;
+    const torsoTop = cy - 20;
+    const shoulderY = cy - 15;
+    const headY = cy - 24;
+    const armY = cy - 14;
+
+    // 围巾/衣摆在身后飘动
+    ctx.strokeStyle = 'rgba(90,104,120,0.55)';
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(sx - 3, y - 6);
-    ctx.lineTo(sx - 4 + legSwing, y + 10);
+    const tailX = cx - facing * (12 + Math.abs(vx) * 2) + Math.sin(t * 6 + facing) * 2;
+    const tailY = torsoTop + 10 + Math.cos(t * 5) * 2;
+    ctx.moveTo(cx - facing * 3, shoulderY + 2);
+    ctx.quadraticCurveTo(cx - facing * 9 - vx, shoulderY + 8, tailX, tailY);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(sx + 3, y - 6);
-    ctx.lineTo(sx + 4 - legSwing, y + 10);
-    ctx.stroke();
+
+    // 腿：带膝盖弯曲的二次曲线
+    const drawLeg = (hipX, footX, footY, bend) => {
+      ctx.strokeStyle = '#3a4858';
+      ctx.lineWidth = 3.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(hipX, hipY);
+      const kneeX = (hipX + footX) / 2 + bend;
+      const kneeY = (hipY + footY) / 2 - 4;
+      ctx.quadraticCurveTo(kneeX, kneeY, footX, footY);
+      ctx.stroke();
+    };
+
+    if (p.onLadder) {
+      const climbSwing = Math.sin(p.walkCycle * 2) * 3;
+      drawLeg(cx - 3, cx - 3 + climbSwing, sy, 0);
+      drawLeg(cx + 3, cx + 3 - climbSwing, sy, 0);
+    } else if (onGround) {
+      const swing = Math.sin(p.walkCycle * 2) * 7;
+      const leftFootX = cx - 4 + swing;
+      const rightFootX = cx + 4 - swing;
+      drawLeg(cx - 3, leftFootX, sy, -Math.abs(swing) * 0.35);
+      drawLeg(cx + 3, rightFootX, sy, Math.abs(swing) * 0.35);
+    } else {
+      const airPhase = Math.sin(gameTime * 0.012) * 0.4;
+      const rising = vy < 0;
+      // 前腿蜷起，后腿拖后
+      const frontFootX = cx + facing * (rising ? 7 : 5) + airPhase * 2;
+      const frontFootY = cy - (rising ? 8 : 2);
+      const backFootX = cx - facing * (rising ? 4 : 6) - airPhase * 2;
+      const backFootY = cy - (rising ? 3 : 4);
+      drawLeg(cx + facing * 2, frontFootX, frontFootY, facing * (rising ? -3 : 2));
+      drawLeg(cx - facing * 2, backFootX, backFootY, -facing * (rising ? -2 : 3));
+    }
+
     // 躯干
     ctx.fillStyle = '#5a6878';
     ctx.beginPath();
-    ctx.moveTo(sx - 5, y - 18);
-    ctx.lineTo(sx - 6, y - 4);
-    ctx.lineTo(sx + 6, y - 4);
-    ctx.lineTo(sx + 5, y - 18);
+    ctx.moveTo(cx - 5 + lean, torsoTop);
+    ctx.lineTo(cx - 6 - lean * 0.3, cy - 6);
+    ctx.lineTo(cx + 6 - lean * 0.3, cy - 6);
+    ctx.lineTo(cx + 5 + lean, torsoTop);
     ctx.closePath();
     ctx.fill();
+    // 腰带
     ctx.fillStyle = '#3a4858';
-    ctx.fillRect(sx - 6, y - 10, 12, 1.5);
+    ctx.fillRect(cx - 6, cy - 11, 12, 2);
+
     // 头
+    const headX = cx + lean * 0.6;
     ctx.fillStyle = '#e8c9a0';
     ctx.beginPath();
-    ctx.arc(sx + p.facing * 1, y - 23, 5, 0, Math.PI * 2);
+    ctx.arc(headX, headY, 5, 0, Math.PI * 2);
     ctx.fill();
+    // 头发
     ctx.fillStyle = '#2a2018';
     ctx.beginPath();
-    ctx.arc(sx + p.facing * 1, y - 25, 5, Math.PI, 0);
+    ctx.arc(headX, headY - 2, 5.2, Math.PI, 0);
     ctx.fill();
+    // 刘海随风摆动
+    ctx.beginPath();
+    ctx.moveTo(headX - 4, headY - 2);
+    ctx.quadraticCurveTo(headX - 6 - facing - vx * 0.3, headY - 5, headX - 2, headY - 7);
+    ctx.fill();
+
     // 眼
     ctx.fillStyle = '#1a1612';
     ctx.beginPath();
-    ctx.arc(sx + p.facing * 3, y - 23, 0.9, 0, Math.PI * 2);
+    ctx.arc(headX + facing * 2.5, headY + 1, 0.9, 0, Math.PI * 2);
     ctx.fill();
-    // 手 + 小刀
-    const armY = y - 12;
+
+    // 手臂 + 剑
     if (p.attacking > 0) {
-      const prog = 1 - p.attacking / 200;
-      const ang = (p.facing > 0 ? -0.6 : Math.PI + 0.6) + prog * (p.facing > 0 ? 1.6 : -1.6);
-      const hx = sx + Math.cos(ang) * 22,
-        hy = armY + Math.sin(ang) * 22;
-      ctx.strokeStyle = '#5a6878';
-      ctx.lineWidth = 2.8;
-      ctx.beginPath();
-      ctx.moveTo(sx + p.facing * 4, armY);
-      ctx.lineTo(hx, hy);
-      ctx.stroke();
-      const tx = hx + Math.cos(ang) * 16,
-        ty = hy + Math.sin(ang) * 16;
-      ctx.strokeStyle = '#d8d8e0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(hx, hy);
-      ctx.lineTo(tx, ty);
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(255,240,200,${0.5 * (1 - prog)})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      const a0 = ang - p.facing * 0.8,
-        a1 = ang + p.facing * 0.2;
-      ctx.arc(sx + p.facing * 4, armY, 30, a0, a1, p.facing < 0);
-      ctx.stroke();
-    } else {
-      const armSwing = p.onGround && p.vx !== 0 ? Math.sin(p.walkCycle * 2 + Math.PI) * 5 : 0;
-      ctx.strokeStyle = '#5a6878';
-      ctx.lineWidth = 2.8;
-      ctx.beginPath();
-      ctx.moveTo(sx + p.facing * 4, armY);
-      ctx.lineTo(sx + p.facing * 9, armY + 4 + armSwing);
-      ctx.stroke();
-      if (p.hasKnife) {
-        ctx.strokeStyle = '#b8b8c0';
+      // 以朝向为基准的局部角度：0=正前方，负=后上方，正=前下方
+      const fwd = facing > 0 ? 0 : Math.PI;
+      const ang = (local) => fwd + facing * local;
+      // 三段：蓄力(0-0.2) → 挥砍(0.2-0.5) → 收回(0.5-1)
+      let local;
+      if (aProg < 0.2) {
+        const u = aProg / 0.2;
+        local = -0.3 - u * 0.8; // 待机 → 后上方抬起
+      } else if (aProg < 0.5) {
+        const u = (aProg - 0.2) / 0.3;
+        local = -1.1 + u * 1.9; // 后上 → 前下挥落（约 110°）
+      } else {
+        const u = (aProg - 0.5) / 0.5;
+        local = 0.8 - u * 1.1; // 前下 → 收回待机
+      }
+      const armAngle = ang(local);
+      const armLen = 20;
+      const bladeLen = 26;
+      const shoulderX = cx + facing * 3;
+      const handX = shoulderX + Math.cos(armAngle) * armLen;
+      const handY = shoulderY + Math.sin(armAngle) * armLen;
+      const tipX = handX + Math.cos(armAngle) * bladeLen;
+      const tipY = handY + Math.sin(armAngle) * bladeLen;
+
+      // 剑光拖尾：只画最近一段挥砍轨迹（运动模糊感）
+      if (slashProg > 0 && slashProg < 1) {
+        const peak = Math.sin(slashProg * Math.PI);
+        const trailR = armLen + bladeLen;
+        const startLocal = -1.1;
+        const endLocal = 0.8;
+        const curLocal = startLocal + (endLocal - startLocal) * slashProg;
+        const tailLocal = Math.max(startLocal, curLocal - 0.55);
+        const a0 = ang(tailLocal);
+        const a1 = ang(curLocal);
+        ctx.save();
+        ctx.translate(shoulderX, shoulderY);
+        ctx.strokeStyle = `rgba(255, 240, 190, ${peak * 0.65})`;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(0, 0, trailR, Math.min(a0, a1), Math.max(a0, a1), facing < 0);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${peak * 0.85})`;
         ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.moveTo(sx + p.facing * 9, armY + 4 + armSwing);
-        ctx.lineTo(sx + p.facing * 20, armY + 2 + armSwing);
+        ctx.arc(0, 0, trailR, Math.min(a0, a1), Math.max(a0, a1), facing < 0);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 持剑手臂
+      ctx.strokeStyle = '#5a6878';
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(shoulderX, shoulderY);
+      ctx.lineTo(handX, handY);
+      ctx.stroke();
+
+      // 剑刃
+      ctx.strokeStyle = '#e2e8f4';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.moveTo(handX, handY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+      // 刃光高亮
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 1;
+      const gx = -Math.sin(armAngle);
+      const gy = Math.cos(armAngle);
+      ctx.beginPath();
+      ctx.moveTo(handX + gx, handY + gy);
+      ctx.lineTo(tipX + gx, tipY + gy);
+      ctx.stroke();
+
+      // 护手
+      ctx.strokeStyle = '#9a8a70';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(handX - Math.sin(armAngle) * 3.5, handY + Math.cos(armAngle) * 3.5);
+      ctx.lineTo(handX + Math.sin(armAngle) * 3.5, handY - Math.cos(armAngle) * 3.5);
+      ctx.stroke();
+    } else {
+      let handX, handY;
+      if (!onGround) {
+        const airArm = Math.sin(gameTime * 0.015) * 2;
+        handX = cx + facing * 10 + airArm;
+        handY = armY - 3 + (vy < 0 ? -4 : 2);
+      } else {
+        const armSwing = Math.abs(vx) > 0.1 ? Math.sin(p.walkCycle * 2 + Math.PI) * 5 : 0;
+        handX = cx + facing * 9;
+        handY = armY + 4 + armSwing;
+      }
+      ctx.strokeStyle = '#5a6878';
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx + facing * 3, shoulderY);
+      ctx.lineTo(handX, handY);
+      ctx.stroke();
+      if (p.hasKnife) {
+        // 待机/行走的剑
+        const bladeLen = 18;
+        const tipX = handX + facing * bladeLen;
+        const tipY = handY - 1;
+        ctx.strokeStyle = '#e0e4f0';
+        ctx.lineWidth = 2.6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(handX, handY);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(handX, handY - 1);
+        ctx.lineTo(tipX, tipY - 1);
+        ctx.stroke();
+        ctx.strokeStyle = '#9a8a70';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(handX, handY - 3);
+        ctx.lineTo(handX, handY + 3);
         ctx.stroke();
       }
     }
@@ -1117,7 +1347,7 @@ export class SideScrollLevel {
     if (this.p.hasKnife) {
       ctx.fillStyle = 'rgba(255,220,140,0.7)';
       ctx.font = 'bold 11px serif';
-      ctx.fillText('记忆合金小刀 · 鼠标左键', sx, sy + sanH + 18);
+      ctx.fillText('记忆合金小刀 · J 挥刀', sx, sy + sanH + 18);
     } else {
       ctx.fillStyle = 'rgba(200,200,200,0.6)';
       ctx.font = '11px serif';

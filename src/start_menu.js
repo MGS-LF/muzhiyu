@@ -15,9 +15,10 @@ function ensureStyle() {
       place-items: center;
       overflow: hidden;
       color: #e8dcc8;
-      background:
+      background-color: #050403;
+      background-image:
         radial-gradient(circle at 50% 42%, rgba(180, 135, 70, 0.13), transparent 34%),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.86), rgba(5, 6, 9, 0.62) 46%, rgba(0, 0, 0, 0.9));
+        linear-gradient(90deg, #000000, #050609 46%, #000000);
       font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
     }
     .start-menu.is-hidden {
@@ -266,6 +267,7 @@ function makeSaveButton(save, onLoad) {
   return button;
 }
 
+/** @param {any} game @param {{ fromIntro?: boolean }} [opts] */
 export function mountStartMenu(game, { fromIntro } = {}) {
   if (fromIntro) return null;
 
@@ -319,7 +321,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
           <ul>
             <li>移动：WASD / 方向键，交互：E，冲刺：Space</li>
             <li>战斗：← → 选择，E / Space 确认，K 释放诗词大招</li>
-            <li>菜单：Q 任务，I 背包，M 地图，O 设置，F5/F9 快速存读档</li>
+            <li>菜单：Q 任务，I 背包，M 地图，O 设置，Esc 系统菜单，F4/F9 快速存读档</li>
           </ul>
         </div>
       </div>
@@ -327,10 +329,10 @@ export function mountStartMenu(game, { fromIntro } = {}) {
   `;
   document.body.appendChild(root);
 
-  const views = Array.from(root.querySelectorAll('.start-menu__view'));
-  const savesBox = root.querySelector('[data-saves]');
-  const errorBox = root.querySelector('[data-error]');
-  const ngPlusButton = root.querySelector('[data-ngplus]');
+  const views = /** @type {HTMLElement[]} */ (Array.from(root.querySelectorAll('.start-menu__view')));
+  const savesBox = /** @type {HTMLElement} */ (root.querySelector('[data-saves]'));
+  const errorBox = /** @type {HTMLElement} */ (root.querySelector('[data-error]'));
+  const ngPlusButton = /** @type {HTMLElement} */ (root.querySelector('[data-ngplus]'));
   const meta = loadMeta();
   if (ngPlusButton && meta.clearCount > 0) {
     ngPlusButton.hidden = false;
@@ -396,23 +398,24 @@ export function mountStartMenu(game, { fromIntro } = {}) {
 
   function blockGameKeys(e) {
     if (!root.isConnected) return;
-    if (['F2', 'F5', 'F6', 'F9', 'Tab', ' '].includes(e.key)) e.preventDefault();
+    if (['F2', 'F4', 'F6', 'F9', 'Tab', ' '].includes(e.key)) e.preventDefault();
     if (e.key === 'Escape') {
-      const active = root.querySelector('.start-menu__view.is-active');
+      const active = /** @type {HTMLElement} */ (root.querySelector('.start-menu__view.is-active'));
       if (active && active.dataset.view !== 'main') showView('main');
     }
     e.stopPropagation();
   }
 
   root.addEventListener('click', (e) => {
-    const action = e.target && e.target.dataset ? e.target.dataset.action : null;
+    const target = /** @type {HTMLElement} */ (e.target);
+    const action = target && target.dataset ? target.dataset.action : null;
     if (!action) return;
     if (action === 'start') {
       localStorage.removeItem('keheng_new_game_plus');
-      window.location.href = 'intro_3d.html';
+      window.dispatchEvent(new CustomEvent('keheng:startIntro'));
     } else if (action === 'ngplus') {
       localStorage.setItem('keheng_new_game_plus', '1');
-      window.location.href = 'intro_3d.html';
+      window.dispatchEvent(new CustomEvent('keheng:startIntro'));
     } else if (action === 'endless') {
       if (game.startEndlessMode()) dismiss();
     } else if (action === 'saves') {

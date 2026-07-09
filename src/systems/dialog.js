@@ -25,6 +25,7 @@ export const methods = {
       done: false,
       choosing: false,
       choiceIndex: 0,
+      skipTimer: 0,
       onComplete,
     };
     this.setDialogIndex(0);

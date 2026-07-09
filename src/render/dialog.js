@@ -703,7 +703,7 @@ export function drawCompose(ctx, c, gameTime) {
     ctx.fillText('不对……烂梗的噪声更响了（理性 -8）', W / 2, H - 60);
   } else {
     ctx.fillStyle = 'rgba(180,180,190,0.7)';
-    ctx.fillText('← → 选字　·　E 填入/确认　·　Backspace 撤销　·　Q 退开', W / 2, H - 40);
+    ctx.fillText('← → 选字　·　Space 填入/确认　·　Backspace 撤销　·　Q 退开', W / 2, H - 40);
   }
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';

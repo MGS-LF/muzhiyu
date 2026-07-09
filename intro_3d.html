@@ -330,8 +330,32 @@ const FRAME_MS = 1000 / 50;
 function goGame() {
   if (finished) return;
   finished = true;
+  cancelAnimationFrame(rafId);
+  window.removeEventListener('resize', onResize);
+  try {
+    renderer.dispose();
+    scene.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) {
+          if (m.map) m.map.dispose();
+          if (m.dispose) m.dispose();
+        }
+      }
+    });
+    titleTex.dispose();
+    leftPage.tex.dispose();
+    rightPage.tex.dispose();
+  } catch (e) {
+    /* ignore */
+  }
   sessionStorage.setItem('keheng_from', 'intro');
-  location.replace('/');
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'intro:done' }, '*');
+  } else {
+    location.replace('/');
+  }
 }
 
 function updateIntroUi(T) {
@@ -351,7 +375,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 function step(now) {
-  requestAnimationFrame(step);
+  rafId = requestAnimationFrame(step);
   if (finished) return;
   if (now - lastRender < FRAME_MS) return;
   lastRender = now;
@@ -395,14 +419,15 @@ function step(now) {
   }
 }
 
-requestAnimationFrame(step);
+let rafId = requestAnimationFrame(step);
 setTimeout(goGame, 17000);
 
-window.addEventListener('resize', () => {
+function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}
+window.addEventListener('resize', onResize);
 </script>
 </body>
 </html>

@@ -30,7 +30,7 @@ window.addEventListener('keydown', (e) => {
   if (!keys[k]) justPressed[k] = true;
   keys[k] = true;
   if (
-    ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab', 'f2', 'f5', 'f6', 'f9'].includes(k)
+    ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab', 'f2', 'f4', 'f6', 'f9'].includes(k)
   )
     e.preventDefault();
 });
@@ -130,12 +130,12 @@ function mountMobileControls() {
   document.head.appendChild(style);
   wrap.appendChild(root);
 
-  const joy = root.querySelector('#joystick-zone');
-  const knob = root.querySelector('#joystick-knob');
-  const action = root.querySelector('#action-zone');
-  const ultimate = root.querySelector('#ultimate-zone');
-  const jump = root.querySelector('#jump-zone');
-  const settings = root.querySelector('#settings-zone');
+  const joy = /** @type {HTMLElement} */ (root.querySelector('#joystick-zone'));
+  const knob = /** @type {HTMLElement} */ (root.querySelector('#joystick-knob'));
+  const action = /** @type {HTMLElement} */ (root.querySelector('#action-zone'));
+  const ultimate = /** @type {HTMLElement} */ (root.querySelector('#ultimate-zone'));
+  const jump = /** @type {HTMLElement} */ (root.querySelector('#jump-zone'));
+  const settings = /** @type {HTMLElement} */ (root.querySelector('#settings-zone'));
   let joyPointer = null;
 
   const setStick = (clientX, clientY) => {
@@ -194,9 +194,15 @@ function mountMobileControls() {
   bindButton(settings, 'o');
 }
 
+const KEY_ALIASES = { ctrl: 'control', esc: 'escape' };
+function normKey(k) {
+  const key = k.toLowerCase();
+  return KEY_ALIASES[key] || key;
+}
+
 export const input = {
   isDown(k) {
-    const key = k.toLowerCase();
+    const key = normKey(k);
     if (key === 'w' || key === 'arrowup') return !!keys[key] || touchMove.y < -0.35;
     if (key === 's' || key === 'arrowdown') return !!keys[key] || touchMove.y > 0.35;
     if (key === 'a' || key === 'arrowleft') return !!keys[key] || touchMove.x < -0.35;
@@ -204,8 +210,9 @@ export const input = {
     return !!keys[key];
   },
   wasPressed(k) {
-    const v = !!justPressed[k.toLowerCase()];
-    justPressed[k.toLowerCase()] = false;
+    const key = normKey(k);
+    const v = !!justPressed[key];
+    justPressed[key] = false;
     return v;
   },
   moveVec() {
