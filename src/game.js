@@ -792,6 +792,16 @@ export class Game {
     if (this._handleGlobalInput(dt)) return;
     if (typeof this._refreshDerivedProgress === 'function') this._refreshDerivedProgress();
 
+    // 浮动提示寿命衰减：必须始终更新，否则在对话/战斗/横版关卡中弹出的提示不会消失
+    if (this.hints && this.hints.length) {
+      for (let i = this.hints.length - 1; i >= 0; i--) {
+        this.hints[i].life -= dt;
+        if (this.hints[i].life <= 0) {
+          this.hints.splice(i, 1);
+        }
+      }
+    }
+
     if (this.endless && !this.battle) {
       if (this.endless.state === 'gameover') {
         if (input.wasPressed('escape') || input.wasPressed('e') || input.wasPressed(' ') || input.wasPressed('enter')) {
@@ -1049,16 +1059,6 @@ export class Game {
 
     // 粒子
     this.updateParticles(dt);
-
-    // 浮动提示寿命衰减（基于真实 dt）
-    if (this.hints && this.hints.length) {
-      for (let i = this.hints.length - 1; i >= 0; i--) {
-        this.hints[i].life -= dt;
-        if (this.hints[i].life <= 0) {
-          this.hints.splice(i, 1);
-        }
-      }
-    }
 
     // 自动触发剧情 + 遭遇敌人
     this.checkAutoTriggers(dt);
