@@ -245,11 +245,11 @@ export class Game {
         label: '高对比字幕',
         value: this.settings.highContrast ? '开' : '关',
       },
-      {
-        id: 'colorblind',
-        label: '色盲辅助',
-        value: this.settings.colorblind ? '开' : '关',
-      },
+      // {
+      //   id: 'colorblind',
+      //   label: '色盲辅助',
+      //   value: this.settings.colorblind ? '开' : '关',
+      // },
       {
         id: 'reducedFx',
         label: '降低特效',

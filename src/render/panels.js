@@ -288,11 +288,11 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
     ctx.textAlign = 'left';
   }
 
-  const notes = [
-    '高对比字幕会加深对话框并提高文字亮度。',
-    '色盲辅助会减少红绿依赖，战斗提示改用更高对比的蓝黄标记。',
-    '降低特效会关闭强闪光、扭曲与部分粒子叠加。',
-  ];
+  // const notes = [
+  //   '高对比字幕会加深对话框并提高文字亮度。',
+  //   '色盲辅助会减少红绿依赖，战斗提示改用更高对比的蓝黄标记。',
+  //   '降低特效会关闭强闪光、扭曲与部分粒子叠加。',
+  // ];
   let ny = py + ph - 92;
   ctx.fillStyle = 'rgba(190,180,155,0.68)';
   ctx.font = '11px "SimSun",serif';
