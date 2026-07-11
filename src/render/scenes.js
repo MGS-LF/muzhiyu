@@ -477,7 +477,8 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, Math.min(skyH, H));
 
   // 杩滄櫙澶╅檯绾?
-  for (const b of scene.props.filter((p) => p.name === '高楼')) {
+  const tallBuildings = scene._groupedProps ? (scene._groupedProps['高楼'] || []) : scene.props.filter((p) => p.name === '高楼');
+  for (const b of tallBuildings) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#2a2826';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -612,12 +613,14 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   }
 
   // 搴熷純杞﹁締
-  for (const car of scene.props.filter((p) => p.name === '废弃车辆')) {
+  const abandonedCars = scene._groupedProps ? (scene._groupedProps['废弃车辆'] || []) : scene.props.filter((p) => p.name === '废弃车辆');
+  for (const car of abandonedCars) {
     drawAbandonedCar(ctx, W2S, car, gameTime);
   }
 
   // 碎石堆
-  for (const rubble of scene.props.filter((p) => p.name === '碎石堆')) {
+  const subwayRubble = scene._groupedProps ? (scene._groupedProps['碎石堆'] || []) : scene.props.filter((p) => p.name === '碎石堆');
+  for (const rubble of subwayRubble) {
     drawRubble(ctx, W2S, rubble);
   }
 
@@ -735,7 +738,7 @@ export function drawLostPerson(ctx, x, y, idx) {
   ctx.stroke();
 }
 
-export function drawStreetLamps(ctx, W2S, gameTime) {
+export function drawStreetLamps(ctx, W2S, gameTime, game) {
   const lamps = [
     { x: 300, y: 380, broken: false },
     { x: 700, y: 380, broken: false },
@@ -743,6 +746,7 @@ export function drawStreetLamps(ctx, W2S, gameTime) {
     { x: 1500, y: 380, broken: true },
     { x: 1900, y: 380, broken: false },
   ];
+  const useReduced = game && game.settings && game.settings.reducedFx;
   for (const lamp of lamps) {
     const s = W2S(lamp.x, lamp.y);
     ctx.fillStyle = '#3a3530';
@@ -763,22 +767,26 @@ export function drawStreetLamps(ctx, W2S, gameTime) {
     if (!lamp.broken) {
       const flicker = 0.5 + Math.sin(gameTime * 0.01 + lamp.x) * 0.2;
       ctx.fillStyle = `rgba(255,220,140,${flicker})`;
-      ctx.shadowColor = `rgba(255,220,140,${flicker * 0.6})`;
-      ctx.shadowBlur = 12;
+      if (!useReduced) {
+        ctx.shadowColor = `rgba(255,220,140,${flicker * 0.6})`;
+        ctx.shadowBlur = 12;
+      }
       ctx.beginPath();
       ctx.arc(s.x + 14, s.y - 8, 2.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
-      const grad = ctx.createRadialGradient(s.x + 14, s.y - 8, 2, s.x + 14, s.y - 8, 80);
-      grad.addColorStop(0, `rgba(255,220,140,${flicker * 0.15})`);
-      grad.addColorStop(1, 'rgba(255,220,140,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.moveTo(s.x + 14, s.y - 6);
-      ctx.lineTo(s.x + 90, s.y + 90);
-      ctx.lineTo(s.x - 60, s.y + 90);
-      ctx.closePath();
-      ctx.fill();
+      if (!useReduced) {
+        ctx.shadowBlur = 0;
+        const grad = ctx.createRadialGradient(s.x + 14, s.y - 8, 2, s.x + 14, s.y - 8, 80);
+        grad.addColorStop(0, `rgba(255,220,140,${flicker * 0.15})`);
+        grad.addColorStop(1, 'rgba(255,220,140,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(s.x + 14, s.y - 6);
+        ctx.lineTo(s.x + 90, s.y + 90);
+        ctx.lineTo(s.x - 60, s.y + 90);
+        ctx.closePath();
+        ctx.fill();
+      }
     } else {
       ctx.fillStyle = 'rgba(40,30,20,0.7)';
       ctx.beginPath();
@@ -1118,7 +1126,8 @@ export function drawSubway(ctx, W2S, scene, gameTime, game) {
   }
 
   // 搴熷純鍒楄溅杞﹀帰
-  for (const car of scene.props.filter((p) => p.name === '列车车厢')) {
+  const trainCars = scene._groupedProps ? (scene._groupedProps['列车车厢'] || []) : scene.props.filter((p) => p.name === '列车车厢');
+  for (const car of trainCars) {
     const s = W2S(car.x + car.w / 2, car.y + car.h / 2);
     // 闃村奖
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -1203,7 +1212,8 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 杩滄櫙楂樻ゼ
-  for (const b of scene.props.filter((p) => p.name === '高楼')) {
+  const alleyBuildings = scene._groupedProps ? (scene._groupedProps['高楼'] || []) : scene.props.filter((p) => p.name === '高楼');
+  for (const b of alleyBuildings) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#1a1612';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -1236,7 +1246,8 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 姘戝眳寤虹瓚
-  for (const b of scene.props.filter((p) => p.name && p.name.includes('民居'))) {
+  const minjuProps = scene._groupedProps ? (scene._groupedProps['民居'] || []) : scene.props.filter((p) => p.name && p.name.includes('民居'));
+  for (const b of minjuProps) {
     const s = W2S(b.x, b.y);
     // 灞嬮《
     ctx.fillStyle = '#3a2a1a';
@@ -1261,12 +1272,13 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 碎石堆
-  for (const r of scene.props.filter((p) => p.name === '碎石堆')) {
+  const rubbleProps = scene._groupedProps ? (scene._groupedProps['碎石堆'] || []) : scene.props.filter((p) => p.name === '碎石堆');
+  for (const r of rubbleProps) {
     drawRubble(ctx, W2S, r);
   }
 
   // 搴熷純鑺卞潧
-  const planter = scene.props.find((p) => p.name === '废弃花坛');
+  const planter = scene._groupedProps && scene._groupedProps['废弃花坛'] ? scene._groupedProps['废弃花坛'][0] : scene.props.find((p) => p.name === '废弃花坛');
   if (planter) {
     const s = W2S(planter.x, planter.y);
     ctx.fillStyle = '#3a3020';
@@ -1328,7 +1340,8 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 妗屽瓙
-  for (const t of scene.props.filter((p) => p.name === '桌子')) {
+  const tableProps = scene._groupedProps ? (scene._groupedProps['桌子'] || []) : scene.props.filter((p) => p.name === '桌子');
+  for (const t of tableProps) {
     const s = W2S(t.x, t.y);
     ctx.fillStyle = '#4a3020';
     ctx.fillRect(s.x, s.y, t.w, t.h);
@@ -1340,7 +1353,8 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 鏃ф敹闊虫満
-  for (const r of scene.props.filter((p) => p.name === '收音机')) {
+  const radioProps = scene._groupedProps ? (scene._groupedProps['收音机'] || []) : scene.props.filter((p) => p.name === '收音机');
+  for (const r of radioProps) {
     const s = W2S(r.x, r.y);
     ctx.fillStyle = '#1b1712';
     ctx.fillRect(s.x, s.y, r.w, r.h);
@@ -1361,7 +1375,8 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 涔︽灦
-  for (const b of scene.props.filter((p) => p.name === '书架')) {
+  const bookshelfProps = scene._groupedProps ? (scene._groupedProps['书架'] || []) : scene.props.filter((p) => p.name === '书架');
+  for (const b of bookshelfProps) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#3a2010';
     ctx.fillRect(s.x, s.y, b.w, b.h);
@@ -1447,15 +1462,21 @@ export function drawStadium(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 灞忓箷澧欙紙鍙戝厜锛?
-  for (const p of scene.props.filter((p) => p.name === '屏幕墙')) {
+  const screenWalls = scene._groupedProps ? (scene._groupedProps['屏幕墙'] || []) : scene.props.filter((p) => p.name === '屏幕墙');
+  const useReduced = game && game.settings && game.settings.reducedFx;
+  for (const p of screenWalls) {
     const s = W2S(p.x, p.y);
     const pulse = 0.4 + Math.sin(gameTime * 0.005 + p.x * 0.01) * 0.3;
     // 鍏夋檿
-    ctx.shadowColor = `rgba(120,180,255,${pulse * 0.6})`;
-    ctx.shadowBlur = 15;
+    if (!useReduced) {
+      ctx.shadowColor = `rgba(120,180,255,${pulse * 0.6})`;
+      ctx.shadowBlur = 15;
+    }
     ctx.fillStyle = `rgba(80,120,200,${pulse * 0.3})`;
     ctx.fillRect(s.x, s.y, p.w, p.h);
-    ctx.shadowBlur = 0;
+    if (!useReduced) {
+      ctx.shadowBlur = 0;
+    }
     // 灞忓箷鍐呭锛堝櫔鐐癸級
     ctx.fillStyle = `rgba(180,200,255,${pulse * 0.5})`;
     for (let i = 0; i < 8; i++) {
@@ -1479,7 +1500,8 @@ export function drawDataCenter(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 娣辨笂锛堜袱渚э級
-  for (const p of scene.props.filter((p) => p.name === '深渊')) {
+  const abyssProps = scene._groupedProps ? (scene._groupedProps['深渊'] || []) : scene.props.filter((p) => p.name === '深渊');
+  for (const p of abyssProps) {
     const s = W2S(p.x, p.y);
     // 鏃嬭浆鐨勮櫄鏃?
     const t = gameTime * 0.001;

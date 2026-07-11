@@ -149,7 +149,6 @@ export function drawHints(ctx, hints) {
   let y = H - 220;
   for (let i = hints.length - 1; i >= 0; i--) {
     const h = hints[i];
-    h.life -= 16;
     if (h.life <= 0) {
       hints.splice(i, 1);
       continue;

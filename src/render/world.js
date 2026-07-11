@@ -558,13 +558,18 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     }
 
     // 外发光
-    ctx.shadowColor = 'rgba(80,220,100,0.8)';
-    ctx.shadowBlur = near ? 22 : 12;
+    const useReduced = game && game.settings && game.settings.reducedFx;
+    if (!useReduced) {
+      ctx.shadowColor = 'rgba(80,220,100,0.8)';
+      ctx.shadowBlur = near ? 22 : 12;
+    }
     ctx.fillStyle = `rgba(80,220,100,${near ? 0.18 : 0.1})`;
     ctx.beginPath();
     ctx.ellipse(s.x, sy - 4, 26, 32, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    if (!useReduced) {
+      ctx.shadowBlur = 0;
+    }
 
     // 身体
     ctx.fillStyle = `rgba(80,220,100,${near ? 0.4 : 0.32})`;
