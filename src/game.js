@@ -51,8 +51,13 @@ export class Game {
     // 清理 LLM 分支对话上下文（新游戏重置）
     clearBranchHistory();
 
-    // 高 DPI 适配
-    const dpr = window.devicePixelRatio || 1;
+    // 高 DPI 适配与分辨率限制（特效减弱时降低渲染倍率）
+    let dpr = window.devicePixelRatio || 1;
+    if (this.settings && this.settings.reducedFx) {
+      dpr = Math.min(dpr, 1.25);
+    } else {
+      dpr = Math.min(dpr, 2.0); // 最大 DPR 限制为 2.0，避免在 3K/4K 屏上造成渲染灾难
+    }
     this.canvas.width = W * dpr;
     this.canvas.height = H * dpr;
     this.canvas.style.width = '100%';
@@ -153,6 +158,8 @@ export class Game {
     // uiPanel 已支持 'quest'/'map'/'debug'，新增 'inventory'
     // 小地图显示开关（默认开）
     this._showMinimap = true;
+    this._lastGridX = -9999;
+    this._lastGridY = -9999;
     // 屏幕墙减速状态（体育馆陷阱）
     this._screenWallSlow = 0; // >0 时玩家被减速
     this._screenWallSanDrain = 0; // >0 时持续扣 SAN
@@ -278,6 +285,20 @@ export class Game {
       this.showHint(this.settings.muted ? '已静音' : '已开启声音');
     } else if (id === 'highContrast' || id === 'colorblind' || id === 'reducedFx') {
       toggle(id);
+      if (id === 'reducedFx') {
+        // reducedFx 发生改变时，重新计算 Canvas 的缩放与大小，防止画面模糊或渲染卡顿
+        let dpr = window.devicePixelRatio || 1;
+        if (this.settings.reducedFx) {
+          dpr = Math.min(dpr, 1.25);
+        } else {
+          dpr = Math.min(dpr, 2.0);
+        }
+        this.canvas.width = W * dpr;
+        this.canvas.height = H * dpr;
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置之前的 scale
+        this.ctx.scale(dpr, dpr);
+        this.ctx.imageSmoothingEnabled = false;
+      }
     }
     this._saveSettings();
     audio.playSfx('ui');
@@ -293,6 +314,8 @@ export class Game {
 
   loadScene(sceneId, spawnOverride) {
     this.scene = structuredClone(scenes[sceneId]);
+    this._lastGridX = -9999;
+    this._lastGridY = -9999;
     const spawn = spawnOverride || this.scene.spawn;
     this.player.x = spawn.x;
     this.player.y = spawn.y;
@@ -323,6 +346,22 @@ export class Game {
           e.hp = Math.floor(e.maxHp / 2);
         }
       }
+    }
+    // 预分类 props 以便在渲染时直接查找，避免每帧执行 expensive filter
+    if (this.scene && this.scene.props) {
+      const grouped = {};
+      for (const p of this.scene.props) {
+        if (!p.name) continue;
+        const name = p.name;
+        // 支持民居前缀模糊匹配
+        if (name.includes('民居')) {
+          if (!grouped['民居']) grouped['民居'] = [];
+          grouped['民居'].push(p);
+        }
+        if (!grouped[name]) grouped[name] = [];
+        grouped[name].push(p);
+      }
+      this.scene._groupedProps = grouped;
     }
     console.log('[场景] 加载:', sceneId, '生成点', spawn);
 
@@ -767,9 +806,15 @@ export class Game {
     // 集中刷新当前目标与指引（廉价，保证始终正确）
     this.refreshObjective();
 
-    // 小地图探索标记：以玩家为中心标记已探索区域
+    // 小地图探索标记：仅在玩家跨格移动时才更新，极大减少不必要的 markExplored 网格计算和字符串生成
     if (this.scene) {
-      minimap.markExplored(this.scene.id, this.player.x, this.player.y, 100);
+      const gx = Math.floor(this.player.x / 40);
+      const gy = Math.floor(this.player.y / 40);
+      if (gx !== this._lastGridX || gy !== this._lastGridY) {
+        this._lastGridX = gx;
+        this._lastGridY = gy;
+        minimap.markExplored(this.scene.id, this.player.x, this.player.y, 100);
+      }
     }
 
     // SAN 值低时触发持续视觉扭曲
@@ -1004,6 +1049,16 @@ export class Game {
 
     // 粒子
     this.updateParticles(dt);
+
+    // 浮动提示寿命衰减（基于真实 dt）
+    if (this.hints && this.hints.length) {
+      for (let i = this.hints.length - 1; i >= 0; i--) {
+        this.hints[i].life -= dt;
+        if (this.hints[i].life <= 0) {
+          this.hints.splice(i, 1);
+        }
+      }
+    }
 
     // 自动触发剧情 + 遭遇敌人
     this.checkAutoTriggers(dt);
@@ -1575,6 +1630,7 @@ export class Game {
       vx: 0,
       vy: -2,
       life: 400,
+      maxLife: 400,
       color: '180,255,180',
       size: 3,
     });

@@ -67,12 +67,37 @@ const SCENE_TO_BGM = {
   lost_village: 'bgm_10_ember',
 };
 
-const bgmBufferCache = new Map(); // bgmId -> AudioBuffer（已解码完整缓存，二次播放用）
+const bgmBufferCache = new Map(); // bgmId -> AudioBuffer（已解码完整缓存，限标题曲和常用短缓冲）
+const bgmBufferLru = []; // 用于追踪 bgmBufferCache 的访问顺序，做 LRU 清理
 const bgmLoading = new Map(); // bgmId -> Promise（完整解码加载）
 const bgmAudioEls = new Map(); // bgmId -> HTMLAudioElement（流式播放元素池，循环复用）
 const bgmStreamNodes = new Map(); // bgmId -> { source, gain }（MediaElementSource 节点）
 let currentMp3El = null; // 当前流式播放的 audio 元素
 let currentMp3Gain = null; // 当前 mp3 的增益节点
+
+const MAX_CACHED_BUFFERS = 3; // 内存中最多保留 3 个完整 AudioBuffer 缓存（其余的 LRU 剔除以节约庞大的内存占用）
+
+function updateLru(bgmId) {
+  const idx = bgmBufferLru.indexOf(bgmId);
+  if (idx !== -1) {
+    bgmBufferLru.splice(idx, 1);
+  }
+  bgmBufferLru.push(bgmId);
+
+  // 标题曲 bgm_01_prologue 和 战斗曲 bgm_02_battle 为高频关键音轨，不参与 LRU 强制剔除以防卡顿
+  if (bgmBufferCache.size > MAX_CACHED_BUFFERS) {
+    for (let i = 0; i < bgmBufferLru.length; i++) {
+      const id = bgmBufferLru[i];
+      if (id !== 'bgm_01_prologue' && id !== 'bgm_02_battle' && bgmBufferCache.has(id)) {
+        bgmBufferCache.delete(id);
+        bgmLoading.delete(id);
+        bgmBufferLru.splice(i, 1);
+        console.log(`[音频] LRU 释放解码缓存以节约内存: ${id}`);
+        break;
+      }
+    }
+  }
+}
 
 // 获取/创建流式 audio 元素（浏览器原生边下边播+缓冲，无需等完整下载）
 function getStreamAudioEl(bgmId) {
@@ -90,7 +115,10 @@ function getStreamAudioEl(bgmId) {
 
 // 异步完整加载 mp3 为 AudioBuffer（用于提前缓存，二次播放零延迟）
 async function loadBgmFile(bgmId) {
-  if (bgmBufferCache.has(bgmId)) return bgmBufferCache.get(bgmId);
+  if (bgmBufferCache.has(bgmId)) {
+    updateLru(bgmId);
+    return bgmBufferCache.get(bgmId);
+  }
   if (bgmLoading.has(bgmId)) return bgmLoading.get(bgmId);
   const url = BGM_FILES[bgmId];
   if (!url) return null;
@@ -103,6 +131,7 @@ async function loadBgmFile(bgmId) {
       const arr = await resp.arrayBuffer();
       const buf = await c.decodeAudioData(arr);
       bgmBufferCache.set(bgmId, buf);
+      updateLru(bgmId);
       return buf;
     } catch (e) {
       return null;
@@ -140,6 +169,7 @@ function playMp3BGM(bgmId) {
   // 优先用已解码的完整 AudioBuffer（零延迟，已缓存时）
   const buf = bgmBufferCache.get(bgmId);
   if (buf) {
+    updateLru(bgmId);
     const src = c.createBufferSource();
     src.buffer = buf;
     src.loop = true;
