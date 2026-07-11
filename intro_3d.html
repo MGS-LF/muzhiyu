@@ -191,9 +191,10 @@ function makePage({ title, body, pageLabel }) {
   g.fillText(pageLabel, W - 85, H - 65);
 
   const charBoxes = [];
-  const FONT_BODY = '54px "Songti SC", "SimSun", "Noto Serif SC", serif';
+  const lineEndIndices = []; // 每行在 charBoxes 中的结束下标
+  const FONT_BODY = '46px "Songti SC", "SimSun", "Noto Serif SC", serif';
   g.font = FONT_BODY; g.textBaseline = 'middle'; g.textAlign = 'left';
-  const marginX = 105, maxW = W - marginX * 2, lineH = 78;
+  const marginX = 90, maxW = W - marginX * 2, lineH = 68;
   let y = 300;
   for (const line of body.split('\n')) {
     if (line === '') { y += lineH * 0.45; continue; }
@@ -210,11 +211,13 @@ function makePage({ title, body, pageLabel }) {
         const pw = g.measureText(p).width;
         let x = (W - pw) / 2;
         for (const ch of p) { charBoxes.push({ x, y, ch }); x += g.measureText(ch).width; }
+        lineEndIndices.push(charBoxes.length);
         y += lineH;
       }
     } else {
       let x = (W - w) / 2;
       for (const ch of line) { charBoxes.push({ x, y, ch }); x += g.measureText(ch).width; }
+      lineEndIndices.push(charBoxes.length);
       y += lineH;
     }
   }
@@ -224,7 +227,7 @@ function makePage({ title, body, pageLabel }) {
 
   const tex = new THREE.CanvasTexture(c);
   tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
-  return { canvas: c, ctx: g, tex, charBoxes, FONT_BODY, _last: 0 };
+  return { canvas: c, ctx: g, tex, charBoxes, lineEndIndices, FONT_BODY, _last: 0 };
 }
 
 const leftPage = makePage({
@@ -276,17 +279,46 @@ const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xc8a87
 scene.add(dust);
 
 function streamText(page, t, start, end) {
-  const u = Math.max(0, Math.min(1, (t - start) / (end - start)));
-  const count = Math.floor(u * page.charBoxes.length);
-  if (count <= page._last) return;
+  const elapsed = t - start;
+  if (elapsed <= 0) return;
+  const lines = page.lineEndIndices;
+  const totalChars = page.charBoxes.length;
+  const lineDelay = 0.5;
+  const totalDelay = (lines.length - 1) * lineDelay;
+  const effectiveDuration = end - start - totalDelay;
+  if (effectiveDuration <= 0) return;
+
+  // 按行逐行推进，累积已显示字符数
+  let visible = 0;
+  let timeAccum = 0;
+  let prevEnd = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const lineChars = lines[i] - prevEnd;
+    const lineDuration = (lineChars / totalChars) * effectiveDuration;
+    // 非首行加行间延迟
+    if (i > 0) timeAccum += lineDelay;
+    if (elapsed <= timeAccum) break;
+    const timeInLine = elapsed - timeAccum;
+    if (timeInLine >= lineDuration) {
+      visible = lines[i];
+    } else {
+      visible = prevEnd + Math.floor((timeInLine / lineDuration) * lineChars);
+      break;
+    }
+    timeAccum += lineDuration;
+    prevEnd = lines[i];
+  }
+
+  if (visible <= page._last) return;
   const g = page.ctx;
   g.font = page.FONT_BODY; g.textBaseline = 'middle'; g.textAlign = 'left';
   g.fillStyle = 'rgba(30, 12, 0, 0.98)';
-  for (let i = page._last; i < count; i++) {
+  for (let i = page._last; i < visible; i++) {
     const c = page.charBoxes[i];
     g.fillText(c.ch, c.x, c.y);
   }
-  page._last = count;
+  page._last = visible;
   page.tex.needsUpdate = true;
 }
 
@@ -307,7 +339,7 @@ function onMove(x, y) {
   const dx = x - lastX, dy = y - lastY;
   lastX = x; lastY = y;
   targetAngleY += dx * 0.006;
-  targetAngleX += dy * 0.004;
+  targetAngleX -= dy * 0.004;
   targetAngleX = Math.max(0.15, Math.min(1.2, targetAngleX));
 }
 function onUp() { isDragging = false; canvas.classList.remove('dragging'); }
@@ -319,9 +351,9 @@ window.addEventListener('touchmove', (e) => { if (e.touches.length === 1) onMove
 window.addEventListener('touchend', onUp);
 
 const T_OPEN_START = 2.0, T_OPEN_END = 6.5;
-const T_LEFT_START = 3.5, T_LEFT_END = 10.5;
-const T_RIGHT_START = 7.0, T_RIGHT_END = 13.0;
-const T_FADE_OUT = 13.0, T_JUMP = 15.0;
+const T_LEFT_START = 3.5, T_LEFT_END = 30.0;
+const T_RIGHT_START = T_LEFT_END - 1, T_RIGHT_END = 65.0;
+const T_FADE_OUT = 65.0, T_JUMP = 67.0;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
 let t0 = null, finished = false;
 let lastRender = 0;
@@ -423,7 +455,7 @@ function step(now) {
 }
 
 let rafId = requestAnimationFrame(step);
-setTimeout(goGame, 17000);
+setTimeout(goGame, 70000);
 
 function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
