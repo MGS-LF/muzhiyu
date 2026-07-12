@@ -1439,50 +1439,100 @@ export class SideScrollLevel {
 
   _drawGeng(ctx, sx, sy, e, gameTime) {
     const flash = e.hitFlash > 0;
+    const t = gameTime * 0.001 + e.t;
     const wob = e.onGround ? Math.sin(e.walkPhase * 2) * 1.5 : 0;
+    const breathe = 0.5 + Math.sin(t * 3.2) * 0.5;
+    const lean = e.dir * (1.5 + Math.sin(t * 4) * 0.8);
     const cy = sy - 11 + wob;
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.save();
+    ctx.translate(sx, cy);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.34)';
     ctx.beginPath();
-    ctx.ellipse(sx, sy + 2, 11, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, sy - cy + 2, 13, 3.5, 0, 0, Math.PI * 2);
     ctx.fill();
-    const g = ctx.createRadialGradient(sx, cy, 0, sx, cy, 28);
-    g.addColorStop(0, flash ? 'rgba(255,255,255,0.5)' : 'rgba(80,220,100,0.3)');
+
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 34);
+    g.addColorStop(0, flash ? 'rgba(255,255,255,0.7)' : `rgba(105,255,145,${0.34 + breathe * 0.12})`);
+    g.addColorStop(0.5, 'rgba(38,170,80,0.16)');
     g.addColorStop(1, 'rgba(80,220,100,0)');
     ctx.fillStyle = g;
-    ctx.fillRect(sx - 28, cy - 28, 56, 56);
+    ctx.fillRect(-34, -34, 68, 68);
+
+    ctx.strokeStyle = `rgba(120,255,150,${0.15 + breathe * 0.18})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const r = 18 + i * 5 + breathe * 2;
+      ctx.beginPath();
+      ctx.ellipse(0, -1, r * 0.8, r, Math.sin(t + i) * 0.25, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     const legSwing = e.onGround ? Math.sin(e.walkPhase * 2) * 4 : 2;
-    ctx.strokeStyle = 'rgba(40,120,50,0.85)';
-    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = 'rgba(44,140,62,0.75)';
+    ctx.lineWidth = 2.4;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(sx - 4, cy + 6);
-    ctx.lineTo(sx - 5 + legSwing, sy);
+    ctx.moveTo(-5, 8);
+    ctx.lineTo(-6 + legSwing, sy - cy);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(sx + 4, cy + 6);
-    ctx.lineTo(sx + 5 - legSwing, sy);
+    ctx.moveTo(5, 8);
+    ctx.lineTo(6 - legSwing, sy - cy);
     ctx.stroke();
-    ctx.fillStyle = flash ? 'rgba(200,255,200,0.9)' : 'rgba(80,210,90,0.78)';
+
+    const body = ctx.createLinearGradient(-12, -16, 14, 16);
+    body.addColorStop(0, flash ? 'rgba(230,255,230,0.92)' : 'rgba(145,255,160,0.72)');
+    body.addColorStop(0.45, 'rgba(64,205,96,0.68)');
+    body.addColorStop(1, 'rgba(24,92,50,0.78)');
+    ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.ellipse(sx, cy, 13, 14, 0, 0, Math.PI * 2);
+    ctx.moveTo(-3 + lean, -17);
+    ctx.bezierCurveTo(-17, -14, -16, 2, -10, 10);
+    ctx.bezierCurveTo(-6, 16, 7, 17, 12, 8);
+    ctx.bezierCurveTo(18, -3, 12, -16, 3 + lean, -18);
+    ctx.bezierCurveTo(1, -15, -1, -15, -3 + lean, -17);
+    ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = `rgba(150,255,170,${flash ? 0.95 : 0.55 + breathe * 0.25})`;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
     ctx.fillStyle = 'rgba(20,40,20,0.9)';
     ctx.beginPath();
-    ctx.ellipse(sx, cy + 3, 8, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(1, 3, 8.5, 4.6 + breathe * 1.4, 0.08, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = 'rgba(180,255,180,0.5)';
-    for (let i = 0; i < 4; i++) {
+
+    ctx.fillStyle = 'rgba(215,255,215,0.72)';
+    for (let i = 0; i < 5; i++) {
+      const tx = -7 + i * 3.5;
       ctx.beginPath();
-      ctx.moveTo(sx - 6 + i * 4, cy + 3);
-      ctx.lineTo(sx - 5 + i * 4, cy + 7);
-      ctx.lineTo(sx - 4 + i * 4, cy + 3);
+      ctx.moveTo(tx, 1);
+      ctx.lineTo(tx + 1, 6 + Math.sin(t * 6 + i) * 0.8);
+      ctx.lineTo(tx + 2, 1.5);
       ctx.fill();
     }
-    ctx.fillStyle = '#0a1a0a';
+
+    ctx.fillStyle = '#061406';
     ctx.beginPath();
-    ctx.arc(sx - 4, cy - 4, 2, 0, Math.PI * 2);
-    ctx.arc(sx + 4, cy - 4, 2, 0, Math.PI * 2);
+    ctx.ellipse(-5, -5, 2.2, 3.1, -0.2, 0, Math.PI * 2);
+    ctx.ellipse(5, -5, 2.2, 3.1, 0.2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = `rgba(210,255,200,${0.5 + breathe * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(-5.5, -6.2, 0.7, 0, Math.PI * 2);
+    ctx.arc(4.5, -6.2, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '8px serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(170,255,180,${0.34 + breathe * 0.24})`;
+    ctx.fillText('梗', -17, -7 + Math.sin(t * 2) * 2);
+    ctx.fillText('梗', 18, 1 + Math.cos(t * 2.4) * 2);
+    ctx.fillText('噪', 1, 21 + Math.sin(t * 2.8) * 1.5);
+    ctx.textAlign = 'left';
+
+    ctx.restore();
     if (e.hp < e.maxHp) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(sx - 12, cy - 20, 24, 3);

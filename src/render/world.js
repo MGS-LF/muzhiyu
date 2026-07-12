@@ -67,6 +67,7 @@ export function drawItems(ctx, W2S, scene, gameTime, collected) {
 // ============================================================
 export function drawCureNPCs(ctx, W2S, scene, game, gameTime) {
   for (const it of scene.interactables) {
+    if (!isInteractableVisible(it, game)) continue;
     if (it.type !== 'cure') continue;
     const s = W2S(it.x, it.y);
     if (s.x < -60 || s.x > W + 60 || s.y < -60 || s.y > H + 60) continue;
@@ -107,8 +108,9 @@ export function drawCureNPCs(ctx, W2S, scene, game, gameTime) {
 // ============================================================
 // 互动提示
 // ============================================================
-export function drawInteractHints(ctx, W2S, scene, player, collected, gameTime) {
+export function drawInteractHints(ctx, W2S, scene, player, collected, gameTime, game = null) {
   for (const it of scene.interactables) {
+    if (!isInteractableVisible(it, game)) continue;
     const d = Math.hypot(it.x - player.x, it.y - player.y);
     if (d > 60) continue;
     const s = W2S(it.x, it.y);
@@ -264,6 +266,12 @@ export const INTERACTABLES_WITH_VISUAL = new Set([
   'tingyu',
 ]);
 
+export function isInteractableVisible(it, game) {
+  if (!it) return false;
+  if (!it._cond) return true;
+  return !!(game && game.flags && game.flags[it._cond]);
+}
+
 export function markerKind(it) {
   if (it.type === 'scene_change' || it.type === 'exit') return 'portal';
   const k = (it.dialogKey || '') + (it.label || '');
@@ -276,6 +284,7 @@ export function markerKind(it) {
 
 export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
   for (const it of scene.interactables) {
+    if (!isInteractableVisible(it, game)) continue;
     // 已有独立渲染的类型跳过
     if (it.type === 'keystone') continue; // drawKeystones
     if (it.type === 'cure') continue; // drawCureNPCs
@@ -557,65 +566,94 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
       ctx.stroke();
     }
 
+    const t = gameTime * 0.005 + (e.x + e.y) * 0.001;
+    const breathe = 0.5 + Math.sin(t * 2.6) * 0.5;
+    const lean = (e.dir || 1) * (2 + Math.sin(t * 3.4) * 0.8);
+
     // 外发光
     const useReduced = game && game.settings && game.settings.reducedFx;
     if (!useReduced) {
       ctx.shadowColor = 'rgba(80,220,100,0.8)';
       ctx.shadowBlur = near ? 22 : 12;
     }
-    ctx.fillStyle = `rgba(80,220,100,${near ? 0.18 : 0.1})`;
+    const aura = ctx.createRadialGradient(s.x, sy - 10, 0, s.x, sy - 10, near ? 42 : 34);
+    aura.addColorStop(0, `rgba(125,255,145,${near ? 0.3 : 0.2})`);
+    aura.addColorStop(0.45, 'rgba(50,190,90,0.12)');
+    aura.addColorStop(1, 'rgba(80,220,100,0)');
+    ctx.fillStyle = aura;
     ctx.beginPath();
-    ctx.ellipse(s.x, sy - 4, 26, 32, 0, 0, Math.PI * 2);
+    ctx.ellipse(s.x, sy - 9, 31, 38, Math.sin(t) * 0.12, 0, Math.PI * 2);
     ctx.fill();
     if (!useReduced) {
       ctx.shadowBlur = 0;
     }
 
-    // 身体
-    ctx.fillStyle = `rgba(80,220,100,${near ? 0.4 : 0.32})`;
+    // 噪声光环
+    ctx.strokeStyle = `rgba(130,255,155,${near ? 0.26 : 0.16})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const r = 20 + i * 7 + breathe * 2;
+      ctx.beginPath();
+      ctx.ellipse(s.x, sy - 9, r * 0.72, r, Math.sin(t + i) * 0.18, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 幽灵身体
+    const body = ctx.createLinearGradient(s.x - 18, sy - 36, s.x + 18, sy + 20);
+    body.addColorStop(0, `rgba(165,255,175,${near ? 0.68 : 0.52})`);
+    body.addColorStop(0.5, `rgba(68,212,100,${near ? 0.56 : 0.44})`);
+    body.addColorStop(1, `rgba(22,86,50,${near ? 0.7 : 0.58})`);
+    ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.moveTo(s.x - 4, sy - 16);
-    ctx.lineTo(s.x - 18, sy + 18);
-    ctx.lineTo(s.x + 18, sy + 18);
-    ctx.lineTo(s.x + 4, sy - 16);
+    ctx.moveTo(s.x - 5 + lean, sy - 34);
+    ctx.bezierCurveTo(s.x - 23, sy - 30, s.x - 24, sy - 2, s.x - 14, sy + 17);
+    ctx.bezierCurveTo(s.x - 8, sy + 11, s.x - 3, sy + 22, s.x + 3, sy + 15);
+    ctx.bezierCurveTo(s.x + 9, sy + 22, s.x + 15, sy + 10, s.x + 18, sy + 17);
+    ctx.bezierCurveTo(s.x + 27, sy - 4, s.x + 20, sy - 31, s.x + 5 + lean, sy - 34);
+    ctx.bezierCurveTo(s.x + 2, sy - 30, s.x - 2, sy - 30, s.x - 5 + lean, sy - 34);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = `rgba(120,255,140,${near ? 0.9 : 0.6})`;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = `rgba(145,255,165,${near ? 0.95 : 0.7})`;
+    ctx.lineWidth = 1.4;
     ctx.stroke();
 
-    // 头
-    ctx.fillStyle = `rgba(80,220,100,${near ? 0.5 : 0.4})`;
+    // 面部暗腔
+    ctx.fillStyle = 'rgba(9,26,14,0.78)';
     ctx.beginPath();
-    ctx.ellipse(s.x, sy - 22, 16, 18, 0, 0, Math.PI * 2);
+    ctx.ellipse(s.x + 1, sy - 17, 13, 7 + breathe * 2, 0.06, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = `rgba(120,255,140,${near ? 1 : 0.7})`;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
 
-    // 大嘴
-    ctx.fillStyle = 'rgba(20,40,20,0.9)';
+    // 眼睛
+    ctx.fillStyle = '#061406';
     ctx.beginPath();
-    ctx.ellipse(s.x, sy - 18, 12, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(s.x - 6, sy - 25, 2.4, 4, -0.25, 0, Math.PI * 2);
+    ctx.ellipse(s.x + 7, sy - 25, 2.4, 4, 0.25, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = 'rgba(220,255,220,0.85)';
+    ctx.fillStyle = `rgba(215,255,205,${0.42 + breathe * 0.28})`;
+    ctx.beginPath();
+    ctx.arc(s.x - 6.6, sy - 26.4, 0.8, 0, Math.PI * 2);
+    ctx.arc(s.x + 6.4, sy - 26.4, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 断齿
+    ctx.fillStyle = 'rgba(220,255,220,0.76)';
     for (let i = -3; i <= 3; i++) {
+      const toothX = s.x + i * 3.5;
       ctx.beginPath();
-      ctx.moveTo(s.x + i * 3 - 1, sy - 21);
-      ctx.lineTo(s.x + i * 3, sy - 17);
-      ctx.lineTo(s.x + i * 3 + 1, sy - 21);
+      ctx.moveTo(toothX - 1, sy - 20);
+      ctx.lineTo(toothX, sy - 15.5 + Math.sin(t * 3 + i) * 0.8);
+      ctx.lineTo(toothX + 1, sy - 20);
       ctx.closePath();
       ctx.fill();
     }
 
     // 文字残影
-    const t = gameTime * 0.005;
-    ctx.fillStyle = `rgba(120,255,140,${0.5 + Math.sin(t * 3) * 0.3})`;
+    ctx.fillStyle = `rgba(150,255,165,${near ? 0.58 : 0.42})`;
     ctx.font = '8px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('YYDS', s.x - 22, sy - 8);
-    ctx.fillText('绝绝子', s.x + 24, sy - 14);
-    ctx.fillText('蚌', s.x, sy + 30);
+    ctx.fillText('YYDS', s.x - 26, sy - 9 + Math.sin(t * 1.8) * 2);
+    ctx.fillText('绝绝子', s.x + 29, sy - 16 + Math.cos(t * 2.2) * 2);
+    ctx.fillText('梗', s.x - 4, sy + 31 + Math.sin(t * 2.5) * 1.5);
     ctx.textAlign = 'left';
   }
 }

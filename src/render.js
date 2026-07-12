@@ -131,7 +131,7 @@ export function render(game, gameTime) {
   // 绔犺妭闂ㄧ鐨勫彲瑙嗗寲锛堝睆闅?鍏夋煴锛?
   drawGates(ctx, W2S, scene, game, gameTime);
 
-  drawInteractHints(ctx, W2S, scene, player, game.collected, gameTime);
+  drawInteractHints(ctx, W2S, scene, player, game.collected, gameTime, game);
 
   // 鏁屼汉锛堝湪鐜╁涔嬩笅锛屽ぇ鍦板浘涓婃樉绀轰綅缃級
   if (scene.enemies) drawEnemies(ctx, W2S, scene.enemies, gameTime, game);

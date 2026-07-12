@@ -20,6 +20,7 @@ import {
   restore,
   SAVE_SLOTS,
   recordClear,
+  clearRefreshResume,
 } from './save.js';
 import * as audio from './audio.js';
 import * as fx from './fx.js';
@@ -493,13 +494,13 @@ export class Game {
     if (dead) {
       this.player.san = Math.floor(this.player.maxSan * 0.5);
       this.showHint('你从裂隙中爬了回来，理性严重受损。');
-      this.loadScene('subway', { x: 100, y: 100 });
+      this.loadScene('subway', { x: 1180, y: 880 });
       return;
     }
     this.player.san = Math.min(this.player.maxSan, Math.max(this.player.san, hp + 20));
     this.flags.portal3d_done = true;
-    this.showHint('你穿过维度裂隙，带着补给回到了地铁站。理性恢复。');
-    this.loadScene('subway', { x: 100, y: 100 });
+    this.showHint('你穿过维度裂隙回到地铁站，墙后的检修通道门显现了。');
+    this.loadScene('subway', { x: 1180, y: 880 });
   }
 
   // 记录一个汉字碎片：collectedChars 是战斗弹药（会被消耗），collectedCharsAll 永久保留
@@ -1483,6 +1484,7 @@ export class Game {
     else audio.playBGM('__ending_silence__'); // silence 与 burnout 共用黯淡曲
     audio.playSfx('victory');
     this._recordClear();
+    clearRefreshResume();
     autoSave(this); // 通关存档
   }
 
@@ -1683,6 +1685,7 @@ export class Game {
     else audio.playBGM('__ending_silence__');
     audio.playSfx('victory');
     this._recordClear();
+    clearRefreshResume();
     autoSave(this);
   }
 

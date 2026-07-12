@@ -58,15 +58,21 @@ let didRestoreRefreshResume = false;
 function shouldWriteRefreshResume() {
   if (!game.scene) return false;
   if (game.endless) return false;
+  if (game.flags.game_complete || game.ending) return false;
   return game.scene.id !== 'freeze_center' || !!game.flags.wake_done;
 }
 
 function writeRefreshResume() {
   if (shouldWriteRefreshResume()) saveRefreshResume(game);
+  else if (game.flags.game_complete || game.ending) clearRefreshResume();
 }
 
 function restoreRefreshResumeIfNeeded() {
   if (!REFRESH_RESUME || didRestoreRefreshResume) return false;
+  if (REFRESH_RESUME.ending || REFRESH_RESUME.flags?.game_complete) {
+    clearRefreshResume();
+    return false;
+  }
   const ok = restore(game, REFRESH_RESUME);
   if (!ok || !game._pendingScene) {
     clearRefreshResume();
