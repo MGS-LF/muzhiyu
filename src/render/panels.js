@@ -3,13 +3,13 @@ import { W, H } from '../config.js';
 import { roundRect, wrapText } from './util.js';
 import { loadAllSaves, SAVE_SLOTS, summarize } from '../save.js';
 import { CONTROL_HINTS } from '../data/controls.js';
+import { UI, SPACE, font, fontMono, panelFrame, selectionPulse } from '../ui/tokens.js';
 
 // ============================================================
 // UI 面板：任务列表 / 地图 / 调试传送
 // ============================================================
 export function drawUIPanel(ctx, game, gameTime) {
-  // 半透明遮罩
-  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  ctx.fillStyle = UI.panelMask;
   ctx.fillRect(0, 0, W, H);
 
   const panelW = Math.min(560, W - 40);
@@ -17,12 +17,37 @@ export function drawUIPanel(ctx, game, gameTime) {
   const px = (W - panelW) / 2;
   const py = (H - panelH) / 2;
 
-  // 面板背景
-  ctx.fillStyle = 'rgba(20,18,28,0.95)';
-  ctx.fillRect(px, py, panelW, panelH);
-  ctx.strokeStyle = 'rgba(200,180,140,0.4)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(px, py, panelW, panelH);
+  // 入场动画：淡入 + 轻微上移
+  const reduced = !!(game.settings && game.settings.reducedFx);
+  const openT =
+    game._uiPanelOpenAt !== null && game._uiPanelOpenAt !== undefined
+      ? Math.min(1, (gameTime - game._uiPanelOpenAt) / 120)
+      : 1;
+  const ease = reduced ? 1 : openT * openT * (3 - 2 * openT);
+  const offsetY = reduced ? 0 : (1 - ease) * 4;
+  ctx.save();
+  ctx.globalAlpha = ease;
+  ctx.translate(0, offsetY);
+
+  const titles = {
+    quest: '任 务 列 表',
+    map: '世 界 地 图',
+    inventory: '背 包',
+    settings: '设 置',
+    debug: '调 试 传 送  [F2]',
+  };
+  const title = titles[game.uiPanel] || '';
+  panelFrame(ctx, px, py, panelW, panelH, {
+    title: game.uiPanel === 'debug' ? null : title,
+    highContrast: !!(game.settings && game.settings.highContrast),
+  });
+  if (game.uiPanel === 'debug') {
+    ctx.fillStyle = UI.danger;
+    ctx.font = fontMono(18, true);
+    ctx.textAlign = 'center';
+    ctx.fillText(title, px + panelW / 2, py + 32);
+    ctx.textAlign = 'left';
+  }
 
   if (game.uiPanel === 'quest') drawQuestPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'map') drawMapPanel(ctx, game, px, py, panelW, panelH, gameTime);
@@ -31,15 +56,14 @@ export function drawUIPanel(ctx, game, gameTime) {
   else if (game.uiPanel === 'settings')
     drawSettingsPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'debug') drawDebugPanel(ctx, game, px, py, panelW, panelH, gameTime);
+
+  ctx.restore();
 }
 
 export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
   const quests = game._questList();
-  ctx.fillStyle = 'rgba(255,220,140,0.9)';
-  ctx.font = 'bold 18px serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('任 务 列 表', px + pw / 2, py + 30);
-  ctx.textAlign = 'left';
+  // 标题由 panelFrame 绘制
+  void gameTime;
 
   const catColors = {
     主线: '#ffd870',
@@ -54,23 +78,24 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
   let yy = py + 58;
   let curCat = '';
   const maxY = py + ph - 34;
+  const pad = SPACE.x6;
   for (const q of quests) {
     if (q.cat !== curCat) {
       curCat = q.cat;
       if (yy > maxY - 26) break;
       ctx.fillStyle = catColors[q.cat] || '#ccc';
-      ctx.font = 'bold 12px serif';
-      ctx.fillText(q.cat, px + 30, yy);
+      ctx.font = font(12, true);
+      ctx.fillText(q.cat, px + pad, yy);
       ctx.strokeStyle = 'rgba(210,190,150,0.18)';
       ctx.beginPath();
       ctx.moveTo(px + 82, yy - 4);
-      ctx.lineTo(px + pw - 30, yy - 4);
+      ctx.lineTo(px + pw - pad, yy - 4);
       ctx.stroke();
       yy += 18;
     }
     if (yy > maxY - 24) {
-      ctx.fillStyle = 'rgba(180,170,150,0.55)';
-      ctx.font = '12px serif';
+      ctx.fillStyle = UI.inkFaint;
+      ctx.font = font(12);
       ctx.fillText('…还有更多条目', px + 50, maxY);
       break;
     }
@@ -84,7 +109,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
     roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
     ctx.fill();
     ctx.fillStyle = '#101018';
-    ctx.font = 'bold 10px serif';
+    ctx.font = font(10, true);
     ctx.textAlign = 'center';
     ctx.fillText(badge, px + 70, yy + 1);
     ctx.textAlign = 'left';
@@ -94,15 +119,15 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
       : q.optional
         ? 'rgba(210,215,245,0.8)'
         : 'rgba(238,225,190,0.9)';
-    ctx.font = q.cat === '主线' && !q.done ? 'bold 13px serif' : '13px serif';
+    ctx.font = q.cat === '主线' && !q.done ? font(13, true) : font(13);
     const lines = wrapText(ctx, q.text, pw - 150);
     for (let i = 0; i < Math.min(lines.length, 2); i++) {
       ctx.fillText(lines[i], px + 104, yy + i * 17);
     }
     yy += Math.max(24, Math.min(lines.length, 2) * 17 + 6);
   }
-  ctx.fillStyle = 'rgba(180,170,150,0.5)';
-  ctx.font = '11px serif';
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = font(11);
   ctx.textAlign = 'center';
   ctx.fillText(
     '主线是通关所需；可选目标提供复活点、补给或剧情记录。按 Q / Esc 关闭',
@@ -113,12 +138,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
 }
 
 export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
-  // 标题
-  ctx.fillStyle = 'rgba(255,220,140,0.9)';
-  ctx.font = 'bold 18px serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('世 界 地 图', px + pw / 2, py + 30);
-  ctx.textAlign = 'left';
+  // 标题由 panelFrame 绘制
 
   // 场景节点布局（简化关系图，与 scenes.js 的 scene_change 连接一致）
   const nodes = [
@@ -199,15 +219,15 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
       : isVisited
         ? 'rgba(180,200,180,0.8)'
         : 'rgba(120,115,105,0.5)';
-    ctx.font = isCur ? 'bold 11px serif' : '10px serif';
+    ctx.font = isCur ? font(11, true) : font(10);
     ctx.textAlign = 'center';
     ctx.fillText(n.name, nx, ny - 14);
     ctx.textAlign = 'left';
   }
 
   // 底部提示
-  ctx.fillStyle = 'rgba(180,170,150,0.5)';
-  ctx.font = '11px serif';
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = font(11);
   ctx.textAlign = 'center';
   ctx.fillText(
     '当前: ' + (game.scene ? game.scene.name : '?') + '   ·   按 M / Esc 关闭',
@@ -218,34 +238,28 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
 }
 
 export function drawDebugPanel(ctx, game, px, py, pw, ph, gameTime) {
-  // 标题
-  ctx.fillStyle = 'rgba(255,100,100,0.9)';
-  ctx.font = 'bold 18px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('调 试 传 送  [F2]', px + pw / 2, py + 30);
-  ctx.textAlign = 'left';
-
+  // 标题由 drawUIPanel 绘制
+  const reduced = !!(game.settings && game.settings.reducedFx);
   const scenes = game._debugSceneList();
   let yy = py + 60;
   for (let i = 0; i < scenes.length; i++) {
     const s = scenes[i];
     const sel = i === game._debugSel;
-    // 选中高亮
     if (sel) {
-      ctx.fillStyle = 'rgba(255,220,100,0.15)';
+      const pulse = selectionPulse(gameTime, reduced);
+      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
       ctx.fillRect(px + 20, yy - 14, pw - 40, 24);
     }
-    ctx.fillStyle = sel ? '#ffdd66' : 'rgba(200,200,200,0.7)';
-    ctx.font = sel ? 'bold 14px monospace' : '13px monospace';
+    ctx.fillStyle = sel ? UI.goldBright : 'rgba(200,200,200,0.7)';
+    ctx.font = sel ? fontMono(14, true) : fontMono(13);
     const mark = sel ? '▶ ' : '  ';
     const cur = game.scene && game.scene.id === s.id ? ' [当前]' : '';
     ctx.fillText(mark + s.name + cur, px + 40, yy);
     yy += 28;
   }
 
-  // 底部提示
-  ctx.fillStyle = 'rgba(180,170,150,0.5)';
-  ctx.font = '11px monospace';
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = fontMono(11);
   ctx.textAlign = 'center';
   ctx.fillText('↑↓ 选择   E 传送   F2/Esc 关闭', px + pw / 2, py + ph - 16);
   ctx.textAlign = 'left';
@@ -253,11 +267,8 @@ export function drawDebugPanel(ctx, game, px, py, pw, ph, gameTime) {
 
 export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
   const rows = game._settingsRows ? game._settingsRows() : [];
-  ctx.fillStyle = '#e8dcc8';
-  ctx.font = 'bold 18px "SimSun","Songti SC",serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('设置', px + pw / 2, py + 34);
-  ctx.textAlign = 'left';
+  const reduced = !!(game.settings && game.settings.reducedFx);
+  // 标题由 panelFrame 绘制
 
   const startY = py + 76;
   const rowH = 46;
@@ -266,14 +277,15 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
     const y = startY + i * rowH;
     const sel = i === (game._settingsSel || 0);
     if (sel) {
-      ctx.fillStyle = 'rgba(255,220,100,0.14)';
+      const pulse = selectionPulse(gameTime, reduced);
+      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
       ctx.fillRect(px + 32, y - 24, pw - 64, 34);
       ctx.strokeStyle = 'rgba(255,220,100,0.44)';
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 32, y - 24, pw - 64, 34);
     }
-    ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
-    ctx.font = sel ? 'bold 15px "SimSun",serif' : '14px "SimSun",serif';
+    ctx.fillStyle = sel ? UI.goldBright : UI.ink;
+    ctx.font = sel ? font(15, true) : font(14);
     ctx.fillText(row.label, px + 52, y);
 
     const valueW = 132;
@@ -282,25 +294,24 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
     roundRect(ctx, valueX, y - 22, valueW, 26, 4);
     ctx.fill();
     ctx.fillStyle = sel ? '#101018' : '#f2eadc';
-    ctx.font = 'bold 12px "SimSun",serif';
+    ctx.font = font(12, true);
     ctx.textAlign = 'center';
     ctx.fillText(row.value, valueX + valueW / 2, y - 4);
     ctx.textAlign = 'left';
   }
 
-  // const notes = [
-  //   '高对比字幕会加深对话框并提高文字亮度。',
-  //   '色盲辅助会减少红绿依赖，战斗提示改用更高对比的蓝黄标记。',
-  //   '降低特效会关闭强闪光、扭曲与部分粒子叠加。',
-  // ];
+  const notes = [
+    '高对比字幕会加深对话框并提高文字亮度。',
+    '降低特效会关闭强闪光、扭曲与部分粒子叠加。',
+  ];
   let ny = py + ph - 92;
   ctx.fillStyle = 'rgba(190,180,155,0.68)';
-  ctx.font = '11px "SimSun",serif';
+  ctx.font = font(11);
   for (const note of notes) {
     ctx.fillText(note, px + 44, ny);
     ny += 18;
   }
-  ctx.fillStyle = 'rgba(180,170,150,0.5)';
+  ctx.fillStyle = UI.inkFaint;
   ctx.textAlign = 'center';
   ctx.fillText('↑↓ 选择   ←→ / E 调整   O/Esc 关闭', px + pw / 2, py + ph - 16);
   ctx.textAlign = 'left';
@@ -312,36 +323,31 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
 export function drawSaveMenu(ctx, game, gameTime) {
   if (!game._saveMenu) return;
   const mode = game._saveMenu === 'load' ? 'load' : 'save';
+  const reduced = !!(game.settings && game.settings.reducedFx);
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillStyle = UI.panelMask;
   ctx.fillRect(0, 0, W, H);
   const pw = 540,
     ph = 500;
   const px = (W - pw) / 2,
     py = (H - ph) / 2;
-  ctx.fillStyle = '#1a1d22';
-  ctx.fillRect(px, py, pw, ph);
-  ctx.strokeStyle = '#3a3d44';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(px, py, pw, ph);
-
-  ctx.fillStyle = '#e8dcc8';
-  ctx.font = 'bold 20px "SimSun","Songti SC",serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('存档管理', px + pw / 2, py + 38);
+  panelFrame(ctx, px, py, pw, ph, {
+    title: '存档管理',
+    highContrast: !!(game.settings && game.settings.highContrast),
+  });
 
   const tabY = py + 58;
   const tabW = 110;
   for (const [i, tab] of ['save', 'load'].entries()) {
     const selected = mode === tab;
     const tx = px + pw / 2 - tabW + i * tabW;
-    ctx.fillStyle = selected ? 'rgba(255,220,100,0.16)' : 'rgba(20,20,30,0.55)';
+    ctx.fillStyle = selected ? UI.goldSoft : 'rgba(20,20,30,0.55)';
     ctx.fillRect(tx, tabY, tabW, 28);
-    ctx.strokeStyle = selected ? 'rgba(255,220,100,0.65)' : 'rgba(120,120,140,0.35)';
+    ctx.strokeStyle = selected ? UI.gold : 'rgba(120,120,140,0.35)';
     ctx.lineWidth = 1;
     ctx.strokeRect(tx, tabY, tabW, 28);
-    ctx.fillStyle = selected ? '#ffdd66' : 'rgba(200,200,200,0.65)';
-    ctx.font = selected ? 'bold 13px "SimSun",serif' : '13px "SimSun",serif';
+    ctx.fillStyle = selected ? UI.goldBright : 'rgba(200,200,200,0.65)';
+    ctx.font = selected ? font(13, true) : font(13);
     ctx.fillText(tab === 'save' ? '保存' : '读取', tx + tabW / 2, tabY + 18);
   }
 
@@ -355,7 +361,8 @@ export function drawSaveMenu(ctx, game, gameTime) {
     const sel = i === game._saveMenuIdx;
     const iy = yy + i * lineH;
     if (sel) {
-      ctx.fillStyle = 'rgba(255,220,100,0.12)';
+      const pulse = selectionPulse(gameTime, reduced);
+      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
       ctx.fillRect(px + 20, iy - 6, pw - 40, lineH - 10);
       ctx.strokeStyle = 'rgba(255,220,100,0.4)';
       ctx.lineWidth = 1;
@@ -364,19 +371,19 @@ export function drawSaveMenu(ctx, game, gameTime) {
     ctx.textAlign = 'left';
     if (it.empty) {
       const tag = it.slot === 'auto' ? '自动' : '槽位 ' + it.slot;
-      ctx.fillStyle = sel ? '#ffdd66' : 'rgba(200,200,200,0.48)';
-      ctx.font = sel ? 'bold 14px "SimSun",serif' : '14px "SimSun",serif';
+      ctx.fillStyle = sel ? UI.goldBright : 'rgba(200,200,200,0.48)';
+      ctx.font = sel ? font(14, true) : font(14);
       ctx.fillText((sel ? '> ' : '  ') + `[${tag}]  空`, px + 40, iy + 24);
       ctx.fillStyle = 'rgba(180,170,150,0.48)';
-      ctx.font = '11px "SimSun",serif';
+      ctx.font = font(11);
       ctx.fillText(mode === 'save' ? '按 E 写入此槽位' : '没有可读取的记录', px + 40, iy + 46);
     } else {
       const tag = it.slot === 'auto' ? '自动' : '槽位 ' + it.slot;
-      ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
-      ctx.font = 'bold 14px "SimSun",serif';
+      ctx.fillStyle = sel ? UI.goldBright : UI.ink;
+      ctx.font = font(14, true);
       ctx.fillText((sel ? '> ' : '  ') + `[${tag}]  ${it.scene}`, px + 40, iy + 22);
       ctx.fillStyle = 'rgba(180,170,150,0.7)';
-      ctx.font = '11px "SimSun",serif';
+      ctx.font = font(11);
       ctx.fillText(
         `时间 ${it.time}  ·  SAN ${it.san}  ·  碎片 ${it.chars}  ·  仁慈${it.karma.mercy}/武力${it.karma.violence}`,
         px + 40,
@@ -389,8 +396,8 @@ export function drawSaveMenu(ctx, game, gameTime) {
     }
   }
 
-  ctx.fillStyle = 'rgba(180,170,150,0.5)';
-  ctx.font = '11px "SimSun",serif';
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = font(11);
   ctx.textAlign = 'center';
   const hint = mode === 'save' ? CONTROL_HINTS.saveMenuSave : CONTROL_HINTS.saveMenuLoad;
   const hintLines = wrapText(ctx, hint, pw - 48).slice(0, 2);
@@ -422,11 +429,8 @@ function _readSaveMenuItems(mode) {
 // ============================================================
 export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
   const data = game.getInventoryData();
-
-  ctx.fillStyle = '#e8dcc8';
-  ctx.font = 'bold 18px "SimSun","Songti SC",serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('背 包', px + pw / 2, py + 34);
+  const reduced = !!(game.settings && game.settings.reducedFx);
+  // 标题由 panelFrame 绘制
 
   const barX = px + 32,
     barY = py + 54,
@@ -435,14 +439,14 @@ export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
   ctx.fillStyle = 'rgba(60,60,60,0.8)';
   ctx.fillRect(barX, barY, barW, barH);
   const sanRatio = Math.max(0, Math.min(1, data.san / data.maxSan));
-  const sanColor = sanRatio > 0.6 ? '#66dd66' : sanRatio > 0.3 ? '#d4a85a' : '#cc4444';
+  const sanColor = sanRatio > 0.6 ? UI.ok : sanRatio > 0.3 ? UI.warn : UI.danger;
   ctx.fillStyle = sanColor;
   ctx.fillRect(barX, barY, barW * sanRatio, barH);
   ctx.strokeStyle = 'rgba(200,200,200,0.3)';
   ctx.lineWidth = 1;
   ctx.strokeRect(barX, barY, barW, barH);
   ctx.fillStyle = '#fff';
-  ctx.font = '11px "SimSun",serif';
+  ctx.font = font(11);
   ctx.textAlign = 'center';
   ctx.fillText(`理性 ${Math.floor(data.san)} / ${data.maxSan}`, px + pw / 2, barY + 9);
 
@@ -475,14 +479,14 @@ export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
   };
 
   ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(255,220,140,0.85)';
-  ctx.font = 'bold 13px "SimSun",serif';
+  ctx.fillStyle = UI.gold;
+  ctx.font = font(13, true);
   ctx.fillText('道具', leftX, topY);
 
   let yy = topY + 24;
   if (!data.items.length) {
-    ctx.fillStyle = 'rgba(180,170,150,0.6)';
-    ctx.font = '13px "SimSun",serif';
+    ctx.fillStyle = UI.inkSoft;
+    ctx.font = font(13);
     ctx.fillText('（背包是空的）', leftX, yy + 8);
   } else {
     const rowH = 42;
@@ -498,56 +502,57 @@ export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
       const it = data.items[i];
       const sel = it.selected;
       if (sel) {
-        ctx.fillStyle = 'rgba(255,220,100,0.12)';
+        const pulse = selectionPulse(gameTime, reduced);
+        ctx.fillStyle = `rgba(255,220,100,${pulse})`;
         ctx.fillRect(leftX - 8, yy - 15, leftW, 36);
         ctx.strokeStyle = 'rgba(255,220,100,0.4)';
         ctx.lineWidth = 1;
         ctx.strokeRect(leftX - 8, yy - 15, leftW, 36);
       }
-      ctx.fillStyle = sel ? '#ffdd66' : '#e8dcc8';
-      ctx.font = sel ? 'bold 14px "SimSun",serif' : '13px "SimSun",serif';
+      ctx.fillStyle = sel ? UI.goldBright : UI.ink;
+      ctx.font = sel ? font(14, true) : font(13);
       const mark = sel ? '▶ ' : '  ';
       const name = mark + (it.name || ITEM_NAMES[it.id] || it.id);
       ctx.fillText(name, leftX, yy);
-      ctx.fillStyle = 'rgba(180,170,150,0.6)';
-      ctx.font = '10px "SimSun",serif';
+      ctx.fillStyle = UI.inkSoft;
+      ctx.font = font(10);
       ctx.fillText(ITEM_DESCS[it.id] || '', leftX + 16, yy + 14);
       yy += rowH;
     }
     if (data.items.length > maxRows) {
-      ctx.fillStyle = 'rgba(180,170,150,0.55)';
-      ctx.font = '11px "SimSun",serif';
+      ctx.fillStyle = UI.inkFaint;
+      ctx.font = font(11);
       ctx.fillText(`显示 ${start + 1}-${end} / ${data.items.length}`, leftX, bottomY - 10);
     }
   }
 
   let ry = topY;
-  ctx.fillStyle = 'rgba(255,220,140,0.85)';
-  ctx.font = 'bold 13px "SimSun",serif';
+  ctx.fillStyle = UI.gold;
+  ctx.font = font(13, true);
   ctx.fillText('诗词与记录', rightX, ry);
   ry += 24;
 
   ctx.fillStyle = 'rgba(200,200,200,0.58)';
-  ctx.font = '11px "SimSun",serif';
+  ctx.font = font(11);
   ctx.fillText('已收集汉字', rightX, ry);
   ry += 18;
   if (data.chars.length) {
-    ctx.font = 'bold 15px "SimSun",serif';
-    ctx.fillStyle = '#ffd866';
+    ctx.font = font(15, true);
+    ctx.fillStyle = UI.goldBright;
     const charLines = wrapText(ctx, data.chars.join('  '), rightW);
     for (let i = 0; i < Math.min(charLines.length, 4); i++) {
       ctx.fillText(charLines[i], rightX, ry + i * 19);
     }
     ry += Math.min(charLines.length, 4) * 19 + 10;
     if (charLines.length > 4) {
-      ctx.fillStyle = 'rgba(180,170,150,0.55)';
-      ctx.font = '10px "SimSun",serif';
+      ctx.fillStyle = UI.inkFaint;
+      ctx.font = font(10);
       ctx.fillText('…更多汉字已收录', rightX, ry - 2);
       ry += 14;
     }
   } else {
-    ctx.fillStyle = 'rgba(180,170,150,0.5)';
-    ctx.font = '12px "SimSun",serif';
+    ctx.fillStyle = UI.inkFaint;
+    ctx.font = font(12);
     ctx.fillText('（尚无）', rightX, ry);
     ry += 24;
   }
@@ -557,7 +562,7 @@ export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
     `语言种子：${data.seeds}/3`,
     `要石：${data.keystones.activated}/${data.keystones.total}（可选）`,
   ];
-  ctx.font = '12px "SimSun",serif';
+  ctx.font = font(12);
   for (const line of lines) {
     if (ry > bottomY - 18) break;
     ctx.fillStyle = 'rgba(225,215,190,0.78)';
@@ -565,8 +570,8 @@ export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
     ry += 22;
   }
 
-  ctx.fillStyle = 'rgba(180,170,150,0.5)';
-  ctx.font = '11px "SimSun",serif';
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = font(11);
   ctx.textAlign = 'center';
   ctx.fillText('↑↓ 选择   E 使用   I/Esc 关闭', px + pw / 2, py + ph - 16);
   ctx.textAlign = 'left';

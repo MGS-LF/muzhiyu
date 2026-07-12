@@ -258,10 +258,7 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     // 提示
-    ctx.fillStyle =
-      battle.game && battle.game.settings && battle.game.settings.colorblind
-        ? 'rgba(255,230,120,0.82)'
-        : 'rgba(180,180,190,0.6)';
+    ctx.fillStyle = 'rgba(180,180,190,0.6)';
     ctx.font = '11px serif';
     ctx.textAlign = 'center';
     let hintText = CONTROL_HINTS.battleConfirm;
@@ -324,19 +321,13 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.textAlign = 'left';
     }
   } else if (battle.phase === 'enemyTurn') {
-    ctx.fillStyle =
-      battle.game && battle.game.settings && battle.game.settings.colorblind
-        ? 'rgba(255,225,80,0.9)'
-        : 'rgba(255,100,100,0.8)';
+    ctx.fillStyle = 'rgba(255,100,100,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
     ctx.fillText(CONTROL_HINTS.battleDodge, W / 2, H - 30);
     ctx.textAlign = 'left';
   } else if (battle.phase === 'attack_aim') {
-    ctx.fillStyle =
-      battle.game && battle.game.settings && battle.game.settings.colorblind
-        ? 'rgba(120,210,255,0.9)'
-        : 'rgba(255,220,120,0.8)';
+    ctx.fillStyle = 'rgba(255,220,120,0.8)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
     ctx.fillText(CONTROL_HINTS.battleAim, W / 2, H - 30);

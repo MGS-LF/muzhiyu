@@ -78,7 +78,8 @@ export function render(game, gameTime) {
     game.sidescroll.render(ctx, gameTime);
     if (dialogState) drawDialog(ctx, dialogState, gameTime, game);
     if (hints.length) drawHints(ctx, hints);
-    if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
+    if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText, game);
+    if (game._uiOverlay) drawThinking(ctx, gameTime, game._uiOverlay.text, game);
     if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
     if (game.engraveState) {
       drawEngraving(ctx, game.engraveState, gameTime, game);
@@ -175,8 +176,8 @@ export function render(game, gameTime) {
 
   if (tutorial) drawTutorial(ctx, gameTime, tutorial);
 
-  // 绛夊緟 LLM 鐨勬彁绀?
-  if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText);
+  if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText, game);
+  if (game._uiOverlay) drawThinking(ctx, gameTime, game._uiOverlay.text || game._uiOverlay.kind, game);
 
   // 鍒诲瓧妯″紡
   if (game.engraveState) {
@@ -245,7 +246,7 @@ export function render(game, gameTime) {
     ctx.font = '10px "SimSun",serif';
     ctx.textAlign = 'left';
     ctx.globalAlpha = 0.6;
-    ctx.fillText(`闅惧害锛?{def.name}`, 12, H - 12);
+    ctx.fillText(`难度：${def.name}`, 12, H - 12);
     ctx.restore();
   }
 

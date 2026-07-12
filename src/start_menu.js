@@ -1,5 +1,6 @@
 import { listSaves, loadSnapshot, restore, summarize, loadMeta } from './save.js';
 import { CONTROL_HINTS } from './data/controls.js';
+import { cssVarsBlock } from './ui/tokens.js';
 
 const STYLE_ID = 'start-menu-style';
 
@@ -7,7 +8,9 @@ function ensureStyle() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  style.textContent = `
+  style.textContent =
+    cssVarsBlock() +
+    `
     .start-menu {
       position: fixed;
       inset: 0;
@@ -15,7 +18,7 @@ function ensureStyle() {
       display: grid;
       place-items: center;
       overflow: hidden;
-      color: #e8dcc8;
+      color: var(--ink, #e8dcc8);
       background-color: #050403;
       background-image:
         radial-gradient(circle at 50% 42%, rgba(180, 135, 70, 0.13), transparent 34%),
@@ -140,12 +143,17 @@ function ensureStyle() {
     .start-menu button:hover,
     .start-menu button:focus-visible {
       color: #fff8e8;
-      border-color: rgba(255, 222, 142, 0.9);
+      border-color: var(--gold-bright, rgba(255, 222, 142, 0.9));
       background: rgba(212, 168, 90, 0.16);
-      outline: none;
+      outline: 2px solid var(--gold-bright, rgba(255, 222, 142, 0.9));
+      outline-offset: 2px;
     }
     .start-menu button:active {
-      transform: translateY(1px);
+      transform: translateY(1px) scale(0.97);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .start-menu.is-hidden { transition: none; }
+      .start-menu button { transition: none; }
     }
     .start-menu__back {
       width: 96px;

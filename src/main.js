@@ -119,30 +119,56 @@ const bootLoader = document.getElementById('bootLoader');
 const bootFill = document.getElementById('bootProgressFill');
 const bootStatus = document.getElementById('bootStatus');
 let _bootDone = false;
+let _bootProgress = 0;
+
+function setBootProgress(p, status) {
+  _bootProgress = Math.max(_bootProgress, Math.min(1, p));
+  if (bootFill) {
+    bootFill.style.animation = 'none';
+    bootFill.style.width = Math.round(_bootProgress * 100) + '%';
+  }
+  if (status && bootStatus) bootStatus.textContent = status;
+}
+
 function finishBoot() {
   if (_bootDone) return;
   _bootDone = true;
-  if (bootFill) {
-    bootFill.style.animation = 'none';
-    bootFill.style.width = '100%';
-  }
-  if (bootStatus) bootStatus.textContent = '即 将 开 始';
+  setBootProgress(1, '即 将 开 始');
   setTimeout(() => {
     game.start();
     const restoredRefresh = restoreRefreshResumeIfNeeded();
     if (bootLoader) {
       bootLoader.style.opacity = '0';
-      setTimeout(() => { bootLoader.style.display = 'none'; }, 420);
+      setTimeout(() => {
+        bootLoader.style.display = 'none';
+      }, 420);
     }
     if (!FROM_INTRO && !restoredRefresh && !startMenu) {
       startMenu = mountStartMenu(game, { fromIntro: false });
     }
   }, 280);
 }
-if (bootStatus) bootStatus.textContent = '正 在 加 载 资 源 …';
-audio.preloadEssential().then(finishBoot).catch(finishBoot);
+
+// 真实进度：核心就绪 + 音频预载
+setBootProgress(0.15, '正 在 初 始 化 …');
+Promise.resolve()
+  .then(() => {
+    setBootProgress(0.35, '正 在 加 载 资 源 …');
+    return audio.preloadEssential();
+  })
+  .then(() => {
+    setBootProgress(0.92, '即 将 开 始');
+    finishBoot();
+  })
+  .catch(() => {
+    setBootProgress(0.92, '即 将 开 始');
+    finishBoot();
+  });
 // 兜底：音频加载过慢或失败时最多等 4 秒即放行，避免卡死
-setTimeout(finishBoot, 4000);
+setTimeout(() => {
+  setBootProgress(0.95, '即 将 开 始');
+  finishBoot();
+}, 4000);
 
 window.addEventListener('keheng:startIntro', () => {
   const wrap = document.getElementById('introWrap');

@@ -59,14 +59,22 @@
   #bootLoader .boot-kicker { color: rgba(210,165,92,0.6); font-size: 12px; letter-spacing: 0.34em; }
   #bootLoader .boot-title { margin: 14px 0 26px; color: rgba(246,226,185,0.94); font-size: 40px; letter-spacing: 0.34em; text-shadow: 0 0 22px rgba(212,168,90,0.3); }
   #bootLoader .boot-progress { width: 220px; height: 2px; margin: 0 auto; background: rgba(238,218,178,0.16); overflow: hidden; }
-  #bootProgressFill { width: 0; height: 100%; background: rgba(210,165,92,0.9); animation: bootFill 2600ms ease-out forwards; }
-  @keyframes bootFill { from { width: 0; } to { width: 92%; } }
+  #bootProgressFill { width: 0; height: 100%; background: rgba(210,165,92,0.9); transition: width 280ms ease; }
   #bootLoader .boot-status { margin-top: 14px; color: rgba(238,218,178,0.5); font-size: 12px; letter-spacing: 0.22em; }
+
+  @media (max-width: 720px) {
+    #hint { font-size: 9px; letter-spacing: 0.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #bootLoader { transition: none; }
+    #bootProgressFill { transition: none; }
+  }
 
 </style>
 </head>
 <body>
-<div id="wrap">
+<div id="wrap" role="application" aria-label="墓之语 游戏画面">
   <canvas id="c" width="1200" height="760"></canvas>
   <div id="hint">WASD 移动 · Shift 奔跑 · Space 冲刺 · E 交互</div>
 </div>

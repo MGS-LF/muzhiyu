@@ -1,5 +1,7 @@
 import { roundRect, wrapText } from './util.js';
 import { W, H } from '../config.js';
+import { UI, SPACE, font, STROKE } from '../ui/tokens.js';
+import { drawToasts, drawOverlayState } from '../ui/overlay.js';
 
 // ===== from dialog.js =====
 // 渲染模块：dialog
@@ -29,58 +31,60 @@ export function drawDialog(ctx, d, gameTime, game) {
     boxW = W - 160,
     boxH = 130;
   const highContrast = !!(game && game.settings && game.settings.highContrast);
-  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.82)' : 'rgba(0,0,0,0.5)';
+  // 默认对比度提升：底 0.72 / 文字 1.0；高对比维持纯黑 + 亮金
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.82)' : 'rgba(0,0,0,0.72)';
   ctx.fillRect(boxX + 4, boxY + 4, boxW, boxH);
-  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.98)' : 'rgba(15,12,8,0.95)';
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.98)' : 'rgba(12,11,9,0.96)';
   ctx.fillRect(boxX, boxY, boxW, boxH);
-  ctx.fillStyle = 'rgba(180,140,80,0.5)';
+  ctx.fillStyle = highContrast ? 'rgba(255,235,160,0.7)' : 'rgba(212,168,90,0.55)';
   ctx.fillRect(boxX, boxY, boxW, 3);
-  ctx.strokeStyle = highContrast ? 'rgba(255,235,160,0.95)' : 'rgba(180,140,80,0.7)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = highContrast ? 'rgba(255,235,160,0.95)' : UI.panelLine;
+  ctx.lineWidth = STROKE;
   ctx.strokeRect(boxX, boxY, boxW, boxH);
 
   ctx.fillStyle = 'rgba(40,30,20,0.6)';
   ctx.fillRect(boxX + 16, boxY + 16, 60, 60);
-  ctx.strokeStyle = 'rgba(180,140,80,0.5)';
+  ctx.strokeStyle = UI.goldLine;
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX + 16, boxY + 16, 60, 60);
   const cx = boxX + 46,
     cy = boxY + 46;
-  ctx.fillStyle = 'rgba(180,140,80,0.4)';
+  ctx.fillStyle = 'rgba(212,168,90,0.4)';
   ctx.beginPath();
   ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillRect(cx - 12, cy, 24, 20);
 
-  ctx.fillStyle = highContrast ? '#fff0a8' : 'rgba(255,210,120,0.95)';
-  ctx.font = 'bold 16px serif';
+  ctx.fillStyle = highContrast ? '#fff0a8' : UI.goldBright;
+  ctx.font = font(16, true);
   ctx.textBaseline = 'top';
   ctx.fillText(line.s || d.name || '', boxX + 90, boxY + 18);
 
-  ctx.strokeStyle = 'rgba(180,140,80,0.4)';
+  ctx.strokeStyle = UI.goldLine;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(boxX + 90, boxY + 40);
   ctx.lineTo(boxX + boxW - 20, boxY + 40);
   ctx.stroke();
 
-  ctx.fillStyle = highContrast ? '#ffffff' : 'rgba(232,220,200,0.95)';
-  ctx.font = '15px serif';
+  ctx.fillStyle = highContrast ? '#ffffff' : UI.ink;
+  ctx.font = font(15);
   let y = boxY + 60;
   const maxW = boxW - 110;
+  const lineH = SPACE.x4 + 6; // 行高约 22
   let line_text = '';
   for (const c of text) {
     if (c === '\n') {
       ctx.fillText(line_text, boxX + 90, y);
       line_text = '';
-      y += 22;
+      y += lineH;
       continue;
     }
     const test = line_text + c;
     if (ctx.measureText(test).width > maxW) {
       ctx.fillText(line_text, boxX + 90, y);
       line_text = c;
-      y += 22;
+      y += lineH;
     } else {
       line_text = test;
     }
@@ -92,7 +96,7 @@ export function drawDialog(ctx, d, gameTime, game) {
   } else if (d.done) {
     const a = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
     ctx.fillStyle = `rgba(255,210,120,${a})`;
-    ctx.font = '11px serif';
+    ctx.font = font(11);
     ctx.textAlign = 'right';
     const hint = line.choice ? '▼ E 做出选择' : '▼ E / 空格 继续';
     ctx.fillText(hint, boxX + boxW - 20, boxY + boxH - 14);
@@ -113,15 +117,16 @@ export function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
   for (let i = 0; i < opts.length; i++) {
     const sel = i === d.choiceIndex;
     const ry = oy + i * (oh + gap);
-    ctx.fillStyle = sel ? 'rgba(45,33,16,0.96)' : 'rgba(15,12,8,0.9)';
-    roundRect(ctx, ox, ry, ow, oh, 5);
+    const breath = sel ? 0.1 + (Math.sin(gameTime * 0.005) * 0.5 + 0.5) * 0.08 : 0;
+    ctx.fillStyle = sel ? `rgba(45,33,16,${0.9 + breath})` : 'rgba(15,12,8,0.9)';
+    roundRect(ctx, ox, ry, ow, oh, 6);
     ctx.fill();
-    ctx.strokeStyle = sel ? 'rgba(255,212,124,0.95)' : 'rgba(120,100,70,0.6)';
+    ctx.strokeStyle = sel ? UI.goldBright : 'rgba(120,100,70,0.6)';
     ctx.lineWidth = sel ? 2 : 1;
-    roundRect(ctx, ox, ry, ow, oh, 5);
+    roundRect(ctx, ox, ry, ow, oh, 6);
     ctx.stroke();
     if (sel) {
-      ctx.fillStyle = 'rgba(255,212,124,0.95)';
+      ctx.fillStyle = UI.goldBright;
       ctx.beginPath();
       ctx.moveTo(ox + 11, ry + oh / 2);
       ctx.lineTo(ox + 17, ry + oh / 2 - 4);
@@ -129,46 +134,24 @@ export function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
       ctx.closePath();
       ctx.fill();
     }
-    ctx.fillStyle = sel ? 'rgba(255,236,172,1)' : 'rgba(200,190,175,0.8)';
-    ctx.font = sel ? 'bold 14px serif' : '14px serif';
+    ctx.fillStyle = sel ? 'rgba(255,236,172,1)' : UI.inkSoft;
+    ctx.font = sel ? font(14, true) : font(14);
     ctx.textAlign = 'left';
     ctx.fillText(opts[i].label, ox + 28, ry + oh / 2);
   }
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = `rgba(255,212,124,${0.5 + Math.sin(gameTime * 0.005) * 0.3})`;
-  ctx.font = '11px serif';
+  ctx.font = font(11);
   ctx.textAlign = 'right';
   ctx.fillText('↑ ↓ 选择 · E 确认', boxX + boxW - 16, oy - 8);
   ctx.textAlign = 'left';
 }
 
 // ============================================================
-// 浮动提示
+// 浮动提示（分级 toast 队列）
 // ============================================================
 export function drawHints(ctx, hints) {
-  let y = H - 220;
-  for (let i = hints.length - 1; i >= 0; i--) {
-    const h = hints[i];
-    if (h.life <= 0) {
-      hints.splice(i, 1);
-      continue;
-    }
-    const a = Math.min(1, h.life / 500);
-    ctx.font = '12px serif';
-    const w = ctx.measureText(h.t).width + 20;
-    ctx.fillStyle = `rgba(0,0,0,${a * 0.6})`;
-    ctx.fillRect(W / 2 - w / 2, y - 12, w, 20);
-    ctx.strokeStyle = `rgba(255,210,120,${a * 0.6})`;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(W / 2 - w / 2, y - 12, w, 20);
-    ctx.fillStyle = `rgba(255,230,160,${a})`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(h.t, W / 2, y - 2);
-    ctx.textBaseline = 'alphabetic';
-    ctx.textAlign = 'left';
-    y -= 26;
-  }
+  drawToasts(ctx, hints);
 }
 
 // ============================================================
@@ -328,19 +311,12 @@ function _measureWrapLines(ctx, text, maxWidth, maxLines = Infinity) {
 // ============================================================
 // 等待 LLM 的提示（覆盖在大地图上）
 // ============================================================
-export function drawThinking(ctx, gameTime, text) {
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(0, H - 60, W, 60);
-  const dots = '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
-  ctx.fillStyle = 'rgba(220,225,235,0.85)';
-  ctx.font = '15px serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText((text || '聆听这个世界') + dots, W / 2, H - 30);
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.restore();
+export function drawThinking(ctx, gameTime, text, game) {
+  drawOverlayState(ctx, gameTime, {
+    kind: 'thinking',
+    text: text || '聆听这个世界',
+    reducedFx: !!(game && game.settings && game.settings.reducedFx),
+  });
 }
 
 export function drawConverse(ctx, c, gameTime) {

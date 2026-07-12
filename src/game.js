@@ -32,6 +32,7 @@ import { methods as engraveMethods } from './systems/engrave.js';
 import { methods as dialogMethods } from './systems/dialog.js';
 import { methods as interactMethods } from './systems/interact.js';
 import { EndlessMode } from './systems/endless.js';
+import { pushToast } from './ui/overlay.js';
 
 const SUPPORTED_ENDINGS = new Set(['fire', 'silence', 'burnout', 'atonement', 'echo', 'garden']);
 const BRIGHT_ENDINGS = new Set(['fire', 'atonement', 'echo', 'garden']);
@@ -207,7 +208,6 @@ export class Game {
     const defaults = {
       dialogSpeed: 'normal',
       highContrast: false,
-      colorblind: false,
       reducedFx: false,
       muted: false,
     };
@@ -252,11 +252,6 @@ export class Game {
         label: '高对比字幕',
         value: this.settings.highContrast ? '开' : '关',
       },
-      // {
-      //   id: 'colorblind',
-      //   label: '色盲辅助',
-      //   value: this.settings.colorblind ? '开' : '关',
-      // },
       {
         id: 'reducedFx',
         label: '降低特效',
@@ -283,7 +278,7 @@ export class Game {
       this.settings.muted = !audio.isMuted();
       audio.setMuted(this.settings.muted);
       this.showHint(this.settings.muted ? '已静音' : '已开启声音');
-    } else if (id === 'highContrast' || id === 'colorblind' || id === 'reducedFx') {
+    } else if (id === 'highContrast' || id === 'reducedFx') {
       toggle(id);
       if (id === 'reducedFx') {
         // reducedFx 发生改变时，重新计算 Canvas 的缩放与大小，防止画面模糊或渲染卡顿
@@ -306,6 +301,15 @@ export class Game {
 
   start() {
     bindCanvas(this.canvas);
+    // 对接系统 prefers-reduced-motion
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        this.settings.reducedFx = true;
+        this._saveSettings();
+      }
+    } catch (_) {
+      /* ignore */
+    }
     this.loadScene('freeze_center');
     this.camera.snap(this.player.x, this.player.y, this.scene.width, this.scene.height);
     this.lastTime = performance.now();
@@ -466,13 +470,15 @@ export class Game {
       ],
       '维度裂隙',
       async () => {
-        this.showHint('维度裂隙正在展开……');
+        this.setOverlay('loading', '展开维度裂隙…');
         try {
           const { Level3D } = await import('./level3d.js');
           this.level3d = new Level3D(this);
         } catch (err) {
           console.error('[3D] 维度裂隙加载失败', err);
-          this.showHint('维度裂隙暂时无法展开：3D 模块加载失败。');
+          this.toast('维度裂隙暂时无法展开：3D 模块加载失败。', 'danger');
+        } finally {
+          this.setOverlay(null);
         }
       }
     );
@@ -864,25 +870,30 @@ export class Game {
     }
     if (input.wasPressed('q')) {
       this.uiPanel = 'quest';
+      this._uiPanelOpenAt = this.gameTime;
       audio.playSfx('ui');
       return;
     }
     if (input.wasPressed('i')) {
       this.uiPanel = 'inventory';
+      this._uiPanelOpenAt = this.gameTime;
       audio.playSfx('ui');
       return;
     }
     if (input.wasPressed('m')) {
       this.uiPanel = 'map';
+      this._uiPanelOpenAt = this.gameTime;
       return;
     }
     if (input.wasPressed('o')) {
       this.uiPanel = 'settings';
+      this._uiPanelOpenAt = this.gameTime;
       audio.playSfx('ui');
       return;
     }
     if (input.wasPressed('f2')) {
       this.uiPanel = 'debug';
+      this._uiPanelOpenAt = this.gameTime;
       return;
     }
 
@@ -919,7 +930,7 @@ export class Game {
     }
 
     // 等待 LLM（导演/Sydney）——冻结世界，避免异步期间乱动
-    if (this.aiThinking) {
+    if (this.aiThinking || this._uiOverlay) {
       this.updateParticles(dt);
       return;
     }
@@ -1819,8 +1830,25 @@ export class Game {
     this.setDialogIndex(d.idx + 1);
   }
 
-  showHint(text) {
-    this.hints.push({ t: text, life: 2500 });
+  showHint(text, level = 'info') {
+    pushToast(this.hints, text, level);
+  }
+
+  toast(msg, level = 'info') {
+    this.showHint(msg, level);
+  }
+
+  setOverlay(kind, text) {
+    if (!kind) {
+      this._uiOverlay = null;
+      return;
+    }
+    this._uiOverlay = {
+      kind,
+      text:
+        text ||
+        (kind === 'loading' ? '展开维度裂隙' : kind === 'thinking' ? '正在思考' : ''),
+    };
   }
 
   // ============================================
