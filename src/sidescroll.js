@@ -1236,20 +1236,31 @@ export class SideScrollLevel {
     const headY = cy - 24;
     const armY = cy - 14;
 
-    // 围巾/衣摆在身后飘动
-    ctx.strokeStyle = 'rgba(90,104,120,0.55)';
-    ctx.lineWidth = 3;
+    // 配色 (与 top-down 同步)
+    const bodyColor = '#4e5156'; // 焦炭墨灰生存连体服 (sidescroll 里玩家始终已穿好衣服)
+    const trimColor = '#36383c'; // 褶皱/腰带焦墨黑
+    const gearColor = '#5c4e40'; // 战术包带/挂带皮革褐
+    const goldLockColor = '#e0b262'; // 发光鎏金扣
+    const gloveColor = '#322e2a'; // 战术防尘手套
+    const headColor = '#ecdab9'; // 羊脂玉肤色
+    const hairColor = '#2a2018'; // 暗褐黑发
+    const bootColor = '#24201c'; // 深褐皮生存靴
+
+    // 围巾/衣摆在身后飘动 (修改为鎏金红发热围巾，并使用更柔和的动态摆动)
+    ctx.strokeStyle = 'rgba(204, 73, 73, 0.82)';
+    ctx.lineWidth = 3.2;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    const tailX = cx - facing * (12 + Math.abs(vx) * 2) + Math.sin(t * 6 + facing) * 2;
-    const tailY = torsoTop + 10 + Math.cos(t * 5) * 2;
+    // 围巾飘动方向在 vx 加速时拉伸
+    const tailX = cx - facing * (14 + Math.abs(vx) * 3) + Math.sin(t * 6 + facing) * 2;
+    const tailY = torsoTop + 10 + Math.cos(t * 5) * 3 - vy * 0.5;
     ctx.moveTo(cx - facing * 3, shoulderY + 2);
-    ctx.quadraticCurveTo(cx - facing * 9 - vx, shoulderY + 8, tailX, tailY);
+    ctx.quadraticCurveTo(cx - facing * 8 - vx * 1.5, shoulderY + 5 - vy * 0.3, tailX, tailY);
     ctx.stroke();
 
     // 腿：带膝盖弯曲的二次曲线
     const drawLeg = (hipX, footX, footY, bend) => {
-      ctx.strokeStyle = '#3a4858';
+      ctx.strokeStyle = trimColor;
       ctx.lineWidth = 3.4;
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -1258,6 +1269,12 @@ export class SideScrollLevel {
       const kneeY = (hipY + footY) / 2 - 4;
       ctx.quadraticCurveTo(kneeX, kneeY, footX, footY);
       ctx.stroke();
+
+      // 绘制深褐皮生存靴底
+      ctx.fillStyle = bootColor;
+      ctx.beginPath();
+      ctx.ellipse(footX, footY, 2.5, 1.5, 0, 0, Math.PI * 2);
+      ctx.fill();
     };
 
     if (p.onLadder) {
@@ -1283,7 +1300,7 @@ export class SideScrollLevel {
     }
 
     // 躯干
-    ctx.fillStyle = '#5a6878';
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
     ctx.moveTo(cx - 5 + lean, torsoTop);
     ctx.lineTo(cx - 6 - lean * 0.3, cy - 6);
@@ -1291,28 +1308,50 @@ export class SideScrollLevel {
     ctx.lineTo(cx + 5 + lean, torsoTop);
     ctx.closePath();
     ctx.fill();
+
+    // 绘制前胸的战术斜跨挂带细节 (两侧同步)
+    ctx.strokeStyle = gearColor;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4 + lean, torsoTop + 2);
+    ctx.lineTo(cx + 4 - lean * 0.3, cy - 8);
+    ctx.stroke();
+    // 斜挎带的鎏金合金扣
+    ctx.fillStyle = goldLockColor;
+    ctx.beginPath();
+    ctx.arc(cx - 1 + lean * 0.5, torsoTop + 6, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
     // 腰带
-    ctx.fillStyle = '#3a4858';
+    ctx.fillStyle = trimColor;
     ctx.fillRect(cx - 6, cy - 11, 12, 2);
 
     // 头
     const headX = cx + lean * 0.6;
-    ctx.fillStyle = '#e8c9a0';
+    ctx.fillStyle = headColor;
     ctx.beginPath();
     ctx.arc(headX, headY, 5, 0, Math.PI * 2);
     ctx.fill();
     // 头发
-    ctx.fillStyle = '#2a2018';
+    ctx.fillStyle = hairColor;
     ctx.beginPath();
     ctx.arc(headX, headY - 2, 5.2, Math.PI, 0);
     ctx.fill();
-    // 刘海随风摆动
+    // 刘海与碎发随风摆动
     ctx.beginPath();
     ctx.moveTo(headX - 4, headY - 2);
     ctx.quadraticCurveTo(headX - 6 - facing - vx * 0.3, headY - 5, headX - 2, headY - 7);
     ctx.fill();
 
-    // 眼
+    // 凌乱翘起碎发
+    ctx.strokeStyle = hairColor;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(headX - 1, headY - 7.5);
+    ctx.quadraticCurveTo(headX - 2 - facing, headY - 9, headX - 3, headY - 6.5);
+    ctx.stroke();
+
+    // 眼 (战术护目镜或眼睛)
     ctx.fillStyle = '#1a1612';
     ctx.beginPath();
     ctx.arc(headX + facing * 2.5, headY + 1, 0.9, 0, Math.PI * 2);
@@ -1344,22 +1383,28 @@ export class SideScrollLevel {
       const tipX = handX + Math.cos(armAngle) * bladeLen;
       const tipY = handY + Math.sin(armAngle) * bladeLen;
 
-      // 短刀反光：只贴着刀尖闪一下，不画夸张长弧。
+      // 短刀反光：修改为合金刻刀发光，产生金色流光净化感
       if (slashProg > 0 && slashProg < 1) {
         const peak = Math.sin(slashProg * Math.PI);
         const flashStartX = handX + Math.cos(armAngle) * bladeLen * 0.55;
         const flashStartY = handY + Math.sin(armAngle) * bladeLen * 0.55;
-        ctx.strokeStyle = `rgba(255, 240, 190, ${peak * 0.5})`;
-        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = `rgba(255, 215, 142, ${peak * 0.85})`; // 金色发光
+        ctx.lineWidth = 3.0;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(flashStartX, flashStartY);
         ctx.lineTo(tipX, tipY);
         ctx.stroke();
+
+        // 额外的泼墨弧形光效粒子
+        ctx.fillStyle = `rgba(224, 178, 98, ${peak * 0.28})`;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 6 * peak, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      // 持剑手臂
-      ctx.strokeStyle = '#5a6878';
+      // 持剑手臂 (战术手套配色)
+      ctx.strokeStyle = bodyColor;
       ctx.lineWidth = 2.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -1367,16 +1412,16 @@ export class SideScrollLevel {
       ctx.lineTo(handX, handY);
       ctx.stroke();
 
-      // 剑刃
-      ctx.strokeStyle = '#e2e8f4';
+      // 剑刃 (记忆合金发光刻刀)
+      ctx.strokeStyle = '#e0b262'; // 鎏金色刀身
       ctx.lineWidth = 2.8;
       ctx.beginPath();
       ctx.moveTo(handX, handY);
       ctx.lineTo(tipX, tipY);
       ctx.stroke();
       // 刃光高亮
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 235, 180, 0.95)';
+      ctx.lineWidth = 1.2;
       const gx = -Math.sin(armAngle);
       const gy = Math.cos(armAngle);
       ctx.beginPath();
@@ -1402,26 +1447,33 @@ export class SideScrollLevel {
         handX = cx + facing * 9;
         handY = armY + 4 + armSwing;
       }
-      ctx.strokeStyle = '#5a6878';
+      ctx.strokeStyle = bodyColor;
       ctx.lineWidth = 2.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(cx + facing * 3, shoulderY);
       ctx.lineTo(handX, handY);
       ctx.stroke();
+
+      // 战术防尘手套
+      ctx.fillStyle = gloveColor;
+      ctx.beginPath();
+      ctx.arc(handX, handY, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+
       if (p.hasKnife) {
         // 待机/行走的剑
         const bladeLen = 18;
         const tipX = handX + facing * bladeLen;
         const tipY = handY - 1;
-        ctx.strokeStyle = '#e0e4f0';
+        ctx.strokeStyle = '#d4a86a'; // 金色待机刀刃
         ctx.lineWidth = 2.6;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(handX, handY);
         ctx.lineTo(tipX, tipY);
         ctx.stroke();
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = '#fff0c0';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(handX, handY - 1);

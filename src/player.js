@@ -82,16 +82,20 @@ export class Player {
     ctx.fill();
 
     // 配色
-    const bodyColor = this.hasClothes ? '#5a6878' : '#aaa';
-    const trimColor = this.hasClothes ? '#3a4858' : '#888';
-    const headColor = '#e8c9a0';
-    const hairColor = '#2a2018';
+    const bodyColor = this.hasClothes ? '#4e5156' : '#ece5d8'; // 焦炭墨灰 / 浅米灰冬眠服
+    const trimColor = this.hasClothes ? '#36383c' : '#c5bcae'; // 褶皱/接缝辅色
+    const gearColor = '#5c4e40'; // 战术皮带绑带褐色
+    const goldLockColor = '#e0b262'; // 鎏金合金扣
+    const gloveColor = '#322e2a'; // 战术手套
+    const headColor = '#ecdab9'; // 羊脂玉肤色
+    const hairColor = '#2a2018'; // 暗褐黑发
+    const bootColor = this.hasClothes ? '#24201c' : '#ecdab9'; // 生存短靴 / 赤脚肤色
 
     // === 腿 ===
     const legSwing = this.isMoving ? Math.sin(this.walkCycle * 2) * 5 : 0;
     const legSwing2 = this.isMoving ? Math.sin(this.walkCycle * 2 + Math.PI) * 5 : 0;
     ctx.strokeStyle = trimColor;
-    ctx.lineWidth = 3.2;
+    ctx.lineWidth = 3.4;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(sx - 3, sy - 2);
@@ -101,14 +105,28 @@ export class Player {
     ctx.moveTo(sx + 3, sy - 2);
     ctx.lineTo(sx + 4 + legSwing2, sy + 10);
     ctx.stroke();
-    // 靴子
-    ctx.fillStyle = '#1a1612';
+    // 鞋子或赤脚
+    ctx.fillStyle = bootColor;
     ctx.beginPath();
-    ctx.ellipse(sx - 4 + legSwing, sy + 10, 2.5, 1.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(sx + 4 + legSwing2, sy + 10, 2.5, 1.5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    if (this.hasClothes) {
+      // 生存靴
+      ctx.ellipse(sx - 4 + legSwing, sy + 10, 3, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(sx + 4 + legSwing2, sy + 10, 3, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 鞋底轮廓
+      ctx.fillStyle = '#141210';
+      ctx.fillRect(sx - 7 + legSwing, sy + 10.8, 5, 1);
+      ctx.fillRect(sx + 1 + legSwing2, sy + 10.8, 5, 1);
+    } else {
+      // 赤脚
+      ctx.ellipse(sx - 4 + legSwing, sy + 10, 2.2, 1.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(sx + 4 + legSwing2, sy + 10, 2.2, 1.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // === 躯干 ===
     ctx.fillStyle = bodyColor;
@@ -119,12 +137,50 @@ export class Player {
     ctx.lineTo(sx + 5, sy - 6);
     ctx.closePath();
     ctx.fill();
-    // 衣领
-    ctx.fillStyle = trimColor;
-    ctx.fillRect(sx - 3, sy - 8, 6, 3);
-    // 腰带
-    ctx.fillStyle = trimColor;
-    ctx.fillRect(sx - 6, sy - 4, 12, 1.5);
+
+    // 衣物折痕与拼色细节
+    ctx.strokeStyle = trimColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx - 3, sy - 6);
+    ctx.lineTo(sx - 3, sy); // 左缝线
+    ctx.moveTo(sx + 3, sy - 6);
+    ctx.lineTo(sx + 3, sy); // 右缝线
+    ctx.stroke();
+
+    if (this.hasClothes) {
+      // 右胸口袋与拉链点
+      ctx.fillStyle = '#3f4246';
+      ctx.fillRect(sx + 1, sy - 5, 3.5, 2.5);
+      ctx.fillStyle = '#9aa0a6';
+      ctx.fillRect(sx + 1, sy - 5.5, 2, 0.6); // 拉链头
+
+      // 斜跨战术背带
+      ctx.strokeStyle = gearColor;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(sx - 5, sy - 5);
+      ctx.lineTo(sx + 5, sy - 1);
+      ctx.stroke();
+
+      // 发光鎏金扣
+      ctx.fillStyle = goldLockColor;
+      ctx.beginPath();
+      ctx.arc(sx, sy - 3, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 腰带
+      ctx.fillStyle = trimColor;
+      ctx.fillRect(sx - 6, sy - 1.5, 12, 1.5);
+    } else {
+      // 病服衣领
+      ctx.fillStyle = trimColor;
+      ctx.beginPath();
+      ctx.moveTo(sx - 3, sy - 6);
+      ctx.lineTo(sx, sy - 3);
+      ctx.lineTo(sx + 3, sy - 6);
+      ctx.stroke();
+    }
 
     // === 手臂 ===
     const armSwing = this.isMoving ? Math.sin(this.walkCycle * 2) * 4 : 0;
@@ -139,10 +195,12 @@ export class Player {
     ctx.moveTo(sx + 5, sy - 5);
     ctx.lineTo(sx + 8, sy + 2 - armSwing);
     ctx.stroke();
-    // 手
-    ctx.fillStyle = headColor;
+    // 手 (手套或肉色)
+    ctx.fillStyle = this.hasClothes ? gloveColor : headColor;
     ctx.beginPath();
     ctx.arc(sx - 8, sy + 2 + armSwing, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
     ctx.arc(sx + 8, sy + 2 - armSwing, 1.5, 0, Math.PI * 2);
     ctx.fill();
 
@@ -154,7 +212,8 @@ export class Player {
     ctx.strokeStyle = '#a08860';
     ctx.lineWidth = 0.6;
     ctx.stroke();
-    // 头发
+
+    // 头发与碎发
     ctx.fillStyle = hairColor;
     ctx.beginPath();
     ctx.arc(sx, sy - 13, 5, Math.PI, 0);
@@ -162,6 +221,17 @@ export class Player {
     ctx.lineTo(sx - 4, sy - 11);
     ctx.closePath();
     ctx.fill();
+
+    // 凌乱翘起碎发
+    ctx.strokeStyle = hairColor;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(sx - 2, sy - 17);
+    ctx.quadraticCurveTo(sx - 4, sy - 18, sx - 5, sy - 16);
+    ctx.moveTo(sx + 1, sy - 17.5);
+    ctx.quadraticCurveTo(sx + 3, sy - 19, sx + 2, sy - 15);
+    ctx.stroke();
+
     // 眼睛
     if (!this.blinking) {
       ctx.fillStyle = '#1a1612';

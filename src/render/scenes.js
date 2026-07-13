@@ -139,28 +139,39 @@ export function drawPlayerPod(ctx, W2S, gameTime) {
   ctx.lineTo(s.x - w / 2 + 22, podTop + 8);
   ctx.stroke();
 
-  // 浠撳唴浜哄奖
-  ctx.strokeStyle = 'rgba(200,180,140,0.35)';
-  ctx.lineWidth = 1.5;
+  // 舱内人影 (修改为人影穿着冬眠病服的精细轮廓)
+  ctx.strokeStyle = 'rgba(236,229,216,0.38)'; // 羊脂玉/浅米灰
+  ctx.lineWidth = 1.6;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(s.x, s.y - h + 32, 8, 0, Math.PI * 2);
+  ctx.arc(s.x, s.y - h + 32, 8, 0, Math.PI * 2); // 头部
   ctx.stroke();
+
+  // 躯干 (画一个丰满的病服线框)
+  ctx.fillStyle = 'rgba(236,229,216,0.18)';
   ctx.beginPath();
-  ctx.moveTo(s.x, s.y - h + 40);
-  ctx.lineTo(s.x, s.y - h + 75);
+  ctx.moveTo(s.x - 5, s.y - h + 40);
+  ctx.lineTo(s.x + 5, s.y - h + 40);
+  ctx.lineTo(s.x + 6, s.y - h + 70);
+  ctx.lineTo(s.x - 6, s.y - h + 70);
+  ctx.closePath();
+  ctx.fill();
   ctx.stroke();
+
+  // 手臂
   ctx.beginPath();
-  ctx.moveTo(s.x, s.y - h + 50);
-  ctx.lineTo(s.x - 8, s.y - h + 75);
-  ctx.moveTo(s.x, s.y - h + 50);
-  ctx.lineTo(s.x + 8, s.y - h + 75);
+  ctx.moveTo(s.x - 5, s.y - h + 44);
+  ctx.lineTo(s.x - 10, s.y - h + 62);
+  ctx.moveTo(s.x + 5, s.y - h + 44);
+  ctx.lineTo(s.x + 10, s.y - h + 62);
   ctx.stroke();
+
+  // 双腿 (带弯曲折线)
   ctx.beginPath();
-  ctx.moveTo(s.x, s.y - h + 75);
-  ctx.lineTo(s.x - 6, s.y - 8);
-  ctx.moveTo(s.x, s.y - h + 75);
-  ctx.lineTo(s.x + 6, s.y - 8);
+  ctx.moveTo(s.x - 3, s.y - h + 70);
+  ctx.lineTo(s.x - 5, s.y - 12);
+  ctx.moveTo(s.x + 3, s.y - h + 70);
+  ctx.lineTo(s.x + 5, s.y - 12);
   ctx.stroke();
 
   // 闇?
