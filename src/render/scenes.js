@@ -1,4 +1,4 @@
-﻿import { roundRect } from './util.js';
+import { roundRect } from './util.js';
 import { W, H } from '../config.js';
 
 // ===== from scenes_freeze.js =====
@@ -834,7 +834,7 @@ export function drawKeystones(ctx, W2S, scene, activated, gameTime) {
       ctx.shadowColor = 'rgba(255,210,90,0.8)';
       ctx.shadowBlur = 8;
     }
-    ctx.fillText(it.text, s.x, s.y - 13);
+    ctx.fillText(it.engraved || it.text, s.x, s.y - 13);
     ctx.shadowBlur = 0;
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
