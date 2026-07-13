@@ -941,6 +941,20 @@ export class Game {
       const d = this.dialogState;
       const node = d.lines[d.idx];
 
+      // 将打字机更新计时器移动至 update 循环中，使用实际帧耗时 dt 代替硬编码的 16ms
+      if (!d.done && node.t !== undefined) {
+        d.charTimer += dt;
+        const typeInterval = typeof this.dialogTypeInterval === 'function' ? this.dialogTypeInterval() : 25;
+        if (d.charTimer > typeInterval) {
+          d.charTimer = 0;
+          d.charIdx++;
+          if (d.charIdx >= node.t.length) {
+            d.charIdx = node.t.length;
+            d.done = true;
+          }
+        }
+      }
+
       // Ctrl 按住不放：快进/跳过当前及后续文本（遇到选项会停下）
       if (input.isDown('ctrl') && !d.choosing) {
         if (node.t !== undefined && !d.done) {

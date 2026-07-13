@@ -156,7 +156,12 @@ export function preloadBGM() {
 // 预加载单个 BGM（场景切换前预测调用）
 export function preloadScene(sceneId) {
   const bgmId = SCENE_TO_BGM[sceneId];
-  if (bgmId) loadBgmFile(bgmId).catch(() => {});
+  if (bgmId) {
+    const el = getStreamAudioEl(bgmId);
+    if (el) {
+      el.preload = 'auto';
+    }
+  }
 }
 
 // 流式播放 mp3（边下边播，无需等完整下载），返回 true 表示成功
@@ -166,9 +171,9 @@ function playMp3BGM(bgmId) {
 
   stopBGM(); // 先停掉当前所有 BGM
 
-  // 优先用已解码的完整 AudioBuffer（零延迟，已缓存时）
+  // 仅在 bgm_01_prologue (标题曲) 被全量预加载并缓存时使用已解码的 AudioBuffer 以保证完美零延迟
   const buf = bgmBufferCache.get(bgmId);
-  if (buf) {
+  if (buf && bgmId === 'bgm_01_prologue') {
     updateLru(bgmId);
     const src = c.createBufferSource();
     src.buffer = buf;
@@ -199,7 +204,7 @@ function playMp3BGM(bgmId) {
     return true;
   }
 
-  // 回退：流式播放（HTMLAudioElement 边下边播）
+  // 其它 BGM 均使用流式播放 (HTMLAudioElement 边下边播)
   const el = getStreamAudioEl(bgmId);
   if (!el) return false;
 
@@ -250,44 +255,7 @@ function playMp3BGM(bgmId) {
     },
   };
 
-  // 流式播放期间，后台继续解码完整 AudioBuffer；完成后若仍是该曲则无缝切换（消除循环间隙）
-  if (!bgmBufferCache.has(bgmId) && !bgmLoading.has(bgmId)) {
-    loadBgmFile(bgmId)
-      .then((b) => {
-        if (b && currentBgmId === bgmId && currentBGM && currentBGM.isStream) {
-          // 切换到 buffer 源（循环更平滑），保留当前播放位置近似
-          const resumeTime = el.currentTime;
-          stopBGM();
-          const src = c.createBufferSource();
-          src.buffer = b;
-          src.loop = true;
-          src.start(0, resumeTime % b.duration);
-          const ng = c.createGain();
-          const nt = c.currentTime;
-          ng.gain.setValueAtTime(0, nt);
-          ng.gain.linearRampToValueAtTime(1, nt + 0.5);
-          src.connect(ng);
-          ng.connect(bgmGain);
-          currentBgmId = bgmId;
-          currentBGM = {
-            isMp3: true,
-            masterBgGain: ng,
-            stop: (fadeDur = 0.8) => {
-              const st = c.currentTime;
-              ng.gain.cancelScheduledValues(st);
-              ng.gain.setValueAtTime(ng.gain.value, st);
-              ng.gain.linearRampToValueAtTime(0, st + fadeDur);
-              try {
-                src.stop(st + fadeDur + 0.1);
-              } catch (e) {
-                /* ignore */
-              }
-            },
-          };
-        }
-      })
-      .catch(() => {});
-  }
+  // 彻底废除流式播放期间在后台异步全量加载并切换为 AudioBuffer 的高内存/高CPU开销设计
   return true;
 }
 

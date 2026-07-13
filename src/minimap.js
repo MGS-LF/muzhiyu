@@ -15,6 +15,9 @@ const MINIMAP_MARGIN = 12;
 // 每个场景的探索网格缓存：{ sceneId: Set<"gx,gy"> }
 const exploredCache = {};
 
+// 离屏 Canvas 缓存系统，用于加速战争迷雾绘制，避免每帧拆分坐标字符串和遍历大量 fillRect
+const fogCanvasCache = {};
+
 // 标记一个世界坐标为已探索
 export function markExplored(sceneId, x, y, radius = 80) {
   if (!exploredCache[sceneId]) exploredCache[sceneId] = new Set();
@@ -22,12 +25,21 @@ export function markExplored(sceneId, x, y, radius = 80) {
   const r = Math.ceil(radius / GRID_SIZE);
   const gx = Math.floor(x / GRID_SIZE);
   const gy = Math.floor(y / GRID_SIZE);
+  let changed = false;
   for (let dx = -r; dx <= r; dx++) {
     for (let dy = -r; dy <= r; dy++) {
       if (dx * dx + dy * dy <= r * r) {
-        set.add(`${gx + dx},${gy + dy}`);
+        const key = `${gx + dx},${gy + dy}`;
+        if (!set.has(key)) {
+          set.add(key);
+          changed = true;
+        }
       }
     }
+  }
+  if (changed && fogCanvasCache[sceneId]) {
+    // 如果发生新的区域探索，使当前场景的迷雾缓存失效，触发重绘
+    fogCanvasCache[sceneId].dirty = true;
   }
 }
 // 持久化（供存档系统调用）
@@ -86,11 +98,43 @@ export function drawMinimap(ctx, game, gameTime) {
 
   // === 战争迷雾：绘制未探索区域的灰色覆盖 ===
   const set = exploredCache[scene.id];
+
+  // 初始化离屏 Canvas 缓存迷雾区域
+  let fogCache = fogCanvasCache[scene.id];
+  if (!fogCache) {
+    const cCanvas = document.createElement('canvas');
+    cCanvas.width = mw;
+    cCanvas.height = mh;
+    fogCache = { canvas: cCanvas, ctx: cCanvas.getContext('2d'), dirty: true };
+    fogCanvasCache[scene.id] = fogCache;
+  }
+
+  // 若迷雾发生变动，重新渲染离屏迷雾 Canvas
+  if (fogCache.dirty) {
+    const fctx = fogCache.ctx;
+    fctx.clearRect(0, 0, mw, mh);
+
+    // 用反向方式绘制迷雾：遍历场景所有网格，未探索的在离屏 Canvas 上画灰
+    fctx.fillStyle = 'rgba(20,22,28,0.75)';
+    const gridW = Math.ceil(scene.width / GRID_SIZE);
+    const gridH = Math.ceil(scene.height / GRID_SIZE);
+    for (let gy = 0; gy < gridH; gy++) {
+      for (let gx = 0; gx < gridW; gx++) {
+        if (!set || !set.has(`${gx},${gy}`)) {
+          const p = W2M(gx * GRID_SIZE, gy * GRID_SIZE);
+          // 在小地图相对坐标系中绘制
+          fctx.fillRect(p.x - mx, p.y - my, GRID_SIZE * scale + 1, GRID_SIZE * scale + 1);
+        }
+      }
+    }
+    fogCache.dirty = false;
+  }
+
+  // 1. 先用剪裁方式绘制已探索区域的真实场景内容
   if (set) {
-    // 用剪裁方式：先画全灰，再用已探索区域"挖洞"
     ctx.save();
     ctx.beginPath();
-    // 已探索的网格
+    // 已探索的网格路径
     for (const key of set) {
       const [gx, gy] = key.split(',').map(Number);
       const wx = gx * GRID_SIZE;
@@ -99,26 +143,15 @@ export function drawMinimap(ctx, game, gameTime) {
       ctx.rect(p.x, p.y, GRID_SIZE * scale + 1, GRID_SIZE * scale + 1);
     }
     ctx.clip();
-    // 在已探索区域内绘制内容
     drawMinimapContent(ctx, game, W2M, scale, gameTime);
     ctx.restore();
   } else {
+    // 尚未探索任何网格，但一般至少会探索玩家所在格，回退逻辑
     drawMinimapContent(ctx, game, W2M, scale, gameTime);
   }
 
-  // 未探索区域灰色覆盖（在内容之上，已探索区域已被剪裁掉）
-  ctx.fillStyle = 'rgba(20,22,28,0.75)';
-  // 用反向方式：遍历场景所有网格，未探索的画灰
-  const gridW = Math.ceil(scene.width / GRID_SIZE);
-  const gridH = Math.ceil(scene.height / GRID_SIZE);
-  for (let gy = 0; gy < gridH; gy++) {
-    for (let gx = 0; gx < gridW; gx++) {
-      if (!set || !set.has(`${gx},${gy}`)) {
-        const p = W2M(gx * GRID_SIZE, gy * GRID_SIZE);
-        ctx.fillRect(p.x, p.y, GRID_SIZE * scale + 1, GRID_SIZE * scale + 1);
-      }
-    }
-  }
+  // 2. 将离屏 Canvas 上缓存好的未探索迷雾直接贴图绘制上去（无需每帧循环 fillRect 和 split）
+  ctx.drawImage(fogCache.canvas, mx, my);
 
   // 玩家位置（白色三角形，带朝向）
   const pp = W2M(game.player.x, game.player.y);

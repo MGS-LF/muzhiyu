@@ -48,11 +48,13 @@ export function drawHUD(ctx, player, game, objective) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillText('理性', sx + 5, sy + sanH / 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.font = font(9);
+
+  // 将具体数值 100/100 移出理性条本身，改到右侧作为白字呈现，防止与能量条颜色冲突影响阅读
+  ctx.fillStyle = UI.ink;
+  ctx.font = font(11, true);
   ctx.fillText(
     `${Math.floor(game._displaySan)}/${player.maxSan}`,
-    sx + sanW - 36,
+    sx + sanW + 8,
     sy + sanH / 2
   );
   ctx.textBaseline = 'alphabetic';
@@ -125,24 +127,30 @@ export function drawHUD(ctx, player, game, objective) {
       oy = 14;
     const ow = Math.min(360, W - 40),
       oh = 30;
-    ctx.fillStyle = 'rgba(20,15,10,0.85)';
+
+    // 使用“玄石黑”与双层框设计统一 UI
+    ctx.fillStyle = UI.panelBg;
     roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
     ctx.fill();
-    ctx.strokeStyle = UI.gold;
+    ctx.strokeStyle = UI.goldLine;
     ctx.lineWidth = 1.5;
     roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(212,168,90,0.5)';
-    ctx.fillRect(ox - ow / 2, oy, ow, 2);
+
+    // 绘制水墨画的“卷轴花纹”装饰感左右小竖金条
     ctx.fillStyle = UI.gold;
-    ctx.font = font(12, true);
+    ctx.fillRect(ox - ow / 2 + 6, oy + 4, 3, oh - 8);
+    ctx.fillRect(ox + ow / 2 - 9, oy + 4, 3, oh - 8);
+
+    ctx.fillStyle = UI.goldBright;
+    ctx.font = font(11, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('目  标', ox - ow / 2 + 40, oy + oh / 2);
+    ctx.fillText('目  标', ox - ow / 2 + 42, oy + oh / 2);
     ctx.fillStyle = UI.ink;
-    ctx.font = font(13);
+    ctx.font = font(12);
     ctx.textAlign = 'left';
-    ctx.fillText(objective.text, ox - ow / 2 + 80, oy + oh / 2);
+    ctx.fillText(objective.text, ox - ow / 2 + 82, oy + oh / 2);
     ctx.textBaseline = 'alphabetic';
   }
 
@@ -227,22 +235,23 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
       const bw = 150,
         bh = 90;
       const flow = (gameTime * 0.05) % 18;
-      const fogA = '90,210,110';
-      const fogB = '70,150,120';
-      const lineC = '150,255,170';
-      const lockC = '255,90,90';
-      const lockStroke = '255,120,120';
-      const textC = '255,150,150';
+      // 优化为低饱和度朱砂红/翡翠绿与深邃暗紫渐变封锁，更契合失语污染废土美学
+      const fogA = '100, 50, 80';   // 污染深紫
+      const fogB = '70, 120, 110';  // 暗翠绿
+      const lineC = '110, 180, 140'; // 虚弱翡翠绿线
+      const lockC = '204, 73, 73';   // 朱砂红
+      const lockStroke = '255, 120, 120';
+      const textC = '240, 200, 200';
 
       const grad = ctx.createRadialGradient(s.x, s.y - 10, 6, s.x, s.y - 10, 90);
-      grad.addColorStop(0, `rgba(${fogA},${0.22 + pulse * 0.12})`);
-      grad.addColorStop(0.6, `rgba(${fogB},0.12)`);
-      grad.addColorStop(1, 'rgba(40,60,60,0)');
+      grad.addColorStop(0, `rgba(${fogA},${0.26 + pulse * 0.14})`);
+      grad.addColorStop(0.6, `rgba(${fogB},0.15)`);
+      grad.addColorStop(1, 'rgba(15, 14, 12, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.ellipse(s.x, s.y - 10, 90, 60, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = `rgba(${lineC},${0.35 + pulse * 0.25})`;
+      ctx.strokeStyle = `rgba(${lineC},${0.38 + pulse * 0.28})`;
       ctx.lineWidth = 1.5;
       for (let x = -bw / 2; x <= bw / 2; x += 18) {
         ctx.beginPath();
@@ -259,7 +268,7 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
       const lx = s.x,
         ly = s.y - 46;
       ctx.fillStyle = `rgba(${lockC},${0.7 + pulse * 0.3})`;
-      ctx.shadowColor = 'rgba(255,80,80,0.8)';
+      ctx.shadowColor = 'rgba(204, 73, 73, 0.8)';
       ctx.shadowBlur = 8;
       ctx.fillRect(lx - 7, ly, 14, 11);
       ctx.shadowBlur = 0;
@@ -268,7 +277,7 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
       ctx.beginPath();
       ctx.arc(lx, ly, 5, Math.PI, 0);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(40,10,10,0.9)';
+      ctx.fillStyle = 'rgba(15,10,10,0.9)';
       ctx.fillRect(lx - 1.2, ly + 3, 2.4, 5);
       ctx.fillStyle = `rgba(${textC},${0.7 + pulse * 0.3})`;
       ctx.font = font(11, true);
@@ -276,17 +285,23 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
       ctx.fillText(readyToCompose ? 'E 复原诗句，破除封锁' : '此路被污染封锁', s.x, s.y - 56);
       ctx.textAlign = 'left';
     } else {
+      // 优化通路开启：从单纯的透明块，升级为向上徐徐飘升的鎏金微光粒子效果
+      ctx.save();
       const grad = ctx.createLinearGradient(0, s.y - 70, 0, s.y + 24);
-      grad.addColorStop(0, 'rgba(255,225,150,0)');
-      grad.addColorStop(0.5, `rgba(255,225,150,${pulse * 0.3})`);
-      grad.addColorStop(1, 'rgba(255,225,150,0)');
+      grad.addColorStop(0, 'rgba(224, 178, 98, 0)');
+      grad.addColorStop(0.5, `rgba(224, 178, 98, ${pulse * 0.35})`);
+      grad.addColorStop(1, 'rgba(224, 178, 98, 0)');
       ctx.fillStyle = grad;
       ctx.fillRect(s.x - 44, s.y - 70, 88, 94);
-      ctx.fillStyle = `rgba(255,225,150,${pulse * 0.22})`;
+
+      // 绘制通路地面光晕环
+      ctx.fillStyle = `rgba(224, 178, 98, ${pulse * 0.25})`;
       ctx.beginPath();
       ctx.ellipse(s.x, s.y, 34, 11, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = `rgba(255,230,160,${0.7 + pulse * 0.3})`;
+      ctx.restore();
+
+      ctx.fillStyle = `rgba(240, 233, 218, ${0.72 + pulse * 0.28})`;
       ctx.font = font(13, true);
       ctx.textAlign = 'center';
       ctx.fillText('→ ' + (it.label || '前进'), s.x, s.y - 24);

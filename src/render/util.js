@@ -47,7 +47,17 @@ export function roundRect(ctx, x, y, w, h, r) {
 // ============================================================
 // Sydney自由对话（结局）
 // ============================================================
+// 文字测量缓存，避免每帧重复进行高消耗的 measureText 运算
+const wrapTextCache = new Map();
+
 export function wrapText(ctx, text, maxW) {
+  // 结合当前的文字字体、宽度和文本内容作为唯一缓存 Key
+  const fontStr = ctx.font || '';
+  const key = `${fontStr}_${maxW}_${text}`;
+  if (wrapTextCache.has(key)) {
+    return wrapTextCache.get(key);
+  }
+
   const lines = [];
   let line = '';
   for (const ch of text) {
@@ -62,5 +72,12 @@ export function wrapText(ctx, text, maxW) {
     } else line += ch;
   }
   if (line) lines.push(line);
+
+  // 缓存上限控制（LRU 释放以防内存无限增大）
+  if (wrapTextCache.size > 2000) {
+    const firstKey = wrapTextCache.keys().next().value;
+    wrapTextCache.delete(firstKey);
+  }
+  wrapTextCache.set(key, lines);
   return lines;
 }

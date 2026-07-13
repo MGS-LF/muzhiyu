@@ -12,18 +12,6 @@ export function drawDialog(ctx, d, gameTime, game) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   const line = d.lines[d.idx];
-  const curT = line.t;
-  d.charTimer += 16;
-  const typeInterval =
-    game && typeof game.dialogTypeInterval === 'function' ? game.dialogTypeInterval() : 25;
-  if (!d.done && curT !== undefined && d.charTimer > typeInterval) {
-    d.charTimer = 0;
-    d.charIdx++;
-    if (d.charIdx >= curT.length) {
-      d.charIdx = curT.length;
-      d.done = true;
-    }
-  }
   const text = line.t !== undefined ? line.t.substring(0, d.charIdx) : '';
 
   const boxX = 80,
@@ -31,25 +19,50 @@ export function drawDialog(ctx, d, gameTime, game) {
     boxW = W - 160,
     boxH = 130;
   const highContrast = !!(game && game.settings && game.settings.highContrast);
-  // 默认对比度提升：底 0.72 / 文字 1.0；高对比维持纯黑 + 亮金
-  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.82)' : 'rgba(0,0,0,0.72)';
-  ctx.fillRect(boxX + 4, boxY + 4, boxW, boxH);
-  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.98)' : 'rgba(12,11,9,0.96)';
+
+  // 1. 物理玄黑漫反射投影
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+  ctx.shadowBlur = 18;
+
+  // 默认对比度提升：底色采用玄石黑；高对比维持纯黑
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.92)' : 'rgba(15, 14, 12, 0.98)';
   ctx.fillRect(boxX, boxY, boxW, boxH);
-  ctx.fillStyle = highContrast ? 'rgba(255,235,160,0.7)' : 'rgba(212,168,90,0.55)';
-  ctx.fillRect(boxX, boxY, boxW, 3);
+  ctx.restore(); // 清除投影，以防边框线产生毛刺
+
+  // 2. 双边框设计，模拟古籍书简质感
   ctx.strokeStyle = highContrast ? 'rgba(255,235,160,0.95)' : UI.panelLine;
   ctx.lineWidth = STROKE;
   ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-  ctx.fillStyle = 'rgba(40,30,20,0.6)';
+  if (!highContrast) {
+    ctx.strokeStyle = 'rgba(224, 178, 98, 0.16)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX + 3.5, boxY + 3.5, boxW - 7, boxH - 7);
+  }
+
+  // 3. 顶部横向渐变淡出金装饰线
+  const topGrad = ctx.createLinearGradient(boxX, boxY, boxX + boxW, boxY);
+  topGrad.addColorStop(0, 'rgba(224, 178, 98, 0)');
+  topGrad.addColorStop(0.5, highContrast ? 'rgba(255,235,160,0.85)' : 'rgba(224, 178, 98, 0.75)');
+  topGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(boxX + 1, boxY + 1, boxW - 2, 2);
+
+  // 4. 头像装饰框
+  ctx.fillStyle = 'rgba(15, 14, 12, 0.85)';
   ctx.fillRect(boxX + 16, boxY + 16, 60, 60);
   ctx.strokeStyle = UI.goldLine;
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX + 16, boxY + 16, 60, 60);
+
+  // 内缩细线
+  ctx.strokeStyle = 'rgba(224, 178, 98, 0.15)';
+  ctx.strokeRect(boxX + 18.5, boxY + 18.5, 55, 55);
+
   const cx = boxX + 46,
     cy = boxY + 46;
-  ctx.fillStyle = 'rgba(212,168,90,0.4)';
+  ctx.fillStyle = 'rgba(224, 178, 98, 0.35)'; // 头像底图配置低饱和鎏金
   ctx.beginPath();
   ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
   ctx.fill();
@@ -58,9 +71,16 @@ export function drawDialog(ctx, d, gameTime, game) {
   ctx.fillStyle = highContrast ? '#fff0a8' : UI.goldBright;
   ctx.font = font(16, true);
   ctx.textBaseline = 'top';
-  ctx.fillText(line.s || d.name || '', boxX + 90, boxY + 18);
 
-  ctx.strokeStyle = UI.goldLine;
+  // 说话人名称 (Speaker Name) 左侧增加垂直小金色装饰立线
+  const speakerName = line.s || d.name || '';
+  ctx.fillText(speakerName, boxX + 90, boxY + 18);
+  if (speakerName) {
+    ctx.fillStyle = UI.goldLine;
+    ctx.fillRect(boxX + 83, boxY + 19, 2.5, 14);
+  }
+
+  ctx.strokeStyle = 'rgba(224, 178, 98, 0.18)'; // 细横线古风极淡金
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(boxX + 90, boxY + 40);
@@ -95,7 +115,7 @@ export function drawDialog(ctx, d, gameTime, game) {
     drawChoices(ctx, d, boxX, boxY, boxW, gameTime);
   } else if (d.done) {
     const a = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
-    ctx.fillStyle = `rgba(255,210,120,${a})`;
+    ctx.fillStyle = `rgba(224, 178, 98, ${a})`; // 优化为鎏金色淡入淡出
     ctx.font = font(11);
     ctx.textAlign = 'right';
     const hint = line.choice ? '▼ E 做出选择' : '▼ E / 空格 继续';
@@ -117,30 +137,40 @@ export function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
   for (let i = 0; i < opts.length; i++) {
     const sel = i === d.choiceIndex;
     const ry = oy + i * (oh + gap);
-    const breath = sel ? 0.1 + (Math.sin(gameTime * 0.005) * 0.5 + 0.5) * 0.08 : 0;
-    ctx.fillStyle = sel ? `rgba(45,33,16,${0.9 + breath})` : 'rgba(15,12,8,0.9)';
+    const breath = sel ? 0.08 + (Math.sin(gameTime * 0.005) * 0.5 + 0.5) * 0.08 : 0;
+
+    // 选中选项采用自左向右淡出的鎏金微光背景，未选中为更柔和的古籍灰石色
+    if (sel) {
+      const optGrad = ctx.createLinearGradient(ox, ry, ox + ow, ry);
+      optGrad.addColorStop(0, `rgba(224, 178, 98, ${0.18 + breath * 2.2})`);
+      optGrad.addColorStop(0.3, `rgba(224, 178, 98, ${0.08 + breath * 1.2})`);
+      optGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+      ctx.fillStyle = optGrad;
+    } else {
+      ctx.fillStyle = 'rgba(15, 14, 12, 0.9)';
+    }
+
     roundRect(ctx, ox, ry, ow, oh, 6);
     ctx.fill();
-    ctx.strokeStyle = sel ? UI.goldBright : 'rgba(120,100,70,0.6)';
-    ctx.lineWidth = sel ? 2 : 1;
+    ctx.strokeStyle = sel ? UI.goldBright : 'rgba(224, 178, 98, 0.22)';
+    ctx.lineWidth = sel ? 1.5 : 1;
     roundRect(ctx, ox, ry, ow, oh, 6);
     ctx.stroke();
+
+    // 选中时光标由生硬的三角形改为一个充满禅意的水墨小圆点 ●
     if (sel) {
       ctx.fillStyle = UI.goldBright;
       ctx.beginPath();
-      ctx.moveTo(ox + 11, ry + oh / 2);
-      ctx.lineTo(ox + 17, ry + oh / 2 - 4);
-      ctx.lineTo(ox + 17, ry + oh / 2 + 4);
-      ctx.closePath();
+      ctx.arc(ox + 14, ry + oh / 2, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.fillStyle = sel ? 'rgba(255,236,172,1)' : UI.inkSoft;
+    ctx.fillStyle = sel ? 'rgba(255, 235, 160, 1)' : UI.inkSoft;
     ctx.font = sel ? font(14, true) : font(14);
     ctx.textAlign = 'left';
     ctx.fillText(opts[i].label, ox + 28, ry + oh / 2);
   }
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = `rgba(255,212,124,${0.5 + Math.sin(gameTime * 0.005) * 0.3})`;
+  ctx.fillStyle = `rgba(224, 178, 98, ${0.5 + Math.sin(gameTime * 0.005) * 0.3})`;
   ctx.font = font(11);
   ctx.textAlign = 'right';
   ctx.fillText('↑ ↓ 选择 · E 确认', boxX + boxW - 16, oy - 8);

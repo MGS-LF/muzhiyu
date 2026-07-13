@@ -95,8 +95,10 @@ export function bindCanvas(canvas) {
 function refreshCanvasCoord() {
   if (!_canvas) return;
   const r = _canvas.getBoundingClientRect();
-  mouse.canvasX = (mouse.x - r.left) * (_canvas.width / r.width);
-  mouse.canvasY = (mouse.y - r.top) * (_canvas.height / r.height);
+  const W = 1200; // 游戏的固定逻辑画布宽度
+  const H = 760;  // 游戏的固定逻辑画布高度
+  mouse.canvasX = (mouse.x - r.left) * (W / r.width);
+  mouse.canvasY = (mouse.y - r.top) * (H / r.height);
 }
 
 function mountMobileControls() {

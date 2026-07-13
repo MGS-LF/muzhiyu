@@ -9,7 +9,14 @@ import { UI, SPACE, font, fontMono, panelFrame, selectionPulse } from '../ui/tok
 // UI 面板：任务列表 / 地图 / 调试传送
 // ============================================================
 export function drawUIPanel(ctx, game, gameTime) {
-  ctx.fillStyle = UI.panelMask;
+  // 使用高质感深色向外淡出径向暗角代替原本单调的 panelMask 纯色遮罩
+  const maskGrad = ctx.createRadialGradient(
+    W / 2, H / 2, Math.min(W, H) * 0.18,
+    W / 2, H / 2, Math.max(W, H) * 0.72
+  );
+  maskGrad.addColorStop(0, 'rgba(10, 8, 6, 0.45)');
+  maskGrad.addColorStop(1, 'rgba(5, 4, 3, 0.92)');
+  ctx.fillStyle = maskGrad;
   ctx.fillRect(0, 0, W, H);
 
   const panelW = Math.min(560, W - 40);
@@ -65,15 +72,16 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
   // 标题由 panelFrame 绘制
   void gameTime;
 
+  // 使用优雅的低饱和度古风色卡替换高亮度霓虹色
   const catColors = {
-    主线: '#ffd870',
-    可选: '#b8c7ff',
-    支线: '#80d8ff',
-    收集: '#a0ffa0',
-    倾向: '#ffa0d0',
-    刻字: '#d0a0ff',
-    余烬: '#ffb070',
-    规则: '#ff80ff',
+    主线: 'rgba(224, 178, 98, 0.95)',  // 鎏金黄
+    可选: 'rgba(110, 135, 180, 0.95)', // 黛蓝
+    支线: 'rgba(120, 165, 130, 0.95)', // 竹绿
+    收集: 'rgba(160, 130, 180, 0.95)', // 暮紫
+    倾向: 'rgba(180, 120, 150, 0.95)', // 烟绯
+    刻字: 'rgba(160, 140, 120, 0.95)', // 赭石
+    余烬: 'rgba(190, 120, 90, 0.95)',  // 丹砂
+    规则: 'rgba(140, 140, 150, 0.95)', // 灰石
   };
   let yy = py + 58;
   let curCat = '';
@@ -86,7 +94,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
       ctx.fillStyle = catColors[q.cat] || '#ccc';
       ctx.font = font(12, true);
       ctx.fillText(q.cat, px + pad, yy);
-      ctx.strokeStyle = 'rgba(210,190,150,0.18)';
+      ctx.strokeStyle = 'rgba(224, 178, 98, 0.14)'; // 面板辅助分隔金线，风格统一
       ctx.beginPath();
       ctx.moveTo(px + 82, yy - 4);
       ctx.lineTo(px + pw - pad, yy - 4);
@@ -100,25 +108,42 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
       break;
     }
     const badge = q.done ? '完成' : q.optional ? '可选' : '进行中';
-    const badgeColor = q.done
-      ? 'rgba(100,190,120,0.72)'
-      : q.optional
-        ? 'rgba(120,145,230,0.72)'
-        : 'rgba(255,210,100,0.75)';
-    ctx.fillStyle = badgeColor;
+
+    // 任务状态微章：低饱和度、淡雅边框，文字色在玄石黑底色上拥有优秀对比度
+    let badgeBg, badgeBorder, badgeText;
+    if (q.done) {
+      badgeBg = 'rgba(108, 178, 132, 0.12)';
+      badgeBorder = 'rgba(108, 178, 132, 0.45)';
+      badgeText = UI.ok;
+    } else if (q.optional) {
+      badgeBg = 'rgba(110, 135, 180, 0.12)';
+      badgeBorder = 'rgba(110, 135, 180, 0.45)';
+      badgeText = 'rgba(165, 185, 220, 0.95)';
+    } else {
+      badgeBg = 'rgba(217, 163, 61, 0.1)';
+      badgeBorder = 'rgba(217, 163, 61, 0.4)';
+      badgeText = 'rgba(240, 200, 120, 0.95)';
+    }
+
+    ctx.fillStyle = badgeBg;
     roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
     ctx.fill();
-    ctx.fillStyle = '#101018';
+    ctx.strokeStyle = badgeBorder;
+    ctx.lineWidth = 1;
+    roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
+    ctx.stroke();
+
+    ctx.fillStyle = badgeText;
     ctx.font = font(10, true);
     ctx.textAlign = 'center';
     ctx.fillText(badge, px + 70, yy + 1);
     ctx.textAlign = 'left';
 
     ctx.fillStyle = q.done
-      ? 'rgba(155,215,155,0.72)'
+      ? UI.inkSoft // 已完成任务显示烟尘灰，降低视觉喧宾夺主
       : q.optional
-        ? 'rgba(210,215,245,0.8)'
-        : 'rgba(238,225,190,0.9)';
+        ? 'rgba(210, 215, 245, 0.95)'
+        : UI.ink;
     ctx.font = q.cat === '主线' && !q.done ? font(13, true) : font(13);
     const lines = wrapText(ctx, q.text, pw - 150);
     for (let i = 0; i < Math.min(lines.length, 2); i++) {
@@ -178,8 +203,8 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
   const toX = (n) => px + 40 + n.x * (pw - 80);
   const toY = (n) => py + 60 + n.y * (ph - 120);
 
-  // 连线
-  ctx.strokeStyle = 'rgba(150,140,120,0.3)';
+  // 连线：水墨古风淡灰线条
+  ctx.strokeStyle = 'rgba(178, 169, 152, 0.28)';
   ctx.lineWidth = 1.5;
   for (const [a, b] of links) {
     const na = nodes.find((n) => n.id === a),
@@ -198,27 +223,44 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
       ny = toY(n);
     const isCur = n.id === curId;
     const isVisited = visited.has(n.id);
+
     // 节点圆
     ctx.beginPath();
-    ctx.arc(nx, ny, isCur ? 10 : 7, 0, Math.PI * 2);
+    ctx.arc(nx, ny, isCur ? 9 : 6, 0, Math.PI * 2);
     if (isCur) {
-      const pulse = 0.6 + Math.sin(gameTime * 0.005) * 0.3;
-      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
+      // 玩家当前节点：带微光呼吸晕染发光效果，更具动感与厚度
+      ctx.save();
+      const pulseVal = Math.sin(gameTime * 0.005) * 0.5 + 0.5;
+      const glowGrad = ctx.createRadialGradient(nx, ny, 3, nx, ny, 16);
+      glowGrad.addColorStop(0, 'rgba(255, 215, 142, 1)');
+      glowGrad.addColorStop(0.5, `rgba(224, 178, 98, ${0.4 + pulseVal * 0.3})`);
+      glowGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(nx, ny, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = UI.goldBright;
     } else if (isVisited) {
-      ctx.fillStyle = 'rgba(120,200,140,0.6)';
+      ctx.fillStyle = 'rgba(108, 178, 132, 0.75)'; // 翡翠绿已访问节点
     } else {
-      ctx.fillStyle = 'rgba(80,80,90,0.5)';
+      ctx.fillStyle = 'rgba(80, 80, 85, 0.5)';
     }
+
+    ctx.beginPath();
+    ctx.arc(nx, ny, isCur ? 7 : 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = isCur ? '#ffdd66' : 'rgba(150,140,120,0.4)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = isCur ? '#ffdd66' : 'rgba(224, 178, 98, 0.3)';
+    ctx.lineWidth = isCur ? 1.5 : 1;
     ctx.stroke();
+
     // 标签
     ctx.fillStyle = isCur
-      ? '#ffdd66'
+      ? UI.goldBright
       : isVisited
-        ? 'rgba(180,200,180,0.8)'
-        : 'rgba(120,115,105,0.5)';
+        ? 'rgba(180, 200, 180, 0.85)'
+        : 'rgba(140, 132, 116, 0.45)';
     ctx.font = isCur ? font(11, true) : font(10);
     ctx.textAlign = 'center';
     ctx.fillText(n.name, nx, ny - 14);
@@ -247,10 +289,19 @@ export function drawDebugPanel(ctx, game, px, py, pw, ph, gameTime) {
     const sel = i === game._debugSel;
     if (sel) {
       const pulse = selectionPulse(gameTime, reduced);
-      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
+      // 选中项效果：左侧鎏金垂直短线 + 水平两端渐变呼吸背景，不再是单调的纯色方块遮罩
+      const rowGrad = ctx.createLinearGradient(px + 20, yy - 14, px + pw - 20, yy - 14);
+      rowGrad.addColorStop(0, `rgba(224, 178, 98, ${pulse * 2.2})`);
+      rowGrad.addColorStop(0.3, `rgba(224, 178, 98, ${pulse * 1.2})`);
+      rowGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+      ctx.fillStyle = rowGrad;
       ctx.fillRect(px + 20, yy - 14, pw - 40, 24);
+
+      // 左侧鎏金指示线条
+      ctx.fillStyle = UI.goldBright;
+      ctx.fillRect(px + 20, yy - 14, 2.5, 24);
     }
-    ctx.fillStyle = sel ? UI.goldBright : 'rgba(200,200,200,0.7)';
+    ctx.fillStyle = sel ? UI.goldBright : 'rgba(240, 233, 218, 0.72)';
     ctx.font = sel ? fontMono(14, true) : fontMono(13);
     const mark = sel ? '▶ ' : '  ';
     const cur = game.scene && game.scene.id === s.id ? ' [当前]' : '';
@@ -278,11 +329,21 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
     const sel = i === (game._settingsSel || 0);
     if (sel) {
       const pulse = selectionPulse(gameTime, reduced);
-      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
+      // 选中项效果：左侧鎏金垂直短线 + 水平两端渐变呼吸背景
+      const rowGrad = ctx.createLinearGradient(px + 32, y - 24, px + pw - 32, y - 24);
+      rowGrad.addColorStop(0, `rgba(224, 178, 98, ${pulse * 2.2})`);
+      rowGrad.addColorStop(0.3, `rgba(224, 178, 98, ${pulse * 1.2})`);
+      rowGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+      ctx.fillStyle = rowGrad;
       ctx.fillRect(px + 32, y - 24, pw - 64, 34);
-      ctx.strokeStyle = 'rgba(255,220,100,0.44)';
+
+      ctx.strokeStyle = `rgba(224, 178, 98, ${0.12 + pulse * 1.5})`;
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 32, y - 24, pw - 64, 34);
+
+      // 左侧指示条
+      ctx.fillStyle = UI.goldBright;
+      ctx.fillRect(px + 32, y - 24, 2.5, 34);
     }
     ctx.fillStyle = sel ? UI.goldBright : UI.ink;
     ctx.font = sel ? font(15, true) : font(14);
@@ -290,10 +351,15 @@ export function drawSettingsPanel(ctx, game, px, py, pw, ph, gameTime) {
 
     const valueW = 132;
     const valueX = px + pw - valueW - 52;
-    ctx.fillStyle = sel ? 'rgba(255,220,100,0.9)' : 'rgba(120,135,155,0.82)';
+    ctx.fillStyle = sel ? 'rgba(224, 178, 98, 0.15)' : 'rgba(140, 132, 116, 0.15)'; // 按钮底框改淡雅色，防止喧宾夺主
     roundRect(ctx, valueX, y - 22, valueW, 26, 4);
     ctx.fill();
-    ctx.fillStyle = sel ? '#101018' : '#f2eadc';
+    ctx.strokeStyle = sel ? 'rgba(224, 178, 98, 0.5)' : 'rgba(140, 132, 116, 0.3)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, valueX, y - 22, valueW, 26, 4);
+    ctx.stroke();
+
+    ctx.fillStyle = sel ? UI.goldBright : UI.inkSoft;
     ctx.font = font(12, true);
     ctx.textAlign = 'center';
     ctx.fillText(row.value, valueX + valueW / 2, y - 4);
@@ -362,19 +428,29 @@ export function drawSaveMenu(ctx, game, gameTime) {
     const iy = yy + i * lineH;
     if (sel) {
       const pulse = selectionPulse(gameTime, reduced);
-      ctx.fillStyle = `rgba(255,220,100,${pulse})`;
+      // 选中项效果：左侧垂直金线条 + 水平渐变鎏金微光呼吸
+      const rowGrad = ctx.createLinearGradient(px + 20, iy - 6, px + pw - 20, iy - 6);
+      rowGrad.addColorStop(0, `rgba(224, 178, 98, ${pulse * 2.2})`);
+      rowGrad.addColorStop(0.3, `rgba(224, 178, 98, ${pulse * 1.2})`);
+      rowGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+      ctx.fillStyle = rowGrad;
       ctx.fillRect(px + 20, iy - 6, pw - 40, lineH - 10);
-      ctx.strokeStyle = 'rgba(255,220,100,0.4)';
+
+      ctx.strokeStyle = `rgba(224, 178, 98, ${0.12 + pulse * 1.5})`;
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 20, iy - 6, pw - 40, lineH - 10);
+
+      // 左侧指示条
+      ctx.fillStyle = UI.goldBright;
+      ctx.fillRect(px + 20, iy - 6, 2.5, lineH - 10);
     }
     ctx.textAlign = 'left';
     if (it.empty) {
       const tag = it.slot === 'auto' ? '自动' : '槽位 ' + it.slot;
-      ctx.fillStyle = sel ? UI.goldBright : 'rgba(200,200,200,0.48)';
+      ctx.fillStyle = sel ? UI.goldBright : 'rgba(240, 233, 218, 0.48)';
       ctx.font = sel ? font(14, true) : font(14);
       ctx.fillText((sel ? '> ' : '  ') + `[${tag}]  空`, px + 40, iy + 24);
-      ctx.fillStyle = 'rgba(180,170,150,0.48)';
+      ctx.fillStyle = 'rgba(178, 169, 152, 0.48)';
       ctx.font = font(11);
       ctx.fillText(mode === 'save' ? '按 E 写入此槽位' : '没有可读取的记录', px + 40, iy + 46);
     } else {
@@ -382,7 +458,7 @@ export function drawSaveMenu(ctx, game, gameTime) {
       ctx.fillStyle = sel ? UI.goldBright : UI.ink;
       ctx.font = font(14, true);
       ctx.fillText((sel ? '> ' : '  ') + `[${tag}]  ${it.scene}`, px + 40, iy + 22);
-      ctx.fillStyle = 'rgba(180,170,150,0.7)';
+      ctx.fillStyle = 'rgba(178, 169, 152, 0.75)';
       ctx.font = font(11);
       ctx.fillText(
         `时间 ${it.time}  ·  SAN ${it.san}  ·  碎片 ${it.chars}  ·  仁慈${it.karma.mercy}/武力${it.karma.violence}`,
@@ -390,7 +466,7 @@ export function drawSaveMenu(ctx, game, gameTime) {
         iy + 42
       );
       if (mode === 'save' && it.slot !== 'auto') {
-        ctx.fillStyle = 'rgba(220,190,130,0.46)';
+        ctx.fillStyle = 'rgba(224, 178, 98, 0.55)'; // 优化字体颜色，与鎏金呼应
         ctx.fillText('按 E 覆盖此槽位', px + 40, iy + 60);
       }
     }
@@ -503,11 +579,21 @@ export function drawInventoryPanel(ctx, game, px, py, pw, ph, gameTime) {
       const sel = it.selected;
       if (sel) {
         const pulse = selectionPulse(gameTime, reduced);
-        ctx.fillStyle = `rgba(255,220,100,${pulse})`;
+        // 选中项效果：左侧鎏金垂直短线 + 水平两端渐变呼吸背景，不再是单调的纯色方块遮罩
+        const rowGrad = ctx.createLinearGradient(leftX - 8, yy - 15, leftX - 8 + leftW, yy - 15);
+        rowGrad.addColorStop(0, `rgba(224, 178, 98, ${pulse * 2.2})`);
+        rowGrad.addColorStop(0.3, `rgba(224, 178, 98, ${pulse * 1.2})`);
+        rowGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+        ctx.fillStyle = rowGrad;
         ctx.fillRect(leftX - 8, yy - 15, leftW, 36);
-        ctx.strokeStyle = 'rgba(255,220,100,0.4)';
+
+        ctx.strokeStyle = `rgba(224, 178, 98, ${0.12 + pulse * 1.5})`;
         ctx.lineWidth = 1;
         ctx.strokeRect(leftX - 8, yy - 15, leftW, 36);
+
+        // 左侧指示条
+        ctx.fillStyle = UI.goldBright;
+        ctx.fillRect(leftX - 8, yy - 15, 2.5, 36);
       }
       ctx.fillStyle = sel ? UI.goldBright : UI.ink;
       ctx.font = sel ? font(14, true) : font(13);
