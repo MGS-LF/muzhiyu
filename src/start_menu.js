@@ -308,7 +308,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
             <div class="start-menu__actions">
               <button type="button" data-action="start">开始游戏</button>
               <button type="button" data-action="ngplus" data-ngplus hidden>二周目</button>
-              <button type="button" data-action="endless">无尽回响</button>
+              <button type="button" data-action="endless">言锋试炼</button>
               <button type="button" data-action="saves">存档</button>
               <button type="button" data-action="about">关于游戏</button>
             </div>
@@ -326,7 +326,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
         <h2 class="start-menu__heading">关于游戏</h2>
         <div class="start-menu__about">
           <p>《墓之语》是一款废墟探索与诗词弹幕战斗游戏。你将扮演顾言，在 2147 年的上海废墟中收集散落文字，唤醒失语者，并追寻 Sydney 与方知远留下的记忆。</p>
-          <p>当前版本包含主线章节、第五章「余烬」、江堤横版关卡、维度裂隙 3D 关卡、刻字、背包、存档、难度、诗词大招与二周目基础流程。</p>
+          <p>当前版本包含主线章节、第五章「余烬」、江堤横版关卡、维度裂隙 3D 关卡、言锋试炼（协议侵入弹幕）、刻字、背包、存档、难度、诗词大招与二周目基础流程。</p>
           <ul>
             ${CONTROL_HINTS.startMenu.map((line) => `<li>${line}</li>`).join('')}
           </ul>

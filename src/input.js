@@ -76,8 +76,8 @@ window.addEventListener('mouseup', (e) => {
   else if (e.button === 2) mouse.rightDown = false;
 });
 window.addEventListener('contextmenu', (e) => {
-  // 3D 模式下禁用右键菜单
-  if (document.pointerLockElement) e.preventDefault();
+  // 3D / 骇入等战斗里右键作闪避，统一禁掉菜单
+  e.preventDefault();
 });
 document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement) {
@@ -238,6 +238,16 @@ export const input = {
     const v = mouse.pressed;
     mouse.pressed = false;
     return v;
+  },
+  mouseDown() {
+    return !!mouse.down;
+  },
+  mouseRightDown() {
+    return !!mouse.rightDown;
+  },
+  mouseCanvas() {
+    refreshCanvasCoord();
+    return { x: mouse.canvasX, y: mouse.canvasY };
   },
   mouseMovement() {
     const m = { x: mouse.movementX, y: mouse.movementY };

@@ -5,6 +5,7 @@ import { isMuted } from './audio.js';
 import { drawMinimap } from './minimap.js';
 import { getDifficultyDef } from './difficulty.js';
 import { drawBattle } from './render/battle.js';
+import { drawHackingBattle } from './hacking/render.js';
 import {
   drawFreezeCenter,
   drawStreet,
@@ -50,9 +51,19 @@ export { Camera } from './render/util.js';
 export function render(game, gameTime) {
   const { ctx, camera, scene, player, dialogState, hints, tutorial, objective } = game;
 
-  // 鎴樻枟妯″紡锛氱嫭绔嬫覆鏌?
+  // 战斗模式：独立渲染，但系统菜单/存档菜单仍要盖在上面
   if (game.battle) {
-    drawBattle(ctx, game.battle, gameTime);
+    if (game.battle.isHack || game.battle.mode === 'hack') {
+      drawHackingBattle(ctx, game.battle, gameTime);
+    } else {
+      drawBattle(ctx, game.battle, gameTime);
+    }
+    if (game.uiPanel) drawUIPanel(ctx, game, gameTime);
+    if (game._saveMenu) drawSaveMenu(ctx, game, gameTime);
+    // 开场介绍时不叠 toast，避免挡住操作说明
+    if (hints.length && !(game.battle.isHack && game.battle.phase === 'intro')) {
+      drawHints(ctx, hints);
+    }
     return;
   }
 

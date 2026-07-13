@@ -28,8 +28,15 @@ if (FROM_INTRO) {
   sessionStorage.removeItem('keheng_from');
 }
 
+// 系统菜单「返回标题」：跳过刷新续玩，强制进标题页
+const TO_TITLE = sessionStorage.getItem('keheng_to_title') === '1';
+if (TO_TITLE) {
+  sessionStorage.removeItem('keheng_to_title');
+  clearRefreshResume();
+}
+
 const NG_PLUS = localStorage.getItem('keheng_new_game_plus') === '1';
-const REFRESH_RESUME = !FROM_INTRO ? loadRefreshResume() : null;
+const REFRESH_RESUME = !FROM_INTRO && !TO_TITLE ? loadRefreshResume() : null;
 if (NG_PLUS) {
   const meta = loadMeta();
   game.flags.new_game_plus = true;
@@ -59,10 +66,20 @@ function shouldWriteRefreshResume() {
   if (!game.scene) return false;
   if (game.endless) return false;
   if (game.flags.game_complete || game.ending) return false;
+  // 正在返回标题时不要写续玩快照
+  try {
+    if (sessionStorage.getItem('keheng_to_title') === '1') return false;
+  } catch (_) {}
   return game.scene.id !== 'freeze_center' || !!game.flags.wake_done;
 }
 
 function writeRefreshResume() {
+  try {
+    if (sessionStorage.getItem('keheng_to_title') === '1') {
+      clearRefreshResume();
+      return;
+    }
+  } catch (_) {}
   if (shouldWriteRefreshResume()) saveRefreshResume(game);
   else if (game.flags.game_complete || game.ending) clearRefreshResume();
 }
@@ -149,7 +166,7 @@ function finishBoot() {
         bootLoader.style.display = 'none';
       }, 420);
     }
-    if (!FROM_INTRO && !restoredRefresh && !startMenu) {
+    if ((!FROM_INTRO && !restoredRefresh && !startMenu) || (TO_TITLE && !startMenu)) {
       startMenu = mountStartMenu(game, { fromIntro: false });
     }
   }, 280);

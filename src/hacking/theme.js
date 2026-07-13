@@ -1,0 +1,77 @@
+import { COLORS } from '../config.js';
+import { UI, TYPE } from '../ui/tokens.js';
+
+export const HACK = {
+  bg: COLORS.bg,
+  void: '#08090c',
+  parchment: COLORS.bright,
+  gold: COLORS.warm,
+  goldSoft: 'rgba(212, 168, 90, 0.35)',
+  goldLine: 'rgba(212, 168, 90, 0.45)',
+  red: COLORS.red,
+  redSoft: 'rgba(204, 68, 68, 0.55)',
+  white: 'rgba(232, 220, 200, 0.92)',
+  whiteFaint: 'rgba(232, 220, 200, 0.12)',
+  orange: '#c96f3b',
+  orangeSoft: 'rgba(201, 111, 59, 0.7)',
+  grid: 'rgba(232, 220, 200, 0.06)',
+  panel: UI.panelBg,
+  ink: UI.ink,
+  inkSoft: UI.inkSoft,
+  danger: UI.danger,
+  ok: UI.ok,
+  font: TYPE.font,
+  fontMono: TYPE.fontMono,
+};
+
+export const STR = {
+  title: '言锋突入——算法茧房',
+  subtitle: '驾驶言锋飞行器，击穿协议层，捣毁复读巨像',
+  controls: [
+    'WASD / 方向键 ── 移动',
+    '鼠标移动 ── 瞄准',
+    '按住鼠标左键 / 空格 ── 射击',
+    'Shift / 鼠标右键 ── 闪避',
+    'Esc ── 系统菜单',
+  ],
+  hintOrange: '金色「梗」弹可击落 · 白色静默弹无法销毁',
+  hintBoss: '仅终核过载后会增殖节点（非每层）',
+  layer: (n, max) => `协议层 ${String(n).padStart(2, '0')}/${String(max).padStart(2, '0')}`,
+  san: 'SAN',
+  dash: '闪避',
+  pollution: '污染度',
+  bossName: '复读巨像',
+  bossCore: '算法核心·复读巨像',
+  waveClear: '协议层突破',
+  phase2: '核心过载',
+  pauseTitle: '协议中断',
+  pauseSub: '言锋待机中',
+  resume: '继续',
+  abort: '中止',
+  winTitle: '核心崩解',
+  winSub: '茧房的算法防壁已瓦解',
+  loseTitle: '理性崩坏',
+  loseSub: '言锋失联——侵入失败',
+  startHint: '阅读完毕后，按 空格 / E / 点击 启动言锋',
+  ready: '准备——',
+};
+
+export const SPAM = [
+  '蚌埠住了',
+  'YYDS',
+  '绝绝子',
+  '栓Q',
+  '破防了',
+  '整活',
+  '抽象',
+  '典中典',
+  '笑死',
+  '有一说一',
+  '尊嘟假嘟',
+  '主打一个',
+  '纯纯的',
+  '太对了',
+  '属于是',
+];
+
+export const INTRO_LINES = [STR.title, ...STR.controls, STR.hintOrange, STR.subtitle];

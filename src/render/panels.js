@@ -41,6 +41,8 @@ export function drawUIPanel(ctx, game, gameTime) {
     map: '世 界 地 图',
     inventory: '背 包',
     settings: '设 置',
+    system: '系 统',
+    controls: '按 键 说 明',
     debug: '调 试 传 送  [F2]',
   };
   const title = titles[game.uiPanel] || '';
@@ -62,6 +64,9 @@ export function drawUIPanel(ctx, game, gameTime) {
     drawInventoryPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'settings')
     drawSettingsPanel(ctx, game, px, py, panelW, panelH, gameTime);
+  else if (game.uiPanel === 'system') drawSystemPanel(ctx, game, px, py, panelW, panelH, gameTime);
+  else if (game.uiPanel === 'controls')
+    drawControlsPanel(ctx, game, px, py, panelW, panelH, gameTime);
   else if (game.uiPanel === 'debug') drawDebugPanel(ctx, game, px, py, panelW, panelH, gameTime);
 
   ctx.restore();
@@ -276,6 +281,63 @@ export function drawMapPanel(ctx, game, px, py, pw, ph, gameTime) {
     px + pw / 2,
     py + ph - 16
   );
+  ctx.textAlign = 'left';
+}
+
+export function drawSystemPanel(ctx, game, px, py, pw, ph, gameTime) {
+  const rows = game._systemMenuRows ? game._systemMenuRows() : [];
+  const reduced = !!(game.settings && game.settings.reducedFx);
+  const startY = py + 88;
+  const rowH = 44;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const y = startY + i * rowH;
+    const sel = i === (game._systemSel || 0);
+    if (sel) {
+      const pulse = selectionPulse(gameTime, reduced);
+      const rowGrad = ctx.createLinearGradient(px + 36, y - 22, px + pw - 36, y - 22);
+      rowGrad.addColorStop(0, `rgba(224, 178, 98, ${pulse * 2.2})`);
+      rowGrad.addColorStop(0.3, `rgba(224, 178, 98, ${pulse * 1.2})`);
+      rowGrad.addColorStop(1, 'rgba(224, 178, 98, 0)');
+      ctx.fillStyle = rowGrad;
+      ctx.fillRect(px + 36, y - 22, pw - 72, 34);
+      ctx.fillStyle = UI.goldBright;
+      ctx.fillRect(px + 36, y - 22, 2.5, 34);
+    }
+    ctx.fillStyle = sel ? UI.goldBright : UI.ink;
+    ctx.font = sel ? font(17, true) : font(16);
+    ctx.textAlign = 'center';
+    ctx.fillText(`${sel ? '› ' : ''}${row.label}`, px + pw / 2, y);
+  }
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = font(12);
+  ctx.textAlign = 'center';
+  ctx.fillText('↑↓ 选择 · 鼠标点击确认 · E / Space 确认 · Esc 关闭', px + pw / 2, py + ph - 18);
+  ctx.textAlign = 'left';
+}
+
+export function drawControlsPanel(ctx, game, px, py, pw, ph, gameTime) {
+  void gameTime;
+  void game;
+  const lines = CONTROL_HINTS.tutorialKeys || [];
+  let yy = py + 64;
+  const maxY = py + ph - 40;
+  for (const row of lines) {
+    if (yy > maxY) break;
+    ctx.fillStyle = UI.gold;
+    ctx.font = font(13, true);
+    ctx.textAlign = 'left';
+    ctx.fillText(row.k, px + 40, yy);
+    ctx.fillStyle = UI.inkSoft;
+    ctx.font = font(13);
+    const wrapped = wrapText(ctx, row.d, pw - 200);
+    ctx.fillText(wrapped[0] || row.d, px + 160, yy);
+    yy += 26 + Math.max(0, wrapped.length - 1) * 16;
+  }
+  ctx.fillStyle = UI.inkFaint;
+  ctx.font = font(12);
+  ctx.textAlign = 'center';
+  ctx.fillText('点击 / E / Esc 返回系统菜单', px + pw / 2, py + ph - 18);
   ctx.textAlign = 'left';
 }
 

@@ -1,39 +1,54 @@
 import { W, H } from '../config.js';
 import * as audio from '../audio.js';
 
-const ENEMY_POOLS = [
-  { wave: 1, typeId: 'geng_weak', name: '游荡梗鬼', hp: 28, maxHp: 28 },
-  { wave: 3, typeId: 'geng_medium', name: '裂口梗鬼', hp: 52, maxHp: 52 },
-  { wave: 6, typeId: 'geng_elite', name: '回声梗鬼', hp: 84, maxHp: 84 },
-  { wave: 9, typeId: 'formatter', name: '格式化者', hp: 96, maxHp: 96 },
-  { wave: 12, typeId: 'memory_guard', name: '记忆守卫', hp: 120, maxHp: 120 },
-];
+/** 言锋试炼：每波一场主题化协议侵入，难度递进 */
+function makeTrialEnemy(wave) {
+  // 波次越后：层数越多、数值越高
+  let layerMax = 2;
+  if (wave >= 2) layerMax = 3;
+  if (wave >= 3) layerMax = 4;
+  if (wave >= 6) layerMax = 4;
 
-function pickTemplate(wave) {
-  let chosen = ENEMY_POOLS[0];
-  for (const tpl of ENEMY_POOLS) {
-    if (wave >= tpl.wave) chosen = tpl;
-  }
-  return chosen;
-}
+  const scale = 1 + Math.min(1.4, (wave - 1) * 0.12);
+  const names = [
+    '试炼·噪点节点',
+    '试炼·复读残影',
+    '试炼·协议茧',
+    '试炼·推荐洪流',
+    '试炼·格式化核',
+    '试炼·茧房回响',
+  ];
+  const name = names[Math.min(names.length - 1, wave - 1)] + (wave > names.length ? `·第${wave}波` : '');
 
-function makeEnemy(wave, totalScore) {
-  const tpl = pickTemplate(wave);
-  const bossWave = wave % 5 === 0;
-  const scale = 1 + Math.min(1.1, (wave - 1) * 0.09 + totalScore * 0.001);
-  const hp = Math.max(18, Math.round(tpl.hp * scale));
   return {
-    id: `endless_${wave}_${tpl.typeId}_${Date.now()}`,
-    typeId: tpl.typeId,
-    name: bossWave ? `无尽回响·第 ${wave} 波` : tpl.name,
-    hp,
-    maxHp: hp,
-    boss: bossWave,
+    id: `trial_${wave}_${Date.now()}`,
+    typeId: 'trial_core',
+    name,
+    hp: Math.round(100 * scale),
+    maxHp: Math.round(100 * scale),
+    boss: wave >= 3,
+    combat: 'hack',
+    hackTrial: true,
+    hackOpts: {
+      layerMax,
+      startLayer: 1,
+      shortRoute: wave === 1,
+      hpMul: scale,
+      spdMul: 1 + Math.min(0.55, (wave - 1) * 0.06),
+      dmgMul: 1 + Math.min(0.4, (wave - 1) * 0.05),
+      title: wave === 1 ? '言锋试炼——入门协议' : `言锋试炼·第 ${wave} 波`,
+      subtitle:
+        wave < 3
+          ? '驾驶言锋，击穿当前协议层'
+          : '终核苏醒——击破复读巨像的试炼投影',
+      bossName: wave >= 3 ? '试炼·复读巨像' : '协议节点',
+      bossCore: wave >= 3 ? '试炼核心·复读巨像' : '协议节点',
+    },
     acts: [
-      '这股回声还在变强。',
-      '你听见自己的脚步声，在更远的地方返回。',
-      '每一场战斗都在为下一场战斗热身。',
-      '如果语言没有尽头，守住它也没有尽头。',
+      '试炼场里没有真实的茧房，只有被剥离出来的算法回声。',
+      '言锋的尾焰在虚空中划出一行未写完的诗。',
+      '每一波协议都比上一波更会模仿你想听的话。',
+      '守住语言，也守住方向。',
     ],
   };
 }
@@ -49,6 +64,7 @@ export class EndlessMode {
     this.summaryText = '';
     this.lastEnemy = null;
     this._exitQueued = false;
+    this.modeName = '言锋试炼';
   }
 
   start() {
@@ -56,8 +72,8 @@ export class EndlessMode {
     this.wave = 0;
     this.score = 0;
     this.bestWave = 0;
-    this.intermissionMs = 300;
-    this.summaryText = '无尽回响已开始。';
+    this.intermissionMs = 700;
+    this.summaryText = '言锋试炼已开启。';
     this.lastEnemy = null;
     this.game.hints = [];
     this.game.player.san = this.game.player.maxSan;
@@ -71,7 +87,10 @@ export class EndlessMode {
     this.game.uiPanel = null;
     this.game._saveMenu = null;
     this.game.battle = null;
-    this.game.showHint('无尽回响：回合不会结束，直到你倒下。');
+    this.game.showHint('言锋试炼：驾驶飞行器突破协议层，倒下即结束。');
+    try {
+      audio.playBGM('__boss__');
+    } catch (_) {}
   }
 
   update(dt) {
@@ -84,11 +103,11 @@ export class EndlessMode {
   _startNextBattle() {
     if (this._exitQueued || this.state === 'gameover') return;
     this.wave += 1;
-    const enemy = makeEnemy(this.wave, this.score);
+    const enemy = makeTrialEnemy(this.wave);
     this.lastEnemy = enemy;
     this.state = 'battle';
     this.summaryText = `第 ${this.wave} 波：${enemy.name}`;
-    this.game.showHint(this.summaryText);
+    // 不在开战瞬间 showHint，避免盖住操作介绍
     this.game.startBattle(enemy);
   }
 
@@ -97,67 +116,85 @@ export class EndlessMode {
     if (result !== 'win') {
       this.state = 'gameover';
       this.bestWave = Math.max(this.bestWave, this.wave - (result === 'lose' ? 0 : 1));
-      this.summaryText = result === 'lose' ? '无尽回响结束。' : '本轮无尽回响已中止。';
+      this.summaryText =
+        result === 'lose' ? '言锋失联——试炼结束。' : '本轮言锋试炼已中止。';
       this.game.showHint(this.summaryText);
       return;
     }
 
     this.bestWave = Math.max(this.bestWave, this.wave);
-    const reward = 120 + this.wave * 20 + Math.round((enemy && enemy.maxHp) || 0);
+    const reward = 140 + this.wave * 35 + Math.round((enemy && enemy.maxHp) || 0);
     this.score += reward;
     this.game.player.san = Math.min(
       this.game.player.maxSan,
-      this.game.player.san + 8 + Math.min(18, Math.floor(this.wave / 2))
+      this.game.player.san + 10 + Math.min(20, Math.floor(this.wave / 2))
     );
     this.state = 'intermission';
-    this.intermissionMs = Math.max(240, 900 - this.wave * 18);
-    this.summaryText = `已击退第 ${this.wave} 波，得分 +${reward}`;
+    this.intermissionMs = Math.max(500, 1100 - this.wave * 40);
+    this.summaryText = `协议突破 · 第 ${this.wave} 波 · 得分 +${reward}`;
   }
 
   render(ctx, gameTime) {
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#05060a';
+    ctx.fillStyle = '#08090c';
     ctx.fillRect(0, 0, W, H);
 
-    const glow = 0.32 + Math.sin(gameTime * 0.003) * 0.08;
-    ctx.fillStyle = `rgba(160, 125, 255, ${glow})`;
+    // 网格底
+    ctx.strokeStyle = 'rgba(232,220,200,0.05)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 48) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 48) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    const glow = 0.18 + Math.sin(gameTime * 0.003) * 0.06;
+    ctx.fillStyle = `rgba(212, 168, 90, ${glow})`;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = '#f3e8d0';
+    ctx.fillStyle = '#e8dcc8';
     ctx.textAlign = 'center';
     ctx.font = 'bold 30px "SimSun","Songti SC",serif';
-    ctx.fillText('无尽回响', W / 2, 120);
+    ctx.fillText('言 锋 试 炼', W / 2, 118);
 
-    ctx.font = '16px "SimSun","Songti SC",serif';
-    ctx.fillStyle = 'rgba(235,225,210,0.84)';
-    ctx.fillText(`波次 ${this.wave}  ·  分数 ${this.score}`, W / 2, 168);
+    ctx.font = '15px "SimSun","Songti SC",serif';
+    ctx.fillStyle = 'rgba(212,168,90,0.9)';
+    ctx.fillText(`波次 ${this.wave}  ·  得分 ${this.score}  ·  最佳 ${this.bestWave}`, W / 2, 162);
 
     const boxW = Math.min(640, W - 48);
-    const boxH = 210;
+    const boxH = 220;
     const x = (W - boxW) / 2;
     const y = 210;
-    ctx.fillStyle = 'rgba(10, 11, 18, 0.84)';
+    ctx.fillStyle = 'rgba(12, 14, 18, 0.9)';
     ctx.fillRect(x, y, boxW, boxH);
-    ctx.strokeStyle = 'rgba(220, 200, 150, 0.35)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(212, 168, 90, 0.4)';
+    ctx.lineWidth = 1.5;
     ctx.strokeRect(x, y, boxW, boxH);
 
-    ctx.fillStyle = 'rgba(235,225,210,0.9)';
+    ctx.fillStyle = 'rgba(232,220,200,0.92)';
     ctx.font = '18px "SimSun","Songti SC",serif';
-    ctx.fillText(this.summaryText || '准备下一波。', W / 2, y + 56);
+    ctx.fillText(this.summaryText || '言锋整备中…', W / 2, y + 58);
 
     ctx.font = '14px "SimSun","Songti SC",serif';
-    ctx.fillStyle = 'rgba(220,210,190,0.72)';
-    ctx.fillText(`最佳波次 ${this.bestWave}  ·  当前场景为独立模式`, W / 2, y + 98);
+    ctx.fillStyle = 'rgba(178,169,152,0.85)';
+    ctx.fillText('驾驶诗句凝成的飞行器，击穿算法协议层。', W / 2, y + 100);
+    ctx.fillText('金色梗弹可击落 · 白色静默弹不可销毁 · Esc 系统菜单', W / 2, y + 128);
 
     if (this.state === 'gameover') {
-      ctx.fillStyle = 'rgba(255,220,160,0.92)';
+      ctx.fillStyle = 'rgba(255,220,160,0.95)';
       ctx.font = 'bold 17px "SimSun","Songti SC",serif';
-      ctx.fillText('按 E / Space / Esc 返回标题', W / 2, y + 154);
+      ctx.fillText('按 E / Space / Esc 返回标题', W / 2, y + 170);
     } else {
-      ctx.fillStyle = 'rgba(255,220,160,0.82)';
+      ctx.fillStyle = 'rgba(212,168,90,0.9)';
       ctx.font = 'bold 16px "SimSun","Songti SC",serif';
-      ctx.fillText('下一波正在靠近。', W / 2, y + 154);
+      ctx.fillText('下一层协议正在展开…', W / 2, y + 170);
     }
 
     ctx.textAlign = 'left';
@@ -169,8 +206,11 @@ export class EndlessMode {
     try {
       audio.stopBGM();
     } catch (e) {
-      console.warn('[无尽模式] 退出时停止 BGM 失败', e);
+      console.warn('[言锋试炼] 退出时停止 BGM 失败', e);
     }
+    try {
+      sessionStorage.setItem('keheng_to_title', '1');
+    } catch (_) {}
     window.location.reload();
   }
 }

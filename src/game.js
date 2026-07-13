@@ -5,6 +5,7 @@ import { Player } from './player.js';
 import { scenes, DROP_TABLES, DEFAULT_DROPS } from './scenes.js';
 import { Camera, render } from './render.js';
 import { Battle } from './battle.js';
+import { HackingBattle } from './hacking/HackingBattle.js';
 import { voice } from './ai/voice.js';
 import { AI } from './ai/config.js';
 import { recordBranchChoice, clearBranchHistory } from './ai/director.js';
@@ -97,15 +98,17 @@ export class Game {
       wake_done: false,
       door_opened: false,
       first_geng_intro_done: false,
+      hack_core_intro_done: false,
       met_shuyuan: false,
       alley_briefed: false,
       in_battle_hint: false,
       subway_depth_log_read: false,
       all_villagers_cured: false,
     };
-    // UI 面板状态：null=关闭，'quest'=任务列表，'map'=地图面板，'debug'=调试面板
+    // UI 面板：null | quest/map/inventory/settings/system/controls/debug
     this.uiPanel = null;
-    this._debugSel = 0; // 调试面板选中索引
+    this._debugSel = 0;
+    this._systemSel = 0;
     this.settings = this._loadSettings();
     this._settingsSel = 0;
     // 道德/倾向：驱动三结局（火种 / 沉默 / 燃尽）
@@ -774,16 +777,35 @@ export class Game {
       this.showHint(this._showMinimap ? '小地图已开启' : '小地图已关闭');
       return true;
     }
-    // Esc：呼出系统菜单；已打开时关闭，有 UI 面板时先关闭面板
+    // Esc：系统菜单（继续 / 存档 / 按键 / 设置 / 回标题）
     if (input.wasPressed('escape')) {
       if (this._saveMenu) {
         this._saveMenu = null;
+        this.uiPanel = 'system';
+        this._uiPanelOpenAt = this.gameTime;
+        this._systemSel = 0;
+        audio.playSfx('uiCancel');
+      } else if (this.uiPanel === 'controls') {
+        this.uiPanel = 'system';
+        this._uiPanelOpenAt = this.gameTime;
+        this._systemSel = 2;
+        audio.playSfx('uiCancel');
+      } else if (this.uiPanel === 'settings') {
+        this.uiPanel = 'system';
+        this._uiPanelOpenAt = this.gameTime;
+        this._systemSel = 3;
+        audio.playSfx('uiCancel');
+      } else if (this.uiPanel === 'system') {
+        this.uiPanel = null;
         audio.playSfx('uiCancel');
       } else if (this.uiPanel) {
         this.uiPanel = null;
         audio.playSfx('uiCancel');
       } else {
-        this._saveMenu = 'save';
+        this.uiPanel = 'system';
+        this._uiPanelOpenAt = this.gameTime;
+        this._systemSel = 0;
+        audio.playSfx('ui');
       }
       return true;
     }
@@ -838,30 +860,28 @@ export class Game {
     const sanRatio = this.player.san / this.player.maxSan;
     fx.setDistortion(sanRatio < 0.4 ? (0.4 - sanRatio) / 0.4 : 0);
 
-    // === UI 面板切换（Q=任务，M=地图，I=背包，O=设置，F2=调试）===
-    // 面板打开时冻结世界，仅处理面板内导航
+    // === UI 面板切换（Q=任务，M=地图，I=背包，O=设置，F2=调试，Esc=系统）===
+    // 面板打开时冻结世界，仅处理面板内导航（Esc 已在全局输入里处理）
     if (this.uiPanel) {
-      if (input.wasPressed('q')) {
+      if (input.wasPressed('q') && this.uiPanel === 'quest') {
         this.uiPanel = null;
         return;
       }
-      if (input.wasPressed('m')) {
+      if (input.wasPressed('m') && this.uiPanel === 'map') {
         this.uiPanel = null;
         return;
       }
-      if (input.wasPressed('i')) {
+      if (input.wasPressed('i') && this.uiPanel === 'inventory') {
         this.uiPanel = null;
         return;
       }
-      if (input.wasPressed('o')) {
-        this.uiPanel = null;
+      if (input.wasPressed('o') && this.uiPanel === 'settings') {
+        this.uiPanel = 'system';
+        this._uiPanelOpenAt = this.gameTime;
+        this._systemSel = 3;
         return;
       }
-      if (input.wasPressed('escape')) {
-        this.uiPanel = null;
-        return;
-      }
-      if (input.wasPressed('f2')) {
+      if (input.wasPressed('f2') && this.uiPanel === 'debug') {
         this.uiPanel = null;
         return;
       }
@@ -1016,8 +1036,12 @@ export class Game {
       return;
     }
 
-    // 战斗模式
+    // 战斗模式（系统菜单打开时冻结战斗逻辑）
     if (this.battle) {
+      if (this.uiPanel || this._saveMenu) {
+        if (this.uiPanel) this._updatePanel(dt);
+        return;
+      }
       this.battle.update(dt);
       if (this.battle.isDone()) {
         this.endBattle();
@@ -1223,7 +1247,14 @@ export class Game {
   }
 
   startBattle(enemy) {
-    this.battle = new Battle(
+    // 主线巨像 / 显式 combat:'hack' / 言锋试炼 走骇入战
+    const useHack =
+      enemy &&
+      (enemy.combat === 'hack' ||
+        enemy.hackTrial ||
+        (enemy.boss && enemy.typeId === 'geng_boss' && !this.endless));
+    const Ctor = useHack ? HackingBattle : Battle;
+    this.battle = new Ctor(
       enemy,
       this.player,
       (result, e) => {
@@ -1634,6 +1665,18 @@ export class Game {
           });
           return;
         }
+        // 体育馆算法核心：先进入「言锋」逻辑空间剧情，再开战
+        if (
+          (e.combat === 'hack' || (e.boss && e.typeId === 'geng_boss')) &&
+          !this.flags.hack_core_intro_done &&
+          DIALOGS.hack_core_intro
+        ) {
+          this.flags.hack_core_intro_done = true;
+          this.startDialog(DIALOGS.hack_core_intro, '系统', () => {
+            this.startBattle(e);
+          });
+          return;
+        }
         this.startBattle(e);
         return;
       }
@@ -1871,7 +1914,138 @@ export class Game {
   // ============================================
   // UI 面板：任务列表 / 地图 / 调试传送
   // ============================================
+  _systemMenuRows() {
+    return [
+      { id: 'resume', label: '继续游戏' },
+      { id: 'save', label: '存档 / 读档' },
+      { id: 'controls', label: '按键说明' },
+      { id: 'settings', label: '设置' },
+      { id: 'title', label: '返回标题' },
+    ];
+  }
+
+  /** 与 drawSystemPanel 一致的布局，供鼠标命中 */
+  _systemMenuLayout() {
+    const panelW = Math.min(560, W - 40);
+    const panelH = Math.min(440, H - 40);
+    const px = (W - panelW) / 2;
+    const py = (H - panelH) / 2;
+    return {
+      px,
+      py,
+      pw: panelW,
+      ph: panelH,
+      startY: py + 88,
+      rowH: 44,
+      hitLeft: px + 36,
+      hitWidth: panelW - 72,
+      hitHalfH: 17,
+    };
+  }
+
+  _systemMenuHitIndex(mx, my) {
+    const rows = this._systemMenuRows();
+    const L = this._systemMenuLayout();
+    if (mx < L.hitLeft || mx > L.hitLeft + L.hitWidth) return -1;
+    for (let i = 0; i < rows.length; i++) {
+      const cy = L.startY + i * L.rowH;
+      if (my >= cy - L.hitHalfH && my <= cy + L.hitHalfH) return i;
+    }
+    return -1;
+  }
+
+  _confirmSystemAction(id) {
+    if (id === 'resume') {
+      this.uiPanel = null;
+      audio.playSfx('ui');
+      return;
+    }
+    if (id === 'save') {
+      this.uiPanel = null;
+      this._saveMenu = 'save';
+      this._saveMenuIdx = 0;
+      audio.playSfx('ui');
+      return;
+    }
+    if (id === 'controls') {
+      this.uiPanel = 'controls';
+      this._uiPanelOpenAt = this.gameTime;
+      audio.playSfx('ui');
+      return;
+    }
+    if (id === 'settings') {
+      this.uiPanel = 'settings';
+      this._uiPanelOpenAt = this.gameTime;
+      this._settingsSel = 0;
+      audio.playSfx('ui');
+      return;
+    }
+    if (id === 'title') {
+      try {
+        autoSave(this);
+      } catch (_) {}
+      // 必须清掉刷新续玩，否则 reload 会直接回到场景而不是标题
+      try {
+        clearRefreshResume();
+      } catch (_) {}
+      try {
+        sessionStorage.setItem('keheng_to_title', '1');
+      } catch (_) {}
+      try {
+        audio.stopBGM();
+      } catch (_) {}
+      this.showHint('正在返回标题…');
+      setTimeout(() => window.location.reload(), 280);
+    }
+  }
+
   _updatePanel(dt) {
+    if (this.uiPanel === 'system') {
+      const rows = this._systemMenuRows();
+      const n = rows.length;
+      if (this._systemSel == null) this._systemSel = 0;
+      if (input.wasPressed('arrowup') || input.wasPressed('w')) {
+        this._systemSel = (this._systemSel - 1 + n) % n;
+        audio.playSfx('ui');
+      }
+      if (input.wasPressed('arrowdown') || input.wasPressed('s')) {
+        this._systemSel = (this._systemSel + 1) % n;
+        audio.playSfx('ui');
+      }
+      // 鼠标悬停高亮 + 点击确认
+      if (typeof input.mouseCanvas === 'function') {
+        const m = input.mouseCanvas();
+        const hit = this._systemMenuHitIndex(m.x, m.y);
+        if (hit >= 0 && hit !== this._systemSel) {
+          this._systemSel = hit;
+        }
+        if (input.mousePressed()) {
+          if (hit >= 0) {
+            this._confirmSystemAction(rows[hit].id);
+          }
+          return;
+        }
+      }
+      if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
+        this._confirmSystemAction(rows[this._systemSel].id);
+      }
+      return;
+    }
+    if (this.uiPanel === 'controls') {
+      if (
+        input.wasPressed('e') ||
+        input.wasPressed('enter') ||
+        input.wasPressed(' ') ||
+        input.wasPressed('q') ||
+        input.mousePressed()
+      ) {
+        this.uiPanel = 'system';
+        this._uiPanelOpenAt = this.gameTime;
+        this._systemSel = 2;
+        audio.playSfx('uiCancel');
+      }
+      return;
+    }
     if (this.uiPanel === 'inventory') {
       this._updateInventoryPanel(dt);
       return;

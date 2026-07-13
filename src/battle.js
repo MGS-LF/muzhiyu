@@ -102,6 +102,9 @@ export class Battle {
 
   // 主更新
   update(dt) {
+    // 系统菜单 / 存档菜单打开时冻结
+    if (this.game && (this.game.uiPanel || this.game._saveMenu)) return;
+
     this.timer += dt;
     this.fadeAlpha = Math.max(0, this.fadeAlpha - dt * 0.003);
 

@@ -295,7 +295,7 @@ export function drawTutorial(ctx, gameTime, tutorial) {
   ctx.fillStyle = `rgba(255,210,120,${blink})`;
   ctx.font = 'bold 15px serif';
   ctx.textBaseline = 'top';
-  ctx.fillText('▼ 按 E 或 空格 开始', px + pw / 2, py + ph - 32);
+  ctx.fillText('▼ 按 E 或 空格 开始', px + pw / 2, py + ph + 8);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
