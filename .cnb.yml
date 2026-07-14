@@ -1,19 +1,47 @@
-# CNB 部署配置
-main:
-  push:
-    - docker:
-        image: node:22
-      stages:
-        - name: install dependencies
-          script: npm install
-        - name: start server
-          script: node server.js
-          port: 8080
+# main:
+#   push:
+#     - docker:
+#         image: node:22
+#       stages:
+#         - name: install dependencies
+#           script: npm install
+#         - name: start server
+#           script: node server.js
+#           port: 8080
 
 $:
+  tag_push:
+    - name: build-and-release
+      docker:
+        image: node:22
+        volumes:
+          - node_modules
+      stages:
+        - name: install && build
+          script: npm ci && npm run build
+
+        - name: merge assets
+          script: cp -r assets dist/assets
+
+        - name: package
+          script: tar -czf muzhiyu-$CNB_BRANCH.tar.gz dist
+
+        - name: upload attachment
+          image: cnbcool/attachments:latest
+          settings:
+            attachments:
+              - muzhiyu-$CNB_BRANCH.tar.gz
+              
+        - name: create release
+          type: git:release
+          options:
+            title: $CNB_BRANCH
+            latest: true
+
   vscode:
     - env:
         CNB_WELCOME_CMD: "npm start"
       stages:
         - name: install dependencies
           script: npm install
+
