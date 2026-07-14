@@ -2,12 +2,12 @@
   "_comment": "请将本文件复制为 ai_keys.local.json 并填入真实密钥。不要直接修改此示例文件，也不要提交真实密钥。",
   "llm": {
     "baseUrl": "https://api.deepseek.com",
-    "apiKey": "在此填入你的 LLM API Key",
+    "apiKey": "在此填入 DeepSeek API Key",
     "model": "deepseek-chat"
   },
   "tts": {
-    "baseUrl": "https://token-plan-cn.xiaomimimo.com/v1",
-    "apiKey": "在此填入你的 TTS API Key",
+    "baseUrl": "https://api.xiaomimimo.com/v1",
+    "apiKey": "在此填入 MiMo TTS API Key",
     "model": "mimo-v2.5-tts",
     "defaultVoice": "Chloe",
     "sampleRate": 24000

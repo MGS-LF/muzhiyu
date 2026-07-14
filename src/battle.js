@@ -35,6 +35,7 @@ export class Battle {
     this.player = player;
     this.onEnd = onEnd;
     this.game = game;
+    this.isTutorial = !!enemy.utTutorial;
 
     // 战斗状态机
     // intro → menu → act → enemyTurn → result
@@ -687,7 +688,11 @@ export class Battle {
     const word = () => words[Math.floor(Math.random() * words.length)];
     const d = this.diff;
     const mul = difficulty.currentMul();
-    const sp = (0.9 + d * 0.35) * mul.bulletSpeed * this.ngPlusMul.bulletSpeed; // 速度系数 × 难度倍率
+    const sp =
+      (0.9 + d * 0.35) *
+      mul.bulletSpeed *
+      this.ngPlusMul.bulletSpeed *
+      PACE.battle.utBulletSpeedMul;
     const r = 8;
 
     // ===== 第五章新敌人：独立弹幕模式 =====

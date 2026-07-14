@@ -75,6 +75,7 @@ const bgmAudioEls = new Map(); // bgmId -> HTMLAudioElement（流式播放元素
 const bgmStreamNodes = new Map(); // bgmId -> { source, gain }（MediaElementSource 节点）
 let currentMp3El = null; // 当前流式播放的 audio 元素
 let currentMp3Gain = null; // 当前 mp3 的增益节点
+let playbackRate = 1; // 全局播放倍速（BGM / 可调节点）
 
 const MAX_CACHED_BUFFERS = 3; // 内存中最多保留 3 个完整 AudioBuffer 缓存（其余的 LRU 剔除以节约庞大的内存占用）
 
@@ -179,6 +180,7 @@ function playMp3BGM(bgmId) {
     const src = c.createBufferSource();
     src.buffer = buf;
     src.loop = true;
+    src.playbackRate.value = playbackRate;
     const g = c.createGain();
     const t = c.currentTime;
     g.gain.setValueAtTime(0, t);
@@ -229,6 +231,11 @@ function playMp3BGM(bgmId) {
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(1, t + 1.2); // 淡入
   el.currentTime = 0;
+  try {
+    el.playbackRate = playbackRate;
+  } catch {
+    /* ignore */
+  }
   el.play().catch(() => {});
 
   currentMp3El = el;
@@ -294,6 +301,23 @@ export function setMuted(m) {
 }
 export function isMuted() {
   return muted;
+}
+
+export function setPlaybackRate(rate) {
+  const r = Math.max(0.5, Math.min(2, Number(rate) || 1));
+  playbackRate = r;
+  if (currentMp3El) {
+    try {
+      currentMp3El.playbackRate = r;
+    } catch {
+      /* ignore */
+    }
+  }
+  return playbackRate;
+}
+
+export function getPlaybackRate() {
+  return playbackRate;
 }
 // ---------- SFX 合成 ----------
 // 通用单音：频率/时长/波形/包络

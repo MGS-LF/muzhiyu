@@ -42,6 +42,7 @@ export class HackingBattle {
       shortRoute,
       layerMax: opts.layerMax,
       startLayer: opts.startLayer,
+      finishAfterLayer: opts.finishAfterLayer,
       hpMul: (mul.enemyHp ?? 1) * (opts.hpMul ?? 1),
       spdMul: (mul.bulletSpeed ?? 1) * (opts.spdMul ?? 1),
       dmgMul: (mul.enemyDamage ?? 1) * (opts.dmgMul ?? 1),
@@ -110,7 +111,9 @@ export class HackingBattle {
     spawnLayer(this.sim);
     try {
       audio.playSfx('ui');
-    } catch (_) {}
+    } catch (_) {
+      /* audio unavailable */
+    }
   }
 
   endWith(result) {
@@ -120,7 +123,9 @@ export class HackingBattle {
     this.timer = 0;
     try {
       audio.playSfx(result === 'win' ? 'victory' : 'death');
-    } catch (_) {}
+    } catch (_) {
+      /* audio unavailable */
+    }
   }
 
   finish() {

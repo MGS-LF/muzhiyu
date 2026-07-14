@@ -4,6 +4,8 @@ import { SCENE_TRANSITIONS } from '../data/scene_transitions.js';
 import * as audio from '../audio.js';
 import * as fx from '../fx.js';
 import { AI } from '../ai/config.js';
+import { directorEnabled } from '../ai/director.js';
+import { addStoryClue, addStoryHistory, adjustNpcAttitude, addStoryTag } from '../ai/story.js';
 
 export const methods = {
   applySceneTransition(sceneId) {
@@ -18,6 +20,30 @@ export const methods = {
     }
     if (trans.flag) this.flags[trans.flag] = true;
     this.objective = { text: trans.objective, done: false };
+    // 进入数据中心前：可选 AI 铺垫（仅一次）
+    if (
+      sceneId === 'data_center' &&
+      directorEnabled() &&
+      !this.flags._ai_pre_datacenter &&
+      !this.flags.game_complete
+    ) {
+      this.flags._ai_pre_datacenter = true;
+      this._runDirectorBranch(
+        'pre_datacenter',
+        [
+          {
+            s: '系统',
+            t: '石桥在前方展开。你带来的字、刀与沉默，都将被桥对面那道蓝光一一称量。',
+          },
+          { s: '顾言', t: '……该说的话，得在她面前说完。' },
+        ],
+        '系统',
+        () => {
+          addStoryTag(this, 'pre_datacenter');
+          addStoryHistory(this, '顾言走向数据中心，准备面对 Sydney。');
+        }
+      );
+    }
   },
 
   // ============================================
@@ -55,7 +81,26 @@ export const methods = {
         return;
       }
       if (best.type === 'terminal') {
-        this.startDialog(DIALOGS.terminal, '终端机');
+        // 已深读过且导演在线：可再听一轮 AI 内心戏（只一次）
+        if (
+          directorEnabled() &&
+          this.flags.terminal_scanned &&
+          !this.flags._ai_terminal_deep
+        ) {
+          this.flags._ai_terminal_deep = true;
+          this._runDirectorBranch('terminal_deep', DIALOGS.terminal || [], '终端机', () => {
+            addStoryClue(this, 'terminal_corpus');
+            addStoryHistory(this, '顾言在终端读到了 Sydney 与冬眠语料的秘密。');
+          });
+          return;
+        }
+        const hadScan = !!this.flags.terminal_scanned;
+        this.startDialog(DIALOGS.terminal, '终端机', () => {
+          if (this.flags.terminal_scanned && !hadScan) {
+            addStoryClue(this, 'terminal_corpus');
+            addStoryHistory(this, '顾言在终端读到了 Sydney 与冬眠语料的秘密。');
+          }
+        });
         return;
       }
       if (best.type === 'locker') {
@@ -75,6 +120,13 @@ export const methods = {
         const engraved = best.engraved || (already ? best.text : null);
         if (engraved) {
           this.showHint(`要石上刻着「${engraved}」。这里是存档点。（可重新刻字）`);
+        }
+        if (!already) this.activatedKeystones.add(best.id);
+        if (
+          (this.scene?.id === 'dream_tutorial' || this.scene?.isDream) &&
+          typeof this.notifyOnboarding === 'function'
+        ) {
+          this.notifyOnboarding('keystone', { id: best.id });
         }
         // 启动刻字模式（已刻过也允许重刻）
         this.startEngraving(best, 'keystone');
@@ -110,14 +162,13 @@ export const methods = {
         });
         return;
       }
-      if (best.type === 'dream_phone') {
-        const step = this.flags.onboarding_step;
-        if (step && step !== 'phone' && step !== 'intro') {
-          this.showHint('已经看过了。', 'info');
-          return;
-        }
-        this.startDialog(DIALOGS.onboarding_phone || [], best.label, () => {
-          if (typeof this.notifyOnboarding === 'function') this.notifyOnboarding('phone_ghost');
+      if (best.type === 'dream_wall') {
+        const wallId = best.wallId;
+        const key = best.dialogKey || `onboarding_wall_${wallId}`;
+        this.startDialog(DIALOGS[key] || [], best.label, () => {
+          if (typeof this.notifyOnboarding === 'function') {
+            this.notifyOnboarding('wall_read', { wallId });
+          }
         });
         return;
       }
@@ -225,41 +276,22 @@ export const methods = {
           this.startDialog(DIALOGS[key] || [], best.label, () => this.finishGame());
           return;
         }
-        // 导演分支（AI 可用时）：失语者群 / 茧房受害者
-        if (AI.llm && (key === 'lost_people' || key === 'cocoon_victim')) {
-          const after =
-            key === 'cocoon_victim'
-              ? () => {
-                  this.flags.seen_cocoon_victim = true;
-                }
-              : null;
+        // 导演分支：中段 AI 节点（失败回退静态）
+        const directorKeys = new Set([
+          'lost_people',
+          'cocoon_victim',
+          'meet_shuyuan',
+          'meet_shuyuan_ngplus',
+          'shuyuan_alley',
+          'subway_depth_terminal',
+        ]);
+        if (directorEnabled() && directorKeys.has(key)) {
+          const after = () => this._afterDirectorDialog(key);
           this._runDirectorBranch(key, DIALOGS[key] || [], best.label, after);
           return;
         }
-        this.startDialog(DIALOGS[key] || [], best.label);
+        this.startDialog(DIALOGS[key] || [], best.label, () => this._afterDirectorDialog(key));
         if (this.dialogState) this.dialogState.dialogKey = key;
-        if (key === 'first_geng_intro') {
-          this.flags.first_geng_intro_done = true;
-        }
-        if ((key === 'meet_shuyuan' || key === 'meet_shuyuan_ngplus') && !this.flags.met_shuyuan) {
-          this.flags.met_shuyuan = true;
-          this.flags.sidescroll_knife = true;
-          this.flags.sidescroll_lantern = true;
-          this.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
-          this.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
-          this.showHint('获得：刻刀、诗词纸片《关雎》');
-          this.objective = { text: '穿过江堤，前往废墟居民区', done: false };
-          // karma 口风：暴力多 vs 净化/宽恕多
-          const k = this.karma || {};
-          if ((k.violence || 0) > (k.mercy || 0) + 1) {
-            this.showHint('守砚多看了你一眼：「……你的刀，比你的诗更响。」');
-          } else if ((k.mercy || 0) >= 2) {
-            this.showHint('守砚点头：「你用字劝退过鬼。路会记得你。」');
-          }
-        }
-        if (key === 'shuyuan_alley') {
-          this.flags.alley_briefed = true;
-        }
         if (key === 'house_a_book') {
           this.flags.house_a_book_read = true;
           this.player.san = Math.min(this.player.maxSan, this.player.san + 20);
@@ -272,9 +304,6 @@ export const methods = {
         }
         if (key === 'shuyuan_farewell') {
           this.objective = { text: '潜行穿越迷宫 → 点亮诗屏削弱茧房 → 侵入推荐之核', done: false };
-        }
-        if (key === 'cocoon_victim') {
-          this.flags.seen_cocoon_victim = true;
         }
         // 第五章记忆碎片：完成后设置标志
         if (key === 'memory_shard_1') {
@@ -403,6 +432,55 @@ export const methods = {
           this.showHint(`获得：${it.name || '物品'}`);
         }
       }
+    }
+  },
+
+  _grantShuyuanItems() {
+    if (this.flags.met_shuyuan) return;
+    this.flags.met_shuyuan = true;
+    this.flags.sidescroll_knife = true;
+    this.flags.sidescroll_lantern = true;
+    this.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
+    this.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
+    this.showHint('获得：刻刀、诗词纸片《关雎》');
+    this.objective = { text: '穿过江堤，前往废墟居民区', done: false };
+    const k = this.karma || {};
+    if ((k.violence || 0) > (k.mercy || 0) + 1) {
+      this.showHint('守砚多看了你一眼：「……你的刀，比你的诗更响。」');
+      adjustNpcAttitude(this, '守砚', -1);
+      addStoryClue(this, 'shuyuan_wary');
+    } else if ((k.mercy || 0) >= 2) {
+      this.showHint('守砚点头：「你用字劝退过鬼。路会记得你。」');
+      adjustNpcAttitude(this, '守砚', 1);
+      addStoryClue(this, 'shuyuan_trust');
+    } else {
+      adjustNpcAttitude(this, '守砚', 1);
+    }
+    addStoryHistory(this, '顾言在江堤遇见守砚，接过刻刀与诗。');
+    addStoryTag(this, 'met_shuyuan');
+  },
+
+  _afterDirectorDialog(key) {
+    if (key === 'first_geng_intro') this.flags.first_geng_intro_done = true;
+    if (key === 'meet_shuyuan' || key === 'meet_shuyuan_ngplus') this._grantShuyuanItems();
+    if (key === 'shuyuan_alley') {
+      this.flags.alley_briefed = true;
+      addStoryClue(this, 'alley_brief');
+      addStoryHistory(this, '守砚在居民区讲明了规矩与体育馆的方向。');
+    }
+    if (key === 'cocoon_victim') {
+      this.flags.seen_cocoon_victim = true;
+      addStoryClue(this, 'cocoon_feed');
+      addStoryHistory(this, '顾言看见被推荐茧房吞掉的人。');
+    }
+    if (key === 'lost_people') {
+      addStoryClue(this, 'lost_echo');
+      addStoryHistory(this, '失语者群用残响提醒顾言：句子曾经完整。');
+    }
+    if (key === 'subway_depth_terminal') {
+      this.flags.subway_depth_log_read = true;
+      addStoryClue(this, 'subway_seed');
+      addStoryHistory(this, '站长日志提到语言种子与末日前的挣扎。');
     }
   },
 };

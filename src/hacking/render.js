@@ -291,7 +291,8 @@ function drawHud(ctx, battle, state) {
   ctx.fillStyle = ink;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  const waveLabel = `W ${String(state.layer).padStart(2, '0')}/${String(layerMax).padStart(2, '0')}`;
+  const displayLayerMax = state.finishAfterLayer || layerMax;
+  const waveLabel = `W ${String(state.layer).padStart(2, '0')}/${String(displayLayerMax).padStart(2, '0')}`;
   ctx.fillText(waveLabel, leftPad, topY);
   const waveW = ctx.measureText(waveLabel).width;
 

@@ -107,7 +107,9 @@ export const methods = {
       time: Date.now(),
       custom: !e.presets.includes(t),
     };
-    this._addEngraving(rec);
+    const isDream = !!(this.scene?.isDream || this.scene?.id === 'dream_tutorial');
+    // 梦境刻字只用于教学演出，不写入永久刻字列表或覆盖正式存档。
+    if (!isDream) this._addEngraving(rec);
     if (e.type === 'keystone') this.activatedKeystones.add(e.target.id);
     this.activatedKeystones.add(e.target.id);
     // 记录刻字内容到目标对象，供渲染显示
@@ -119,7 +121,7 @@ export const methods = {
       audio.playBGM('__keystone__'); // 要石激活净化BGM
       fx.flash('#ffd866', 0.4, 500);
       fx.purifyWave(e.target.x, e.target.y, 300);
-      autoSave(this); // 要石刻字是天然存档点
+      if (!isDream) autoSave(this); // 要石刻字是天然存档点
     } else {
       audio.playSfx('uiConfirm');
     }
@@ -127,7 +129,7 @@ export const methods = {
       [
         { s: '系统', t: `顾言用刻刀刻下「${t}」。` },
         { s: '系统', t: '金色的微光从刻痕里渗出，像是一个被重新点燃的坐标。' },
-        { s: '系统', t: '（已刻下并保存）' },
+        { s: '系统', t: isDream ? '（梦境刻字不会覆盖正式存档）' : '（已刻下并保存）' },
       ],
       e.type === 'keystone' ? '要石' : '残碑'
     );

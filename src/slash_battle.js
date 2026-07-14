@@ -1,5 +1,5 @@
-// 言锋对决 · 用汉字顶回烂梗（杂兵默认战）
-// 操作：WASD 移动 · 空格/左键 发射汉字 · E 净化收尾 · K 诗词清场
+// 言锋对决 · 无限墨刃为基础攻击，收集的汉字提供周期性强化
+// 操作：WASD 移动 · 空格/左键 连发墨刃 · E 净化收尾 · K 清明爆发
 import { W, H } from './config.js';
 import { input } from './input.js';
 import * as audio from './audio.js';
@@ -7,6 +7,7 @@ import * as fx from './fx.js';
 import * as difficulty from './difficulty.js';
 import { getFirstAvailableUltimate } from './poem_ultimate.js';
 import { PACE } from './pacing.js';
+import { selectSlashGlyph } from './slash_rules.js';
 
 const MEME_WORDS = [
   'YYDS',
@@ -78,11 +79,13 @@ export class SlashBattle {
     this.dashCd = 0;
     this.invuln = 0;
     this.fireCd = 0;
+    this.shotCount = 0;
+    this.glyphCursor = 0;
 
     this.aimX = W / 2;
     this.aimY = 160;
 
-    this.shots = []; // 玩家字弹 {x,y,vx,vy,char,life,r}
+    this.shots = []; // 玩家墨刃/强化字锋 {x,y,vx,vy,char,life,r,empowered}
     this.words = []; // 敌方烂梗 {text,x,y,vx,vy,r,life,tough,hp,...}
     this.spawnTimer = 280;
     this.spawnEvery = this.isBoss ? 480 : 620;
@@ -104,7 +107,7 @@ export class SlashBattle {
     this.mouthOpen = 0;
     this.enemyText = '';
     this.enemyTextTimer = 0;
-    this.hint = 'WASD 移动 · 空格/左键 用汉字顶烂梗 · 近身可劈 · E 净化 · K 大招';
+    this.hint = 'WASD 移动 · 空格/左键 连发墨刃 · Shift 闪避 · E 净化 · K 清场';
 
     this.ultimate = getFirstAvailableUltimate(player.collectedCharsAll);
     this.ultimateUsed = false;
@@ -118,7 +121,7 @@ export class SlashBattle {
     this.setEnemyText('……嘴一张，烂梗喷出来了……');
   }
 
-  _ammo() {
+  _memoryChars() {
     return this.player.collectedChars || [];
   }
 
@@ -280,9 +283,9 @@ export class SlashBattle {
       audio.playSfx('ui');
     }
 
-    // 发射 / 近身劈（空格 / J / 左键）
-    if (input.wasPressed(' ') || input.wasPressed('j') || input.mousePressed()) {
-      this.tryFireOrSlash();
+    // 墨刃支持按住连发；冷却限制射速，触屏沿用左键状态。
+    if (input.isDown(' ') || input.isDown('j') || input.mouseDown()) {
+      this.tryFire();
     }
 
     // E 净化收尾
@@ -376,7 +379,7 @@ export class SlashBattle {
         const w = this.words[j];
         if (!w) continue;
         if (Math.hypot(w.x - s.x, w.y - s.y) < (w.r || 16) * 0.7 + 14) {
-          this.breakWord(w, j, s.char);
+          this.breakWord(w, j, s);
           dead = true;
           break;
         }
@@ -390,7 +393,7 @@ export class SlashBattle {
       const ex = L.enemyX();
       const ey = L.enemyY();
       if (Math.hypot(s.x - ex, s.y - ey) < 48) {
-        const dmg = 6 + Math.floor(Math.min(this.combo, 6) * 0.8);
+        const dmg = (s.empowered ? 7 : 4) + Math.floor(Math.min(this.combo, 6) * 0.6);
         this.damageEnemy(dmg, ex, ey + 36, s.char);
         this.shots.splice(i, 1);
         continue;
@@ -404,10 +407,11 @@ export class SlashBattle {
     // 提示
     if (this.clarity >= this.clarityMax) {
       this.hint = 'E · 净化收尾（仁慈） · 或继续打散';
-    } else if (!this._ammo().length) {
-      this.hint = '没有汉字弹药！近身空格可劈 · 先躲 · 战后去捡字';
     } else {
-      this.hint = `WASD 躲 · 空格发射「${this._ammo()[this._ammo().length - 1]}」 · E 净化 ${this.clarity}/${this.clarityMax}`;
+      const memory = this._memoryChars();
+      this.hint = memory.length
+        ? `按住空格/左键连发墨刃 · 每 4 发强化字锋 · 清明 ${this.clarity}/${this.clarityMax}`
+        : `按住空格/左键连发无限墨刃 · 击碎烂梗积累清明 ${this.clarity}/${this.clarityMax}`;
     }
   }
 
@@ -425,55 +429,24 @@ export class SlashBattle {
     return best;
   }
 
-  tryFireOrSlash() {
+  tryFire() {
     if (this.result || this.fireCd > 0) return;
-    const L = SLASH_LAYOUT;
-    const ex = L.enemyX();
-    const ey = L.enemyY();
-    const distBoss = Math.hypot(this.px - ex, this.py - ey);
-
-    // 近身劈（无消耗，小伤，偏暴力）
-    if (distBoss < 95 && this._ammo().length === 0) {
-      this.fireCd = 380;
-      const dmg = 4;
-      this.damageEnemy(dmg, ex, ey + 30, '刀');
-      this.slashBursts.push({
-        x: (this.px + ex) / 2,
-        y: (this.py + ey) / 2,
-        life: 220,
-        maxLife: 220,
-        ang: Math.atan2(ey - this.py, ex - this.px),
-      });
-      audio.playSfx('hit');
-      this.setEnemyText('刀锋掠过……但字更锋利。');
-      return;
-    }
-
-    if (!this._ammo().length) {
-      // 无弹药近身劈怪
-      if (distBoss < 100) {
-        this.fireCd = 400;
-        this.damageEnemy(3, ex, ey + 30, '刀');
-        audio.playSfx('hit');
-      } else {
-        this.setEnemyText('字袋空了！靠近它用刀，或先躲开！');
-        audio.playSfx('uiCancel');
-      }
-      return;
-    }
-
-    const ch = this.player.collectedChars.pop();
-    this._syncOrbit();
-    this.fireCd = 220;
+    const memory = this._memoryChars();
+    this.shotCount += 1;
+    const selected = selectSlashGlyph(memory, this.shotCount, this.glyphCursor);
+    const { char: ch, empowered } = selected;
+    this.glyphCursor = selected.nextGlyphCursor;
+    this.fireCd = empowered ? 230 : 165;
 
     const ang = Math.atan2(this.aimY - this.py, this.aimX - this.px);
-    const speed = 6.2;
+    const speed = empowered ? 7 : 6.4;
     this.shots.push({
       x: this.px + Math.cos(ang) * 18,
       y: this.py + Math.sin(ang) * 18,
       vx: Math.cos(ang) * speed,
       vy: Math.sin(ang) * speed,
       char: ch,
+      empowered,
       life: 1400,
       r: 12,
     });
@@ -481,9 +454,9 @@ export class SlashBattle {
     this.floats.push({
       x: this.px,
       y: this.py - 28,
-      text: `「${ch}」`,
+      text: empowered ? `记忆字锋「${ch}」` : '墨刃',
       life: 400,
-      color: '255,230,150',
+      color: empowered ? '255,230,150' : '210,220,205',
     });
   }
 
@@ -529,19 +502,19 @@ export class SlashBattle {
     });
   }
 
-  breakWord(w, index, byChar) {
+  breakWord(w, index, shot) {
     if (!w || this.result) return;
     let idx = this.words.indexOf(w);
     if (idx < 0) idx = index;
     if (idx < 0) return;
 
-    if (w.hp > 1) {
+    if (w.hp > 1 && !shot.empowered) {
       w.hp -= 1;
       w.hitFlash = 200;
       w.vx *= 0.35;
       w.vy *= 0.35;
       this.floats.push({ x: w.x, y: w.y - 10, text: '裂！', life: 380, color: '180,255,160' });
-      this.damageEnemy(2, w.x, w.y, byChar, true);
+      this.damageEnemy(2, w.x, w.y, shot.char, true);
       return;
     }
 
@@ -579,9 +552,9 @@ export class SlashBattle {
       });
     }
 
-    let dmg = 3 + Math.min(this.combo, 8) * 0.7 + (w.tough ? 1.5 : 0);
+    let dmg = 3 + Math.min(this.combo, 8) * 0.7 + (w.tough ? 1.5 : 0) + (shot.empowered ? 2 : 0);
     dmg = Math.floor(dmg);
-    this.damageEnemy(dmg, w.x, w.y - 12, byChar, true);
+    this.damageEnemy(dmg, w.x, w.y - 12, shot.char, true);
     audio.playSfx('hit');
 
     if (this.combo > 0 && this.combo % 4 === 0) {
@@ -665,7 +638,7 @@ export class SlashBattle {
       if (this.ultimateUsed) this.setEnemyText('本场大招已用过。');
       return;
     }
-    // 有完整诗则大招；否则消耗 2 字做小清场
+    // 有完整诗则大招；否则消耗战内清明做小清场，不消耗探索所得汉字。
     if (this.ultimate) {
       this.ultimateUsed = true;
       const dmg = Math.max(18, Math.floor(this.enemy.maxHp * 0.28));
@@ -700,17 +673,15 @@ export class SlashBattle {
       if (this.enemy.hp <= 0) this.win('purify');
       return;
     }
-    if (this._ammo().length >= 2) {
-      this.player.collectedChars.pop();
-      this.player.collectedChars.pop();
-      this.ultimateUsed = true;
+    if (this.clarity >= 2) {
+      this.clarity -= 2;
       this.words = [];
-      this.damageEnemy(Math.floor(this.enemy.maxHp * 0.12), W / 2, 160, '言');
+      this.damageEnemy(Math.max(5, Math.floor(this.enemy.maxHp * 0.1)), W / 2, 160, '墨');
       fx.purifyWave(this.px, this.py, 400);
       audio.playSfx('purifyWave');
-      this.setEnemyText('两字拼成短句——短暂清场！');
+      this.setEnemyText('清明化作墨潮——噪声暂时退开！');
     } else {
-      this.setEnemyText('大招需要完整诗句，或至少 2 个汉字。');
+      this.setEnemyText('击碎烂梗积累 2 点清明，才能发动墨潮。');
       audio.playSfx('uiCancel');
     }
   }

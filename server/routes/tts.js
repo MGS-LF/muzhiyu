@@ -102,6 +102,7 @@ export async function handleTTS(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'api-key': CFG.tts.apiKey,
+        Authorization: 'Bearer ' + CFG.tts.apiKey,
         'Content-Length': data.length,
         Accept: 'text/event-stream',
       },

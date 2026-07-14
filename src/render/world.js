@@ -449,12 +449,13 @@ export function isInteractableVisible(it, game) {
 }
 
 export function markerKind(it) {
-  if (it.type === 'scene_change' || it.type === 'exit') return 'portal';
+  if (it.type === 'scene_change' || it.type === 'exit' || it.type === 'dream_wake') return 'portal';
+  if (it.type === 'dream_wall' || it.type === 'dream_door') return 'sign';
   const k = (it.dialogKey || '') + (it.label || '');
   if (/屏幕|内壁|screen/.test(k)) return 'screen';
   if (/线路图|map/.test(k)) return 'map';
   if (/守砚|老人|蹲|victim|失语|人/.test(k)) return 'person';
-  if (/告示|标牌|乱涂|graffiti|poster|sign|残破|破碎|小龛/.test(k)) return 'sign';
+  if (/告示|标牌|乱涂|graffiti|poster|sign|残破|破碎|小龛|墙上/.test(k)) return 'sign';
   return 'sign';
 }
 

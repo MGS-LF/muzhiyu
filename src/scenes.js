@@ -94,14 +94,13 @@ export const scenes = {
   },
 
   // ==========================================
-  // 梦境教学场（线性走廊，传说之下式）
-  // R0 序幕厅 → R1 捡字廊 → R2 常规战 → R3 言锋室 → 裂隙醒来
+  // 梦境教学场：残缺广播 → 拾字补句 → 三重回声 → 要石 → 裂隙醒来
   // 门墙由 onboarding 动态开关（dream_door_* id）
   // ==========================================
   dream_tutorial: {
     id: 'dream_tutorial',
     name: '梦境·失语前夜',
-    width: 2000,
+    width: 2600,
     height: 520,
     bgColor: '#0c0a14',
     isDream: true,
@@ -111,81 +110,147 @@ export const scenes = {
       fog: 0.4,
     },
 
-    // 外框 + 三道纵向隔断（中间留门洞 210–310，门洞由动态墙封住）
+    // 外框 + 五道纵向隔断（门洞 y 200–310，由动态封板控制）
     walls: [
-      { x: 0, y: 0, w: 2000, h: 10 },
-      { x: 0, y: 510, w: 2000, h: 10 },
+      { x: 0, y: 0, w: 2600, h: 10 },
+      { x: 0, y: 510, w: 2600, h: 10 },
       { x: 0, y: 0, w: 10, h: 520 },
-      { x: 1990, y: 0, w: 10, h: 520 },
-      // 隔断 A (x=480)：R0|R1
-      { x: 480, y: 10, w: 12, h: 200, id: 'dream_wall_a_top' },
-      { x: 480, y: 310, w: 12, h: 200, id: 'dream_wall_a_bot' },
-      // 隔断 B (x=980)：R1|R2
-      { x: 980, y: 10, w: 12, h: 200, id: 'dream_wall_b_top' },
-      { x: 980, y: 310, w: 12, h: 200, id: 'dream_wall_b_bot' },
-      // 隔断 C (x=1480)：R2|R3
-      { x: 1480, y: 10, w: 12, h: 200, id: 'dream_wall_c_top' },
-      { x: 1480, y: 310, w: 12, h: 200, id: 'dream_wall_c_bot' },
+      { x: 2590, y: 0, w: 10, h: 520 },
+      // 隔断 A (x=400)
+      { x: 400, y: 10, w: 12, h: 190, id: 'dream_wall_a_top' },
+      { x: 400, y: 310, w: 12, h: 200, id: 'dream_wall_a_bot' },
+      // 隔断 B (x=800)
+      { x: 800, y: 10, w: 12, h: 190, id: 'dream_wall_b_top' },
+      { x: 800, y: 310, w: 12, h: 200, id: 'dream_wall_b_bot' },
+      // 隔断 C (x=1200)
+      { x: 1200, y: 10, w: 12, h: 190, id: 'dream_wall_c_top' },
+      { x: 1200, y: 310, w: 12, h: 200, id: 'dream_wall_c_bot' },
+      // 隔断 D (x=1700)
+      { x: 1700, y: 10, w: 12, h: 190, id: 'dream_wall_d_top' },
+      { x: 1700, y: 310, w: 12, h: 200, id: 'dream_wall_d_bot' },
+      // 隔断 E (x=2100)
+      { x: 2100, y: 10, w: 12, h: 190, id: 'dream_wall_e_top' },
+      { x: 2100, y: 310, w: 12, h: 200, id: 'dream_wall_e_bot' },
     ],
 
     props: [
       { x: 40, y: 40, w: 70, h: 120, name: '幻影高楼' },
       { x: 160, y: 50, w: 50, h: 90, name: '幻影高楼' },
-      { x: 600, y: 40, w: 80, h: 100, name: '幻影高楼' },
-      { x: 1100, y: 50, w: 60, h: 110, name: '幻影高楼' },
-      { x: 1600, y: 40, w: 90, h: 130, name: '幻影高楼' },
-      { x: 1800, y: 60, w: 70, h: 100, name: '幻影高楼' },
+      { x: 500, y: 40, w: 80, h: 100, name: '幻影高楼' },
+      { x: 900, y: 50, w: 60, h: 110, name: '幻影高楼' },
+      { x: 1400, y: 40, w: 90, h: 130, name: '幻影高楼' },
+      { x: 1900, y: 60, w: 70, h: 100, name: '幻影高楼' },
+      { x: 2300, y: 45, w: 80, h: 120, name: '幻影高楼' },
     ],
 
-    // 敌人由 onboarding 按步骤动态放入；初始为空
     enemies: [],
 
     interactables: [
       {
-        id: 'dream_phone',
-        x: 280,
-        y: 260,
-        label: '发光的手机幻象',
-        type: 'dream_phone',
+        id: 'dream_wall_1',
+        x: 220,
+        y: 180,
+        label: '破损的旧广播',
+        type: 'dream_wall',
+        wallId: 1,
+        dialogKey: 'onboarding_wall_1',
       },
       {
         id: 'dream_door_a',
-        x: 486,
+        x: 406,
         y: 255,
         label: '前路',
         type: 'dream_door',
         door: 'a',
       },
       {
+        id: 'dream_wall_2',
+        x: 600,
+        y: 180,
+        label: '残缺的留言',
+        type: 'dream_wall',
+        wallId: 2,
+        dialogKey: 'onboarding_wall_2',
+      },
+      {
         id: 'dream_door_b',
-        x: 986,
+        x: 806,
         y: 255,
-        label: '被污染的路口',
+        label: '字之门',
         type: 'dream_door',
         door: 'b',
         gateChars: ['言', '语'],
       },
       {
+        id: 'dream_wall_3',
+        x: 1000,
+        y: 180,
+        label: '补全的留言',
+        type: 'dream_wall',
+        wallId: 3,
+        dialogKey: 'onboarding_wall_3',
+      },
+      {
         id: 'dream_door_c',
-        x: 1486,
+        x: 1206,
         y: 255,
-        label: '噪声更深的门',
+        label: '战场之门',
         type: 'dream_door',
         door: 'c',
       },
       {
+        id: 'dream_wall_4',
+        x: 1450,
+        y: 180,
+        label: '要石上的刻痕',
+        type: 'dream_wall',
+        wallId: 4,
+        dialogKey: 'onboarding_wall_4',
+      },
+      {
+        id: 'dream_keystone',
+        x: 1550,
+        y: 300,
+        label: '梦境要石',
+        type: 'keystone',
+        text: '记得',
+      },
+      {
+        id: 'dream_door_d',
+        x: 1706,
+        y: 255,
+        label: '更深的门',
+        type: 'dream_door',
+        door: 'd',
+      },
+      {
+        id: 'dream_wall_5',
+        x: 1900,
+        y: 180,
+        label: '最后的广播',
+        type: 'dream_wall',
+        wallId: 5,
+        dialogKey: 'onboarding_wall_5',
+      },
+      {
+        id: 'dream_door_e',
+        x: 2106,
+        y: 255,
+        label: '醒来之前',
+        type: 'dream_door',
+        door: 'e',
+      },
+      {
         id: 'dream_wake',
-        x: 1850,
+        x: 2400,
         y: 260,
         label: '醒来的金色裂隙',
         type: 'dream_wake',
       },
     ],
 
-    // 碎片初始不放，phone 完成后再刷到 R1
     items: [],
-
-    spawn: { x: 120, y: 260 },
+    spawn: { x: 100, y: 260 },
   },
 
   // ==========================================

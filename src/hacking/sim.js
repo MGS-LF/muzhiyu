@@ -15,6 +15,9 @@ export function createSimState(opts = {}) {
   const spdMul = opts.spdMul ?? 1;
   const sanHit = opts.sanHit ?? 14;
   const layerMax = Math.max(1, Math.min(6, opts.layerMax ?? LAYER_MAX));
+  const finishAfterLayer = opts.finishAfterLayer === null || opts.finishAfterLayer === undefined
+    ? null
+    : Math.max(1, Math.min(layerMax, Number(opts.finishAfterLayer) || 1));
   let startLayer = opts.startLayer != null ? opts.startLayer : shortRoute ? Math.min(2, layerMax) : 1;
   startLayer = Math.max(1, Math.min(layerMax, startLayer));
 
@@ -29,6 +32,7 @@ export function createSimState(opts = {}) {
     frame: 0,
     layer: startLayer,
     layerMax,
+    finishAfterLayer,
     clearWait: 0,
     bossPhase: 1,
     player: {
@@ -299,7 +303,7 @@ export function stepSim(state, inputSnap, heart) {
       setBanner(state, state.layer < state.layerMax ? '撕开一层推荐' : '茧壳裂开', 70);
     }
     if (state.clearWait > 55) {
-      if (state.layer >= state.layerMax) {
+      if ((state.finishAfterLayer && state.layer >= state.finishAfterLayer) || state.layer >= state.layerMax) {
         state.done = 'win';
       } else {
         state.layer++;

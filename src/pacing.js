@@ -20,6 +20,8 @@ export const PACE = {
     bossTurnMs: 5200,
     bossPhaseExtraMs: 1000,
     attackBarSpeed: 0.0038,
+    // UT 弹幕统一降速；斩击与骇入使用各自参数，不受影响。
+    utBulletSpeedMul: 0.82,
   },
   ambient: {
     firstDelayMs: 45000,

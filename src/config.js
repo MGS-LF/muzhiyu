@@ -19,12 +19,18 @@ export const H = 760;
 
 export const FEATURES = {
   utterance: true,
-  slashBattle: false, // 已废弃：全部走 UT 弹幕菜单战
+  // 战斗：每次开战在 UT / 斩击 / 骇入 中随机（enemy.forceCombat 可强制）
+  battleRoll: true,
+  slashBattle: true,
   level3d: false, // 主线关闭；调试可改 true
-  hacking: false, // 主线关闭；Boss 走 UT 弹幕
+  hacking: true,
   sidescrollLong: true, // 江堤横版关卡
   aiDirector: true,
+  aiDreamNarration: true,
 };
+
+/** 三种可随机的战斗模式 */
+export const BATTLE_MODES = ['ut', 'slash', 'hack'];
 
 export const UTTERANCE = {
   beltMax: 6,

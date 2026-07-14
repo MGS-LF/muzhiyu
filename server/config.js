@@ -46,7 +46,7 @@ function loadConfig() {
   if (process.env.MIMO_API_KEY) cfg.tts.apiKey = process.env.MIMO_API_KEY;
   cfg.llm.baseUrl = cfg.llm.baseUrl || 'https://api.deepseek.com';
   cfg.llm.model = cfg.llm.model || 'deepseek-chat';
-  cfg.tts.baseUrl = cfg.tts.baseUrl || 'https://token-plan-cn.xiaomimimo.com/v1';
+  cfg.tts.baseUrl = cfg.tts.baseUrl || 'https://api.xiaomimimo.com/v1';
   cfg.tts.model = cfg.tts.model || 'mimo-v2.5-tts';
   cfg.tts.defaultVoice = cfg.tts.defaultVoice || 'Chloe';
   cfg.tts.sampleRate = cfg.tts.sampleRate || 24000;

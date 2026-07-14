@@ -10,6 +10,73 @@ export const BOX_W = 280;
 
 export const BOX_H = 200;
 
+function drawUtTutorial(ctx, battle) {
+  const x = W - 350;
+  const y = 276;
+  const w = 318;
+  const h = 270;
+  const phaseHelp = {
+    intro: ['等待战斗展开', '先观察敌人、理性值和清醒值。'],
+    menu: [
+      '选择本回合行动',
+      'A / D 或 ← / → 选择，E / 空格确认。',
+      '攻击：直接削减生命，击杀增加残忍。',
+      '调查：增加清醒，满后可以宽恕。',
+      '净化：按节奏接唱，削弱敌人与弹幕。',
+      '宽恕：清醒满后结束战斗，增加慈悲。',
+    ],
+    attack_aim: ['攻击判定', '光标接近中央金色区域时按 E / 空格。'],
+    attack_resolve: ['准备躲避', '攻击完成。敌人即将反击，注意弹幕框。'],
+    enemyTurn: [
+      '躲避敌方弹幕',
+      '用 WASD / 方向键移动红心。',
+      '碰到文字会损失理性。',
+      '本波可按 F 消耗一个当前字清除弹幕。',
+    ],
+    poem: ['净化接唱', '每句出现金色边框时按 E，连续命中效果更强。'],
+    purify_cast: ['净化接唱', '每句出现金色边框时按 E，连续命中效果更强。'],
+    ultimate: ['诗词大招', '集齐完整诗句后，K 可释放本场一次的大招。'],
+    result: ['教学完成', '正式旅途中可以根据敌人与经历决定消灭或宽恕。'],
+  };
+  const lines = phaseHelp[battle.phase] || ['观察战场', '根据界面提示继续。'];
+
+  ctx.fillStyle = 'rgba(10,12,16,0.94)';
+  roundRect(ctx, x, y, w, h, 6);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,215,120,0.72)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, x, y, w, h, 6);
+  ctx.stroke();
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(255,226,150,0.98)';
+  ctx.font = 'bold 16px serif';
+  ctx.fillText('弹幕菜单战 · 新手指引', x + 18, y + 28);
+  ctx.fillStyle = 'rgba(120,220,150,0.95)';
+  ctx.font = 'bold 13px serif';
+  ctx.fillText(lines[0], x + 18, y + 56);
+  ctx.fillStyle = 'rgba(220,215,200,0.9)';
+  ctx.font = '12px serif';
+  for (let i = 1; i < lines.length; i++) {
+    ctx.fillText(lines[i], x + 18, y + 56 + i * 28);
+  }
+
+  const clarityReady = battle.clarity >= battle.clarityMax;
+  ctx.fillStyle = clarityReady ? 'rgba(255,220,120,0.14)' : 'rgba(255,255,255,0.04)';
+  roundRect(ctx, x + 16, y + h - 46, w - 32, 30, 4);
+  ctx.fill();
+  ctx.fillStyle = clarityReady ? 'rgba(255,230,150,0.98)' : 'rgba(175,175,180,0.78)';
+  ctx.font = 'bold 11px serif';
+  ctx.fillText(
+    clarityReady
+      ? '清醒已满：回到菜单选择「宽恕」'
+      : `当前清醒 ${battle.clarity}/${battle.clarityMax}：先用「调查」观察回声`,
+    x + 28,
+    y + h - 26
+  );
+}
+
 export function drawBattle(ctx, battle, gameTime) {
   // 全黑背景
   ctx.fillStyle = '#000';
@@ -400,6 +467,7 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
   }
+  if (battle.isTutorial) drawUtTutorial(ctx, battle);
 }
 
 export function drawBattleEnemy(ctx, x, y, enemy, gameTime) {

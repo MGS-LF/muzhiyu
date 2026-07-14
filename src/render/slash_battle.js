@@ -169,21 +169,23 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     if (!s) continue;
     ctx.save();
     ctx.translate(s.x, s.y);
-    ctx.shadowColor = 'rgba(255,220,100,0.95)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = 'rgba(50,40,18,0.95)';
+    ctx.rotate(Math.atan2(s.vy || -1, s.vx || 0) + Math.PI / 4);
+    ctx.shadowColor = s.empowered ? 'rgba(255,220,100,0.95)' : 'rgba(210,230,215,0.8)';
+    ctx.shadowBlur = s.empowered ? 14 : 8;
+    ctx.fillStyle = s.empowered ? 'rgba(50,40,18,0.95)' : 'rgba(22,28,25,0.92)';
     roundRect(ctx, -13, -13, 26, 26, 5);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,230,150,0.95)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = s.empowered ? 'rgba(255,230,150,0.95)' : 'rgba(205,225,210,0.85)';
+    ctx.lineWidth = s.empowered ? 2.4 : 1.5;
     roundRect(ctx, -13, -13, 26, 26, 5);
     ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = UI.goldBright;
+    ctx.rotate(-Math.atan2(s.vy || -1, s.vx || 0) - Math.PI / 4);
+    ctx.fillStyle = s.empowered ? UI.goldBright : 'rgba(220,235,225,0.95)';
     ctx.font = 'bold 15px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(s.char || '言', 0, 0);
+    ctx.fillText(s.char || '墨', 0, 0);
     ctx.restore();
   }
 
@@ -450,15 +452,15 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     ctx.font = 'bold 22px serif';
     ctx.fillText('言 锋 · 对 决', W / 2, H * 0.4);
     ctx.font = '13px serif';
-    ctx.fillText('WASD 躲 · 空格/左键 用汉字顶烂梗 · E 净化', W / 2, H * 0.4 + 30);
+    ctx.fillText('WASD 躲 · 按住空格/左键连发墨刃 · Shift 闪避 · E 净化', W / 2, H * 0.4 + 30);
   } else if (battle.phase === 'fight') {
     ctx.fillStyle = 'rgba(220,210,180,0.82)';
     ctx.font = '12px serif';
     ctx.fillText(battle.hint || '', W / 2, H - 22);
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,220,140,0.8)';
-    const ammo = (battle.player.collectedChars || []).length;
-    ctx.fillText(`汉字弹药 ×${ammo}  ·  K 大招`, W - 20, H - 22);
+    const memory = (battle.player.collectedChars || []).length;
+    ctx.fillText(`墨刃 ∞  ·  记忆字 ×${memory}  ·  K 墨潮`, W - 20, H - 22);
   }
 
   if (battle.enemyText && battle.enemyTextTimer > 0) {

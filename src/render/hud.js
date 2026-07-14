@@ -3,6 +3,7 @@ import { CONTROL_HINTS } from '../data/controls.js';
 import { W, H } from '../config.js';
 import * as cfg from '../config.js';
 import { UI, font, fontMono, isPortrait } from '../ui/tokens.js';
+import { AI } from '../ai/config.js';
 
 const FEATURES = cfg.FEATURES || {};
 
@@ -216,10 +217,10 @@ export function drawHUD(ctx, player, game, objective) {
 
   const scene = game.scene;
   // 竖屏：场景信息与火苗放到底部；横屏：右上（避开小地图）
-  let mx, my, panelH = 60;
+  let mx, my, panelH = FEATURES.aiDirector ? 88 : 74;
   if (portrait) {
     mx = 16;
-    my = H - 72;
+    my = H - (panelH + 12);
   } else {
     const miniH = game._showMinimap ? 132 + 12 : 0;
     mx = W - 200;
@@ -238,13 +239,34 @@ export function drawHUD(ctx, player, game, objective) {
   ctx.textAlign = 'left';
   ctx.fillText(scene.name, mx + 10, my + 16);
 
+  const mercy = (game.karma && game.karma.mercy) || 0;
+  const violence = (game.karma && game.karma.violence) || 0;
+  const saved = (game.karma && game.karma.saved) || 0;
+  ctx.font = font(9, true);
+  ctx.fillStyle = 'rgba(140,210,170,0.95)';
+  ctx.fillText(`慈悲 ${mercy}`, mx + 10, my + 32);
+  ctx.fillStyle = 'rgba(220,120,120,0.95)';
+  ctx.fillText(`残忍 ${violence}`, mx + 78, my + 32);
   ctx.fillStyle = 'rgba(200,200,200,0.7)';
   ctx.font = font(9);
-  const saved = game.karma ? game.karma.saved : 0;
-  ctx.fillText(saved > 0 ? `已唤醒失语者 ${saved}` : '尚未唤醒失语者', mx + 10, my + 32);
+  ctx.fillText(saved > 0 ? `已唤醒 ${saved}` : '尚未唤醒失语者', mx + 10, my + 46);
 
   ctx.fillStyle = player.hasClothes ? UI.ok : 'rgba(220,120,120,0.9)';
-  ctx.fillText(player.hasClothes ? '已穿装备' : '未穿装备', mx + 10, my + 46);
+  ctx.fillText(player.hasClothes ? '已穿装备' : '未穿装备', mx + 10, my + 60);
+
+  // 叙事导演 / 配音在线状态（参赛演示可见）
+  if (FEATURES.aiDirector) {
+    const llmOn = !!(AI.ready && AI.llm);
+    const ttsOn = !!(AI.ready && AI.tts);
+    ctx.fillStyle = llmOn ? 'rgba(120,200,160,0.9)' : 'rgba(160,160,170,0.75)';
+    ctx.font = font(9);
+    const bits = [];
+    bits.push(llmOn ? '导演在线' : '导演离线');
+    bits.push(ttsOn ? '配音在线' : '配音离线');
+    const clueN = (game.storyState && game.storyState.clues && game.storyState.clues.length) || 0;
+    if (clueN) bits.push(`线索${clueN}`);
+    ctx.fillText(bits.join(' · '), mx + 10, my + 74);
+  }
   ctx.textAlign = 'left';
 
   // 语言之火

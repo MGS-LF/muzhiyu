@@ -4,6 +4,7 @@
 // 反序列化时重建运行时对象（Set/数组/玩家属性），保持游戏状态机一致性
 
 import * as minimap from './minimap.js';
+import { createEmptyStoryState, normalizeStoryState } from './ai/story.js';
 
 const SAVE_KEY = 'keheng_saves';
 const META_KEY = 'keheng_meta';
@@ -45,6 +46,7 @@ function snapshot(game) {
     newGamePlus: !!game.flags.new_game_plus,
     clearedEndings: Array.isArray(game.clearedEndings) ? Array.from(new Set(game.clearedEndings)) : [],
     explored: minimap.snapshotExplored(),
+    storyState: normalizeStoryState(game.storyState || createEmptyStoryState()),
   };
   if (game.sidescroll && typeof game.sidescroll.createResumeSnapshot === 'function') {
     snap.runtime = {
@@ -189,6 +191,7 @@ export function restore(game, snap) {
     game.clearedEndings = new Set(snap.clearedEndings || []);
     if (snap.engravings)
       game.engravings = Array.isArray(snap.engravings) ? snap.engravings.slice() : [];
+    game.storyState = normalizeStoryState(snap.storyState || createEmptyStoryState());
     game.ending = snap.ending || game.ending || null;
     game.gameTime = snap.gameTime || 0;
 

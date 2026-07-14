@@ -403,6 +403,13 @@ export function drawConverse(ctx, c, gameTime) {
   ctx.font = 'bold 18px serif';
   ctx.textAlign = 'center';
   ctx.fillText('听 雨', cx, cy + 92);
+  ctx.fillStyle = 'rgba(145,175,220,0.72)';
+  ctx.font = '11px serif';
+  ctx.fillText(
+    `已完成 ${c.turns || 0}/${c.maxTurns || 8} 轮 · 至少 ${c.minTurns || 3} 轮后决定结局`,
+    cx,
+    cy + 112
+  );
 
   // Sydney当前台词
   ctx.font = '20px serif';
@@ -572,7 +579,7 @@ export function drawEnding(ctx, ending, gameTime, epilogue, game) {
   ctx.fillText('刷新页面，可换一种走法重新开始', W / 2, y + 86);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText('按 E 继续——新的旅程在等你', W / 2, y + 112);
+  ctx.fillText('按 F5 继续——新的旅程在等你', W / 2, y + 112);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }

@@ -139,12 +139,22 @@ class VoicePlayer {
     src.buffer = audioBuf;
     src.connect(ctx.destination);
 
+    let rate = 1;
+    try {
+      // 与 BGM 共用设置中的播放倍速（若可用）
+      // 动态 import 避免循环依赖；失败则 1x
+      const r = window.__kehengPlaybackRate;
+      if (typeof r === 'number' && r > 0) rate = Math.max(0.5, Math.min(2, r));
+    } catch {
+      /* ignore */
+    }
+    src.playbackRate.value = rate;
     const startAt = Math.max(
       this.nextStartTime,
       ctx.currentTime + (this.scheduled === 0 ? 0.08 : 0.005)
     );
     src.start(startAt);
-    this.nextStartTime = startAt + audioBuf.duration;
+    this.nextStartTime = startAt + audioBuf.duration / rate;
     this.scheduled++;
     this.sources.push(src);
     src.onended = () => {

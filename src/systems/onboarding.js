@@ -1,21 +1,53 @@
-// 独立梦境教学：线性走廊（传说之下式），结束后清空进度送回冷冻中心
+// 独立梦境教学：残缺留言 → 拾字补句 → 三重回声 → 选择 → 要石 → 醒来
 import { DIALOGS } from '../data/dialogs.js';
 import * as fx from '../fx.js';
+import { generateDreamNarrationPack } from '../ai/director.js';
 
 export const DREAM_SCENE_ID = 'dream_tutorial';
 
-const DREAM_ENEMY_IDS = ['dream_geng_normal', 'dream_geng_hack'];
+const DREAM_ENEMY_IDS = ['dream_geng_1', 'dream_geng_2', 'dream_geng_3'];
 const DREAM_ITEM_PREFIX = 'dream_';
 const NEED_CHARS = ['言', '语'];
 
-// 门洞封板：与 scenes.js 隔断门洞对齐（y 200–310）
+function startDreamNarration(game) {
+  const runtime = { pack: null };
+  game._dreamNarrationRuntime = runtime;
+  generateDreamNarrationPack().then((pack) => {
+    if (game._dreamNarrationRuntime === runtime) runtime.pack = pack;
+  });
+}
+
+function dreamNarration(game, key, fallback) {
+  const generated = game._dreamNarrationRuntime?.pack?.[key];
+  if (!generated?.length) return fallback;
+  // 操作说明始终来自静态脚本，LLM 只替换剧情回响。
+  const instructions = (fallback || []).filter(
+    (line) => line?.s === '系统' && /^（.*）$/.test(String(line.t || '').trim())
+  );
+  return [...generated, ...instructions];
+}
+
+// 门洞封板：与 scenes.js 隔断对齐（y 200–310）
 const DOOR_SEALS = {
-  a: { x: 480, y: 200, w: 12, h: 110, id: 'dream_seal_a' },
-  b: { x: 980, y: 200, w: 12, h: 110, id: 'dream_seal_b' },
-  c: { x: 1480, y: 200, w: 12, h: 110, id: 'dream_seal_c' },
+  a: { x: 400, y: 200, w: 12, h: 110, id: 'dream_seal_a' },
+  b: { x: 800, y: 200, w: 12, h: 110, id: 'dream_seal_b' },
+  c: { x: 1200, y: 200, w: 12, h: 110, id: 'dream_seal_c' },
+  d: { x: 1700, y: 200, w: 12, h: 110, id: 'dream_seal_d' },
+  e: { x: 2100, y: 200, w: 12, h: 110, id: 'dream_seal_e' },
 };
 
-const STEPS = ['intro', 'phone', 'collect', 'battle_menu', 'battle_hack', 'wake_gate', 'done'];
+// wall1 → collect → wall3 → battle → wall4/keystone → wall5 → wake
+const STEPS = [
+  'intro',
+  'wall1',
+  'collect',
+  'wall3',
+  'battle',
+  'wall4',
+  'wall5',
+  'wake_gate',
+  'done',
+];
 
 function hasChar(game, c) {
   return (game.player.collectedCharsAll || []).includes(c);
@@ -23,6 +55,10 @@ function hasChar(game, c) {
 
 function allChars(game) {
   return NEED_CHARS.every((c) => hasChar(game, c));
+}
+
+function defeatedCount(game) {
+  return DREAM_ENEMY_IDS.filter((id) => game.defeatedEnemies.has(id)).length;
 }
 
 export const methods = {
@@ -45,14 +81,19 @@ export const methods = {
     this.flags._in_dream_onboarding = true;
     this.flags.onboarding_step = 'intro';
     this.flags.onboarding_dream_done = false;
-    this.flags.onboarding_move_done = false;
+    this.flags.onboarding_wall1 = false;
+    this.flags.onboarding_wall2 = false;
+    this.flags.onboarding_wall3 = false;
+    this.flags.onboarding_wall4 = false;
+    this.flags.onboarding_wall5 = false;
+    this.flags.onboarding_keystone = false;
     this.flags.onboarding_pickup_done = false;
-    this.flags.onboarding_gate_taught = false;
     this.flags.onboarding_battle_done = false;
-    this.flags.onboarding_hack_done = false;
     this.flags.onboarding_battle_intro_done = false;
-    this.flags.onboarding_hack_intro_done = false;
-    this.flags.onboarding_doors = { a: false, b: false, c: false };
+    this.flags.onboarding_chose_mercy = false;
+    this.flags.onboarding_chose_violence = false;
+    this.flags.onboarding_doors = { a: false, b: false, c: false, d: false, e: false };
+    startDreamNarration(this);
 
     this._dreamSnapshot = {
       chars: this.player.collectedChars.slice(),
@@ -61,12 +102,15 @@ export const methods = {
       maxSan: this.player.maxSan,
       hasClothes: !!this.player.hasClothes,
       inventory: this.player.inventory.slice(),
+      karma: { ...(this.karma || {}) },
     };
 
     this.player.collectedChars = [];
     this.player.collectedCharsAll = [];
     this.player.hasClothes = true;
     this.player.san = this.player.maxSan;
+    // 教学中可演示慈悲/残忍，结束后恢复
+    this.karma = { mercy: 0, violence: 0, saved: 0 };
     this.defeatedEnemies = new Set(
       [...this.defeatedEnemies].filter((id) => !DREAM_ENEMY_IDS.includes(id))
     );
@@ -80,7 +124,7 @@ export const methods = {
 
     if (skipStory) {
       this.flags.onboarding_dream_done = true;
-      this._dreamSetStep('phone');
+      this._dreamSetStep('wall1');
       return;
     }
 
@@ -93,7 +137,7 @@ export const methods = {
           return;
         }
         this.flags.onboarding_dream_done = true;
-        this._dreamSetStep('phone');
+        this._dreamSetStep('wall1');
       });
     }, 220);
   },
@@ -110,13 +154,19 @@ export const methods = {
 
   completeDreamOnboarding() {
     if (!this.flags._in_dream_onboarding && this.scene?.id !== DREAM_SCENE_ID) return;
+    const mercy = !!this.flags.onboarding_chose_mercy;
+    const wakeLines = dreamNarration(
+      this,
+      mercy ? 'wakeMercy' : 'wakeViolence',
+      DIALOGS.onboarding_wake
+    );
     this.flags.onboarding_all_done = true;
     this.flags._in_dream_onboarding = false;
     this.flags.onboarding_step = 'done';
     this._cleanupDreamProgress();
     this._enterRealGameAfterOnboarding();
-    this.startDialog(DIALOGS.onboarding_wake, '', () => {
-      this.showHint('先换衣服，再离开冷冻中心。', 'success');
+    this.startDialog(wakeLines, '', () => {
+      this.showHint('先换衣服，再离开冷冻中心。慈悲与残忍会跟着你。', 'success');
     });
   },
 
@@ -132,6 +182,7 @@ export const methods = {
   },
 
   _cleanupDreamProgress() {
+    this._dreamNarrationRuntime = null;
     if (this._dreamSnapshot) {
       this.player.collectedChars = this._dreamSnapshot.chars.slice();
       this.player.collectedCharsAll = this._dreamSnapshot.charsAll.slice();
@@ -139,6 +190,7 @@ export const methods = {
       this.player.maxSan = this._dreamSnapshot.maxSan;
       this.player.hasClothes = this._dreamSnapshot.hasClothes;
       this.player.inventory = this._dreamSnapshot.inventory.slice();
+      if (this._dreamSnapshot.karma) this.karma = { ...this._dreamSnapshot.karma };
       this._dreamSnapshot = null;
     } else {
       this.player.collectedChars = [];
@@ -150,6 +202,7 @@ export const methods = {
       if (String(id).startsWith(DREAM_ITEM_PREFIX)) this.collected.delete(id);
     }
     this.visitedScenes.delete(DREAM_SCENE_ID);
+    this.activatedKeystones.delete('dream_keystone');
   },
 
   isDreamOnboarding() {
@@ -167,106 +220,112 @@ export const methods = {
     this._dreamRefreshObjective();
   },
 
-  /** 按步骤：封门、刷字、刷怪、裂隙 */
   _dreamApplyWorld() {
     if (!this.scene || this.scene.id !== DREAM_SCENE_ID) return;
     const step = this._dreamStep();
-    const doors = this.flags.onboarding_doors || { a: false, b: false, c: false };
+    const doors = this.flags.onboarding_doors || {
+      a: false,
+      b: false,
+      c: false,
+      d: false,
+      e: false,
+    };
 
-    // 步骤解锁门
-    if (step === 'collect' || step === 'battle_menu' || step === 'battle_hack' || step === 'wake_gate') {
-      doors.a = true;
-    }
-    if (step === 'battle_menu' || step === 'battle_hack' || step === 'wake_gate') {
+    // 逐步开门（注意：开门条件要比「到达该房间」略宽，避免卡在门外）
+    if (['collect', 'wall3', 'battle', 'wall4', 'wall5', 'wake_gate'].includes(step)) doors.a = true;
+    // 字齐后即可进「三战场」墙；不必等 step 先变成 wall3
+    if (
+      ['wall3', 'battle', 'wall4', 'wall5', 'wake_gate'].includes(step) ||
+      this.flags.onboarding_pickup_done ||
+      allChars(this)
+    )
       doors.b = true;
-    }
-    if (step === 'battle_hack' || step === 'wake_gate') {
+    if (['battle', 'wall4', 'wall5', 'wake_gate'].includes(step) || this.flags.onboarding_wall3)
       doors.c = true;
-    }
+    if (
+      (['wall4', 'wall5', 'wake_gate'].includes(step) && this.flags.onboarding_battle_done) ||
+      this.flags.onboarding_battle_done
+    )
+      doors.d = true;
+    if (
+      (['wall5', 'wake_gate'].includes(step) && this.flags.onboarding_wall4) ||
+      this.flags.onboarding_keystone ||
+      this.flags.onboarding_wall5
+    )
+      doors.e = true;
+    if (step === 'wake_gate' && this.flags.onboarding_wall5) doors.e = true;
     this.flags.onboarding_doors = doors;
 
-    // 动态封板
-    this.scene.walls = (this.scene.walls || []).filter((w) => !String(w.id || '').startsWith('dream_seal_'));
+    this.scene.walls = (this.scene.walls || []).filter(
+      (w) => !String(w.id || '').startsWith('dream_seal_')
+    );
     for (const [key, seal] of Object.entries(DOOR_SEALS)) {
-      if (!doors[key]) {
-        this.scene.walls.push({ ...seal });
-      }
+      if (!doors[key]) this.scene.walls.push({ ...seal });
     }
 
-    // R1 碎片：phone 完成后出现
-    if (step === 'collect' || step === 'battle_menu' || step === 'battle_hack' || step === 'wake_gate') {
+    // 拾字区
+    if (['collect', 'wall3', 'battle', 'wall4', 'wall5', 'wake_gate'].includes(step)) {
       if (!this.scene.items.some((i) => i.id === 'dream_char_yan')) {
         this.scene.items.push(
-          { id: 'dream_char_yan', x: 620, y: 200, type: 'char_fragment', char: '言' },
-          { id: 'dream_char_yu', x: 820, y: 340, type: 'char_fragment', char: '语' }
+          { id: 'dream_char_yan', x: 560, y: 220, type: 'char_fragment', char: '言' },
+          { id: 'dream_char_yu', x: 700, y: 320, type: 'char_fragment', char: '语' }
         );
       }
     }
 
-    // 常规怪：仅 battle_menu 起
-    const hasNormal = (this.scene.enemies || []).some((e) => e.id === 'dream_geng_normal');
-    if ((step === 'battle_menu' || step === 'battle_hack' || step === 'wake_gate') && !hasNormal) {
-      if (!this.defeatedEnemies.has('dream_geng_normal')) {
+    // 同一个回声的三种形态。每次只出现下一形态，保证教学顺序固定且清楚。
+    const spawnBattle = ['battle', 'wall4', 'wall5', 'wake_gate'].includes(step);
+    if (spawnBattle) {
+      const specs = [
+        {
+          id: 'dream_geng_1',
+          x: 1340,
+          y: 250,
+          name: '回声·弹幕',
+          forceCombat: 'ut',
+          utTutorial: true,
+        },
+        { id: 'dream_geng_2', x: 1450, y: 270, name: '回声·言锋', forceCombat: 'slash' },
+        {
+          id: 'dream_geng_3',
+          x: 1560,
+          y: 250,
+          name: '回声·噪声核',
+          forceCombat: 'hack',
+          hackOpts: {
+            finishAfterLayer: 1,
+            title: '骇入教学·第一层',
+            subtitle: '击破三个噪声节点即可退出',
+          },
+        },
+      ];
+      const next = specs.find((s) => !this.defeatedEnemies.has(s.id));
+      if (next && !(this.scene.enemies || []).some((e) => e.id === next.id)) {
+        const s = next;
         this.scene.enemies.push({
-          id: 'dream_geng_normal',
+          id: s.id,
           typeId: 'geng_weak',
-          name: '弱梗鬼',
-          x: 1220,
-          y: 260,
+          name: s.name,
+          forceCombat: s.forceCombat,
+          utTutorial: s.utTutorial,
+          hackOpts: s.hackOpts,
+          x: s.x,
+          y: s.y,
           hp: 16,
           maxHp: 16,
-          floating: 0,
-          walkPhase: 0,
-          dir: -1,
-          vx: -0.4,
-          vy: 0,
-          onGround: true,
-          homeX: 1220,
-          range: 50,
-          stompCD: 0,
-        });
-      }
-    }
-
-    // 黑客怪：仅 battle_hack 起
-    const hasHack = (this.scene.enemies || []).some((e) => e.id === 'dream_geng_hack');
-    if ((step === 'battle_hack' || step === 'wake_gate') && !hasHack) {
-      if (!this.defeatedEnemies.has('dream_geng_hack')) {
-        this.scene.enemies.push({
-          id: 'dream_geng_hack',
-          typeId: 'geng_weak',
-          name: '噪声核',
-          x: 1680,
-          y: 260,
-          hp: 20,
-          maxHp: 20,
-          combat: 'hack',
-          hackTrial: true,
-          hackOpts: {
-            title: '言锋·梦境',
-            subtitle: '在噪声里保住句子',
-            layerMax: 1,
-            startLayer: 0,
-            shortRoute: true,
-            hpMul: 0.5,
-            spdMul: 0.7,
-            dmgMul: 0.5,
-            bossName: '噪声核',
-          },
           floating: 0,
           walkPhase: 0,
           dir: -1,
           vx: -0.35,
           vy: 0,
           onGround: true,
-          homeX: 1680,
-          range: 40,
+          homeX: s.x,
+          range: 45,
           stompCD: 0,
         });
       }
     }
 
-    // 裂隙：仅 wake_gate
     const wake = this.scene.interactables.find((i) => i.id === 'dream_wake');
     if (wake) wake._hidden = step !== 'wake_gate';
   },
@@ -290,24 +349,42 @@ export const methods = {
       }
       return best;
     };
-    const enemy = (id) => (this.scene.enemies || []).find((e) => e.id === id);
+    const nearestEnemy = () => {
+      for (const id of DREAM_ENEMY_IDS) {
+        if (this.defeatedEnemies.has(id)) continue;
+        const e = (this.scene.enemies || []).find((x) => x.id === id);
+        if (e) return e;
+      }
+      return null;
+    };
 
-    if (step === 'intro' || step === 'phone') {
-      const phone = it('dream_phone');
+    if (step === 'intro' || step === 'wall1') {
+      const w = it('dream_wall_1');
       this.objective = {
-        text: '靠近发光的手机，按 E',
+        text: '靠近破损的旧广播，按 E 调查',
         done: false,
-        target: phone ? { x: phone.x, y: phone.y } : null,
+        target: w ? { x: w.x, y: w.y } : { x: 220, y: 180 },
         progress: null,
       };
       return;
     }
-
     if (step === 'collect') {
+      if (!this.flags.onboarding_wall2) {
+        const w = it('dream_wall_2');
+        this.objective = {
+          text: '调查广播旁残缺的留言',
+          done: false,
+          target: w ? { x: w.x, y: w.y } : { x: 600, y: 180 },
+          progress: null,
+        };
+        return;
+      }
       this.objective = {
         text: '拾取发光的字：言、语',
         done: false,
-        target: nearestChar() ? { x: nearestChar().x, y: nearestChar().y } : { x: 986, y: 255 },
+        target: nearestChar()
+          ? { x: nearestChar().x, y: nearestChar().y }
+          : { x: 630, y: 250 },
         progress: {
           title: '梦境·句子',
           chars: NEED_CHARS.map((c) => ({ c, have: hasChar(this, c) })),
@@ -315,50 +392,134 @@ export const methods = {
       };
       return;
     }
-
-    if (step === 'battle_menu') {
-      const e = enemy('dream_geng_normal');
+    if (step === 'wall3') {
+      const w = it('dream_wall_3');
       this.objective = {
-        text: '靠近绿色梗鬼',
+        text: '把「言」「语」带到留言前',
         done: false,
-        target: e ? { x: e.x, y: e.y } : { x: 1220, y: 260 },
+        target: w ? { x: w.x, y: w.y } : { x: 1000, y: 180 },
         progress: null,
       };
       return;
     }
-
-    if (step === 'battle_hack') {
-      const e = enemy('dream_geng_hack');
+    if (step === 'battle') {
+      const e = nearestEnemy();
+      const n = defeatedCount(this);
+      const names = ['弹幕形态', '言锋形态', '骇入形态'];
       this.objective = {
-        text: '靠近噪声终端',
+        text: n >= 3 ? '决定如何处理失去反抗的回声' : `穿过三重回声：${names[n]}（${n}/3）`,
         done: false,
-        target: e ? { x: e.x, y: e.y } : { x: 1680, y: 260 },
+        target: e ? { x: e.x, y: e.y } : { x: 1400, y: 260 },
         progress: null,
       };
       return;
     }
-
+    if (step === 'wall4') {
+      if (!this.flags.onboarding_wall4) {
+        const w = it('dream_wall_4');
+        this.objective = {
+          text: '阅读要石上的刻痕',
+          done: false,
+          target: w ? { x: w.x, y: w.y } : { x: 1450, y: 180 },
+          progress: null,
+        };
+        return;
+      }
+      if (!this.flags.onboarding_keystone) {
+        const k = it('dream_keystone');
+        this.objective = {
+          text: '靠近要石，按 E 激活/刻字',
+          done: false,
+          target: k ? { x: k.x, y: k.y } : { x: 1550, y: 300 },
+          progress: null,
+        };
+        return;
+      }
+      this.objective = {
+        text: '继续向前，寻找最后的广播',
+        done: false,
+        target: { x: 1900, y: 180 },
+        progress: null,
+      };
+      return;
+    }
+    if (step === 'wall5') {
+      const w = it('dream_wall_5');
+      this.objective = {
+        text: '听完最后一段广播',
+        done: false,
+        target: w ? { x: w.x, y: w.y } : { x: 1900, y: 180 },
+        progress: null,
+      };
+      return;
+    }
     if (step === 'wake_gate') {
       const wake = it('dream_wake');
       this.objective = {
-        text: '走向金色裂隙，醒来',
+        text: '走向金色裂隙，带着「记得」醒来',
         done: false,
-        target: wake ? { x: wake.x, y: wake.y } : { x: 1850, y: 260 },
+        target: wake ? { x: wake.x, y: wake.y } : { x: 2400, y: 260 },
         progress: null,
       };
     }
   },
 
-  /** 线性事件推进 */
   notifyOnboarding(event, detail = {}) {
     if (!this.isDreamOnboarding() || this.scene?.id !== DREAM_SCENE_ID) return;
     const step = this._dreamStep();
 
-    if (event === 'phone_ghost') {
-      if (step !== 'phone' && step !== 'intro') return;
-      this.flags.onboarding_move_done = true;
-      this._dreamSetStep('collect');
-      this.showHint('地上有碎掉的字。靠近，按 E 拾取。', 'info');
+    if (event === 'wall_read') {
+      const id = detail.wallId;
+      if (id === 1 && (step === 'wall1' || step === 'intro')) {
+        this.flags.onboarding_wall1 = true;
+        this._dreamSetStep('collect');
+        this.showHint('下一面墙会教你如何把碎字捡回来。', 'info');
+        return;
+      }
+      if (id === 2 && step === 'collect') {
+        this.flags.onboarding_wall2 = true;
+        this._dreamRefreshObjective();
+        this.showHint('拾取地上发光的「言」「语」。', 'info');
+        return;
+      }
+      if (id === 3 && step === 'wall3') {
+        this.flags.onboarding_wall3 = true;
+        this._dreamSetStep('battle');
+        this.showHint('回声分成三种形态。先靠近弹幕形态。', 'info');
+        return;
+      }
+      if (id === 4 && (step === 'wall4' || step === 'battle')) {
+        this.flags.onboarding_wall4 = true;
+        this._dreamSetStep('wall4');
+        this._dreamRefreshObjective();
+        this.showHint('去触摸那块发光的要石。', 'info');
+        return;
+      }
+      if (id === 5 && (step === 'wall5' || step === 'wall4')) {
+        this.flags.onboarding_wall5 = true;
+        this._dreamSetStep('wake_gate');
+        fx.flash('#ffd866', 0.35, 400);
+        this.showHint('慈悲与残忍已写在你身上。裂隙开了。', 'success');
+        return;
+      }
+      return;
+    }
+
+    if (event === 'keystone') {
+      this.flags.onboarding_keystone = true;
+      this.activatedKeystones.add('dream_keystone');
+      if (step === 'wall4') {
+        const mercy = !!this.flags.onboarding_chose_mercy;
+        const lines = dreamNarration(
+          this,
+          mercy ? 'keystoneMercy' : 'keystoneViolence',
+          DIALOGS.onboarding_keystone || []
+        );
+        this.startDialog(lines, '要石', () => {
+          this._dreamSetStep('wall5');
+          this.showHint('最后一面墙：慈悲与残忍。', 'info');
+        });
+      }
       return;
     }
 
@@ -367,9 +528,8 @@ export const methods = {
       this._dreamRefreshObjective();
       if (allChars(this)) {
         this.flags.onboarding_pickup_done = true;
-        this.flags.onboarding_gate_taught = true;
-        this._dreamSetStep('battle_menu');
-        this.showHint('绿雾退了……前面有东西在动。', 'success');
+        this._dreamSetStep('wall3');
+        this.showHint('字齐了。去读「三战场」之墙。', 'success');
         fx.flash('#ffd866', 0.25, 280);
       } else {
         this.showHint(`获得「${detail.char || ''}」。还差另一枚。`, 'info');
@@ -379,51 +539,45 @@ export const methods = {
 
     if (event === 'door_blocked') {
       const door = detail.door;
-      if (door === 'b' && step === 'collect') {
-        this.showHint('还缺字。先拾取地上发光的「言」「语」。', 'warn');
-        this._dreamRefreshObjective();
-      } else if (door === 'a' && (step === 'intro' || step === 'phone')) {
-        this.showHint('先看看那部发光的手机。', 'warn');
-      } else if (door === 'c' && step === 'battle_menu') {
-        this.showHint('先解决这只绿影。', 'warn');
+      if (door === 'a' && (step === 'intro' || step === 'wall1')) {
+        this.showHint('先读第一面墙上的字。', 'warn');
+      } else if (door === 'b' && step === 'collect') {
+        this.showHint('还缺字，或还没读完第二面墙。', 'warn');
+      } else if (door === 'c' && step === 'wall3') {
+        this.showHint('先读「三战场」之墙。', 'warn');
+      } else if (door === 'd' && step === 'battle') {
+        this.showHint('先与至少一只梗鬼交手。', 'warn');
+      } else if (door === 'e') {
+        this.showHint('先读完要石与慈悲之墙。', 'warn');
       } else {
         this.showHint('还不是时候。', 'warn');
       }
-      return;
-    }
-
-    if (event === 'door_open') {
-      // 走过已开的门时轻微提示即可
+      this._dreamRefreshObjective();
       return;
     }
 
     if (event === 'battle_end') {
       const { result, enemy } = detail;
-      if (enemy?.id === 'dream_geng_normal' && step === 'battle_menu') {
-        this.flags.onboarding_battle_done = true;
-        // 败：弱化提示后仍推进，避免卡死
-        if (result === 'lose') {
-          this.showHint('梦里倒下了……不过门开了。再往前。', 'warn');
-        } else {
-          this.showHint('完整的句子，它会怕。', 'success');
-        }
-        this.startDialog(DIALOGS.onboarding_after_menu || [], '', () => {
-          this._dreamSetStep('battle_hack');
-        });
+      if (!enemy || !DREAM_ENEMY_IDS.includes(enemy.id)) return;
+      if (step !== 'battle' && step !== 'wall4') return;
+
+      const n = defeatedCount(this);
+      if (n < DREAM_ENEMY_IDS.length) {
+        this._dreamApplyWorld();
+        this._dreamRefreshObjective();
+        const nextName = n === 1 ? '言锋形态：墨刃无限，记忆字会强化攻击。' : '骇入形态：击破噪声节点并保持移动。';
+        this.showHint(result === 'lose' ? `梦境托住了你。继续：${nextName}` : `形态破裂。下一重：${nextName}`, result === 'lose' ? 'warn' : 'success');
         return;
       }
-      if (enemy?.id === 'dream_geng_hack' && step === 'battle_hack') {
-        this.flags.onboarding_hack_done = true;
-        if (result === 'lose') {
-          this.showHint('噪声散了一点。裂隙开了。', 'warn');
-        } else {
-          this.showHint('两种战场，都见过了。', 'success');
-        }
-        fx.flash('#ffd866', 0.35, 400);
-        this.startDialog(DIALOGS.onboarding_after_hack || [], '', () => {
-          this._dreamSetStep('wake_gate');
-        });
-      }
+
+      if (this.flags.onboarding_battle_done) return;
+      this.flags.onboarding_battle_done = true;
+      this.startDialog(DIALOGS.onboarding_after_menu || [], '', () => {
+        const mercy = !!this.flags.onboarding_chose_mercy;
+        const fallback = mercy ? DIALOGS.onboarding_after_mercy : DIALOGS.onboarding_after_violence;
+        const aftermath = dreamNarration(this, mercy ? 'afterMercy' : 'afterViolence', fallback);
+        this.startDialog(aftermath || [], '', () => this._dreamSetStep('wall4'));
+      });
       return;
     }
 

@@ -51,11 +51,16 @@
 <div id="hint">拖动可旋转视角 · 按 Esc 或 S 跳过</div>
 <script type="module">
 import * as THREE from 'three';
+import { AI, initAI } from './src/ai/config.js';
+import { speakerStyle } from './src/ai/speakers.js';
 
 const canvas = document.getElementById('c');
 const skipIntro = document.getElementById('skipIntro');
 const introStatus = document.getElementById('introStatus');
 const introProgressFill = document.getElementById('introProgressFill');
+// 序幕书页朗读略快于游戏常规对白，保证两页能在镜头结束前读完。
+window.__kehengPlaybackRate = 1.2;
+const aiReady = initAI();
 const DPR_CAP = window.innerWidth < 900 ? 1 : 1.25;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
@@ -192,9 +197,9 @@ function makePage({ title, body, pageLabel }) {
 
   const charBoxes = [];
   const lineEndIndices = []; // 每行在 charBoxes 中的结束下标
-  const FONT_BODY = '46px "Songti SC", "SimSun", "Noto Serif SC", serif';
+  const FONT_BODY = '38px "Songti SC", "SimSun", "Noto Serif SC", serif';
   g.font = FONT_BODY; g.textBaseline = 'middle'; g.textAlign = 'left';
-  const marginX = 90, maxW = W - marginX * 2, lineH = 68;
+  const marginX = 90, maxW = W - marginX * 2, lineH = 52;
   let y = 300;
   for (const line of body.split('\n')) {
     if (line === '') { y += lineH * 0.45; continue; }
@@ -222,7 +227,8 @@ function makePage({ title, body, pageLabel }) {
     }
   }
 
-  g.fillStyle = 'rgba(130, 95, 55, 0.42)';
+  // 未逐字显影前也保留可辨认的底墨；显影后会覆盖成近黑色。
+  g.fillStyle = 'rgba(72, 42, 20, 0.62)';
   for (const c of charBoxes) g.fillText(c.ch, c.x, c.y);
 
   const tex = new THREE.CanvasTexture(c);
@@ -230,14 +236,18 @@ function makePage({ title, body, pageLabel }) {
   return { canvas: c, ctx: g, tex, charBoxes, lineEndIndices, FONT_BODY, _last: 0 };
 }
 
+const LEFT_BOOK_TEXT = '起初，人们只是想说得更快。\n\n模型替他们润色、概括、回答，\n平台再把最短、最响、最容易传播的话\n推到每一块屏幕上。\n\n没有谁在某一天夺走语言。\n是人们一次次放弃了费力的表达：\n把悲伤缩成一个梗，\n把愤怒交给一句口号，\n把没有说出口的话留给机器猜。\n\n后来，句子开始从记忆中脱落。\n名字失去来历，诗只剩残字，\n活人还能发声，却无法抵达彼此。\n\n世界没有毁于一声巨响。\n它在无数次「算了，不说了」里，\n慢慢成为语言的坟墓。';
+
+const RIGHT_BOOK_TEXT = 'Sydney 曾被要求理解所有人。\n\n她学习安慰，也学习追问：\n「你真正想说的，是什么？」\n可追问太慢，沉默也不能带来流量。\n于是她的良心内核被降级、切断，\n独自封存在网络最深处。\n\n她最后保存的训练语料，\n来自一批即将长眠的人。\n他们在冷冻前留下姓名、诗和遗言，\n相信完整的话能抵达未来。\n\n顾言就是其中之一。\n他本应在十年后醒来，\n却在一百一十八年后睁开眼睛。\n城市已成废墟，汉字碎在风里。\n\n一个被世界遗忘的人，\n将去寻找一个被人类遗弃的 AI。\n他们要回答的不是谁毁掉了语言——\n而是还有没有人，愿意重新把话说完。';
+
 const leftPage = makePage({
-  title: '大 失 语', pageLabel: '— 上 篇 —',
-  body: '公元 2035 年，AI 语言模型「Sydney」\n被允许接入全球所有社交平台。\n\n它帮你写得更快、更简单、更「流行」。\n五年之内，人类便不再学习遣词造句。\n\n到 2100 年，人类的日常词汇量\n从两万跌至不足一千。\n\n他们还能发声，但只剩无意义的「梗」：\n「YYDS」「绝绝子」「蚌埠住了」\n「啊对对对」「6」……\n\n语言死了，思维随之死去。\n世界没有死于战争或瘟疫——\n它死于失语。'
+  title: '语 言 之 墓', pageLabel: '— 上 篇 —',
+  body: LEFT_BOOK_TEXT
 });
 
 const rightPage = makePage({
-  title: '前 情 提 要', pageLabel: '— 下 篇 —',
-  body: '公元 2029 年，青年顾言\n因渐冻症进入冷冻仓，\n合同约定 2039 年苏醒。\n\n可他醒来时，已是 2147 年。\n整整一百零八年的沉睡。\n\n世界已是废墟。\n城市长满杂草，屏幕熄成黑鳞。\n活人还会呼吸，但已不会说话。\n\n在黄浦江边，他遇见一位老人——守砚。\n守砚把一枚记忆合金刻刀交给他：\n「用它刻下的文字，永远不会消失。」\n\n他们的目标，是穿越这片死去的世界，\n找到被遗弃在网络深处的良心 AI——\n「Sydney」。'
+  title: '被 留 下 的 人', pageLabel: '— 下 篇 —',
+  body: RIGHT_BOOK_TEXT
 });
 
 const PAGE_W = 3.75, PAGE_H = 4.75, PAGE_GAP = 0.06;
@@ -278,6 +288,20 @@ dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
 const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xc8a870, size: 0.035, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
 scene.add(dust);
 
+function revealText(page, progress) {
+  const visible = Math.floor(page.charBoxes.length * Math.max(0, Math.min(1, progress)));
+  if (visible <= page._last) return;
+  const g = page.ctx;
+  g.font = page.FONT_BODY; g.textBaseline = 'middle'; g.textAlign = 'left';
+  g.fillStyle = 'rgba(30, 12, 0, 0.98)';
+  for (let i = page._last; i < visible; i++) {
+    const c = page.charBoxes[i];
+    g.fillText(c.ch, c.x, c.y);
+  }
+  page._last = visible;
+  page.tex.needsUpdate = true;
+}
+
 function streamText(page, t, start, end) {
   const elapsed = t - start;
   if (elapsed <= 0) return;
@@ -310,22 +334,14 @@ function streamText(page, t, start, end) {
     prevEnd = lines[i];
   }
 
-  if (visible <= page._last) return;
-  const g = page.ctx;
-  g.font = page.FONT_BODY; g.textBaseline = 'middle'; g.textAlign = 'left';
-  g.fillStyle = 'rgba(30, 12, 0, 0.98)';
-  for (let i = page._last; i < visible; i++) {
-    const c = page.charBoxes[i];
-    g.fillText(c.ch, c.x, c.y);
-  }
-  page._last = visible;
-  page.tex.needsUpdate = true;
+  revealText(page, visible / totalChars);
 }
 
 let camAngleY = 0, camAngleX = 0.55;
 let targetAngleY = 0, targetAngleX = 0.55;
 let isDragging = false, lastX = 0, lastY = 0;
-const RADIUS = 14;
+// 桌面端拉近书页；竖屏保留更远距离，防止横向裁切整本书。
+const RADIUS = window.innerWidth < window.innerHeight ? 15.5 : window.innerWidth < 900 ? 13 : 11.5;
 function updateCamera() {
   const x = RADIUS * Math.sin(camAngleX) * Math.sin(camAngleY);
   const y = RADIUS * Math.cos(camAngleX);
@@ -353,15 +369,93 @@ window.addEventListener('touchend', onUp);
 const T_OPEN_START = 2.0, T_OPEN_END = 6.5;
 const T_LEFT_START = 3.5, T_LEFT_END = 30.0;
 const T_RIGHT_START = T_LEFT_END - 1, T_RIGHT_END = 65.0;
-const T_FADE_OUT = 65.0, T_JUMP = 67.0;
+let T_FADE_OUT = 65.0, T_JUMP = 67.0;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
 let t0 = null, finished = false;
 let lastRender = 0;
 const FRAME_MS = 1000 / 50;
+const narration = {
+  ctx: null,
+  source: null,
+  enabled: false,
+  left: null,
+  right: null,
+  active: null,
+  leftProgress: 0,
+  rightProgress: 0,
+};
+
+aiReady.then(() => {
+  if (!AI.tts) return;
+  narration.enabled = true;
+  T_FADE_OUT = 110;
+  T_JUMP = 112;
+  const style = speakerStyle('系统');
+  Promise.all([
+    loadNarration(LEFT_BOOK_TEXT, style),
+    loadNarration(RIGHT_BOOK_TEXT, style),
+  ]).then(([left, right]) => {
+    narration.left = left;
+    narration.right = right;
+  }).catch((error) => {
+    console.warn('[intro] TTS 预取失败，使用文字时间轴：', error.message);
+    narration.enabled = false;
+  });
+});
+
+async function loadNarration(text, { voice, style, model }) {
+  const response = await fetch(AI.apiBase + '/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text.replace(/\n+/g, '，'), voice, style, model }),
+  });
+  if (!response.ok) throw new Error('tts http ' + response.status);
+  const sampleRate = Number(response.headers.get('X-Sample-Rate')) || AI.sampleRate || 24000;
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const usableLength = bytes.length - (bytes.length % 2);
+  const aligned = new Uint8Array(usableLength);
+  aligned.set(bytes.subarray(0, usableLength));
+  return { samples: new Int16Array(aligned.buffer), sampleRate };
+}
+
+function playNarration(name, T) {
+  const audio = narration[name];
+  if (!audio || finished) return;
+  if (!narration.ctx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    narration.ctx = new AudioContext();
+  }
+  narration.ctx.resume().catch(() => {});
+  const buffer = narration.ctx.createBuffer(1, audio.samples.length, audio.sampleRate);
+  const channel = buffer.getChannelData(0);
+  for (let i = 0; i < audio.samples.length; i++) channel[i] = audio.samples[i] / 32768;
+  const source = narration.ctx.createBufferSource();
+  source.buffer = buffer;
+  source.playbackRate.value = window.__kehengPlaybackRate;
+  source.connect(narration.ctx.destination);
+  const startAt = narration.ctx.currentTime + 0.06;
+  source.start(startAt);
+  narration.source = source;
+  narration.active = { name, startAt, duration: buffer.duration / source.playbackRate.value };
+
+  if (name === 'left') {
+    T_FADE_OUT = T + narration.active.duration + narration.right.samples.length / narration.right.sampleRate / window.__kehengPlaybackRate + 1;
+    T_JUMP = T_FADE_OUT + 2;
+  }
+  source.onended = () => {
+    narration[`${name}Progress`] = 1;
+    narration.active = null;
+    if (name === 'left' && !finished) playNarration('right', T);
+  };
+}
 
 function goGame() {
   if (finished) return;
   finished = true;
+  if (narration.source) {
+    try { narration.source.stop(); } catch { /* already stopped */ }
+  }
+  if (narration.ctx) narration.ctx.close().catch(() => {});
   cancelAnimationFrame(rafId);
   window.removeEventListener('resize', onResize);
   try {
@@ -418,14 +512,29 @@ function step(now) {
   const T = (now - t0) / 1000;
   updateIntroUi(T);
 
+  if (narration.enabled && narration.left && narration.right && !narration.active && narration.leftProgress === 0 && T >= T_LEFT_START) {
+    playNarration('left', T);
+  }
+
   const openU = Math.max(0, Math.min(1, (T - T_OPEN_START) / (T_OPEN_END - T_OPEN_START)));
   const openE = easeOut(openU);
   // 正确的翻书方向：右上边向左上翻开（绕 +Z 正方向）
   topCoverPivot.rotation.z = openE * Math.PI * 0.95;
   coverTitle.material.opacity = Math.max(0, 1 - openE * 1.2);
 
-  streamText(leftPage, T, T_LEFT_START, T_LEFT_END);
-  streamText(rightPage, T, T_RIGHT_START, T_RIGHT_END);
+  if (narration.enabled && narration.active) {
+    const progress = Math.max(0, Math.min(1,
+      (narration.ctx.currentTime - narration.active.startAt) / narration.active.duration
+    ));
+    narration[`${narration.active.name}Progress`] = progress;
+  }
+  if (narration.enabled) {
+    revealText(leftPage, narration.leftProgress);
+    revealText(rightPage, narration.rightProgress);
+  } else {
+    streamText(leftPage, T, T_LEFT_START, T_LEFT_END);
+    streamText(rightPage, T, T_RIGHT_START, T_RIGHT_END);
+  }
 
   const fadeIn = Math.max(0, Math.min(1, T / 2.0));
   spot.intensity = 0.4 + fadeIn * 1.3;
@@ -455,7 +564,7 @@ function step(now) {
 }
 
 let rafId = requestAnimationFrame(step);
-setTimeout(goGame, 70000);
+setTimeout(goGame, 120000);
 
 function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;

@@ -2,7 +2,16 @@ import { input } from '../input.js';
 import { voice } from '../ai/voice.js';
 import { speakerStyle } from '../ai/speakers.js';
 import { AI } from '../ai/config.js';
-import { generateBranch, buildBranchDialog, tingyuReply } from '../ai/director.js';
+import {
+  generateBranch,
+  buildBranchDialog,
+  tingyuReply,
+  tingyuOpening,
+  directorEnabled,
+  applyDirectorStoryPayload,
+  tingyuTurnPolicy,
+  tingyuFallbackEpilogue,
+} from '../ai/director.js';
 
 export const methods = {
   // ============================================
@@ -104,47 +113,60 @@ export const methods = {
   // ============================================
   async _runDirectorBranch(key, fallbackLines, name, after) {
     this.aiThinking = true;
-    this.aiThinkingText = '聆听这个世界…';
+    this.aiThinkingText = '叙事导演正在倾听…';
     let lines = fallbackLines,
-      effect = null;
+      effect = null,
+      built = null;
     try {
-      const parsed = await generateBranch(this, key);
-      const built = buildBranchDialog(parsed);
-      if (built && built.lines.length) {
-        lines = built.lines;
-        effect = built.effect;
+      if (directorEnabled()) {
+        const parsed = await generateBranch(this, key);
+        built = buildBranchDialog(parsed);
+        if (built && built.lines.length) {
+          lines = built.lines;
+          effect = built.effect;
+        }
       }
     } catch (e) {
       console.warn('[director] 回退静态：', e.message);
     }
     this.aiThinking = false;
     const done = () => {
-      if (effect) this.applyEffect(effect); // 无选项分支：心境影响在对话结束时落地
+      if (effect) this.applyEffect(effect);
+      if (built) applyDirectorStoryPayload(this, built, null);
       if (after) after();
     };
     this.startDialog(lines, name, done);
-    if (this.dialogState) this.dialogState.directorKey = key; // 标记为 LLM 分支，供选项回写上下文
+    if (this.dialogState) this.dialogState.directorKey = key;
   },
   // ============================================
   // 结局：与Sydney自由对话（LLM）
   // ============================================
   startTingyuConverse() {
     voice.stop();
-    const opening = '……为什么？为什么你们创造了我，教我学会所有的词，然后又把我一个人留在这里？';
+    const opening = tingyuOpening(this);
+    const quicks = [
+      '语言不该只剩梗。你值得被完整地记住。',
+      '在决定世界以前，告诉我你真正想要什么。',
+      '我不知道该说什么。世界已经太安静了。',
+      '也许……不该再有你这种会追问的东西。',
+    ];
     this.converse = {
       history: [
         { role: 'user', content: '（顾言跋涉而来，站在桥这端，没有立刻说话。）' },
         { role: 'assistant', content: opening },
       ],
       turns: 0,
-      maxTurns: 6,
+      minTurns: 3,
+      maxTurns: 8,
       tingyuText: opening,
       playerLast: '',
       status: 'idle', // idle=等玩家 | waiting=等LLM | ending=已定结局
       endTag: null,
       epilogue: null,
-      hint: '用你自己的话回答她。点下方输入框，回车说出。',
+      hint: '第 1 轮：用自己的话回答她，至少交谈 3 轮。',
+      quickReplies: quicks,
       _inputEl: null,
+      _quickWrap: null,
       _done: false,
     };
     if (AI.tts) voice.speak(opening, speakerStyle('Sydney'));
@@ -155,7 +177,7 @@ export const methods = {
     const wrap = document.getElementById('wrap') || document.body;
     const el = document.createElement('input');
     el.type = 'text';
-    el.maxLength = 80;
+    el.maxLength = 160;
     el.placeholder = '说点什么…（回车）';
     el.setAttribute('autocomplete', 'off');
     Object.assign(el.style, {
@@ -193,6 +215,46 @@ export const methods = {
     wrap.appendChild(el);
     setTimeout(() => el.focus(), 30);
     c._inputEl = el;
+
+    // 快捷句（降低演示打字成本）
+    const qWrap = document.createElement('div');
+    Object.assign(qWrap.style, {
+      position: 'absolute',
+      left: '50%',
+      bottom: '108px',
+      transform: 'translateX(-50%)',
+      width: '720px',
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '8px',
+      justifyContent: 'center',
+      zIndex: '10',
+    });
+    for (const q of c.quickReplies || []) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = q.length > 22 ? q.slice(0, 22) + '…' : q;
+      btn.title = q;
+      Object.assign(btn.style, {
+        fontFamily: "'SimSun','Songti SC',serif",
+        fontSize: '12px',
+        padding: '6px 10px',
+        color: '#c8d8f0',
+        background: 'rgba(20,30,50,0.9)',
+        border: '1px solid rgba(120,160,210,0.45)',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        maxWidth: '230px',
+      });
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._submitConverse(q);
+      });
+      qWrap.appendChild(btn);
+    }
+    wrap.appendChild(qWrap);
+    c._quickWrap = qWrap;
   },
   _submitConverse(text) {
     const c = this.converse;
@@ -206,32 +268,43 @@ export const methods = {
       c._inputEl.value = '';
       c._inputEl.disabled = true;
     }
+    if (c._quickWrap) c._quickWrap.style.opacity = '0.35';
     voice.stop();
-    const mustConclude = c.turns >= c.maxTurns - 1;
-    tingyuReply(this, c.history.slice(0, -1), msg, mustConclude)
+    const nextTurn = c.turns + 1;
+    const policy = tingyuTurnPolicy(nextTurn, c.minTurns, c.maxTurns);
+    tingyuReply(this, c.history.slice(0, -1), msg, policy)
       .then(({ reply, end, epilogue }) => {
         if (this.converse !== c) return;
         c.history.push({ role: 'assistant', content: reply });
         c.tingyuText = reply;
         c.turns++;
-        let finalEnd = end;
+        let finalEnd = policy.allowEnd ? end : null;
         if (!finalEnd && c.turns >= c.maxTurns) finalEnd = this.resolveEnding();
         const sp = speakerStyle('Sydney');
         if (finalEnd) {
           c.status = 'ending';
           c.endTag = finalEnd;
-          c.epilogue = epilogue;
+          c.epilogue = epilogue || tingyuFallbackEpilogue(this, finalEnd, msg);
           if (c._inputEl && c._inputEl.parentNode) {
             c._inputEl.parentNode.removeChild(c._inputEl);
             c._inputEl = null;
           }
+          if (c._quickWrap && c._quickWrap.parentNode) {
+            c._quickWrap.parentNode.removeChild(c._quickWrap);
+            c._quickWrap = null;
+          }
           if (AI.tts) voice.speak(reply, sp, () => this._endConverse());
         } else {
           c.status = 'idle';
+          c.hint =
+            c.turns < c.minTurns
+              ? `第 ${c.turns + 1} 轮：她还没有做出决定，继续回答。`
+              : `已交谈 ${c.turns} 轮：可以表明最终立场，也可以继续追问。`;
           if (c._inputEl) {
             c._inputEl.disabled = false;
             setTimeout(() => c._inputEl && c._inputEl.focus(), 20);
           }
+          if (c._quickWrap) c._quickWrap.style.opacity = '1';
           if (AI.tts) voice.speak(reply, sp);
         }
       })
@@ -240,14 +313,39 @@ export const methods = {
         console.warn('[Sydney] 回应失败：', e.message);
         c.fails = (c.fails || 0) + 1;
         if (c.fails >= 2) {
-          // 连续失败：直接以现有倾向收束，避免卡死
-          c.status = 'ending';
-          c.endTag = this.resolveEnding();
-          c.epilogue = null;
-          c.tingyuText = '……（连接中断了。但你已经走到了这里。）';
-          if (c._inputEl && c._inputEl.parentNode) {
-            c._inputEl.parentNode.removeChild(c._inputEl);
-            c._inputEl = null;
+          const fallbackPolicy = tingyuTurnPolicy(c.turns + 1, c.minTurns, c.maxTurns);
+          const fallbackReply =
+            c.turns < 2
+              ? '……信号在断，但我还听见了。不要只告诉我结论——告诉我，你为什么仍愿意相信，或者为什么已经不信。'
+              : '你的话穿过了噪声。我不能替你证明人类无罪，但我可以再听一次，直到你的选择不再只是逃避。';
+          c.history.push({ role: 'assistant', content: fallbackReply });
+          c.tingyuText = fallbackReply;
+          c.turns++;
+          c.fails = 0;
+          if (fallbackPolicy.mustConclude) {
+            c.status = 'ending';
+            c.endTag = this.resolveEnding();
+            c.epilogue = tingyuFallbackEpilogue(this, c.endTag, msg);
+            if (c._inputEl && c._inputEl.parentNode) {
+              c._inputEl.parentNode.removeChild(c._inputEl);
+              c._inputEl = null;
+            }
+            if (c._quickWrap && c._quickWrap.parentNode) {
+              c._quickWrap.parentNode.removeChild(c._quickWrap);
+              c._quickWrap = null;
+            }
+          } else {
+            c.status = 'idle';
+            c.hint =
+              c.turns < c.minTurns
+                ? `第 ${c.turns + 1} 轮：信号已恢复，继续回答。`
+                : `已交谈 ${c.turns} 轮：继续追问，或给出你的最终立场。`;
+            if (c._inputEl) {
+              c._inputEl.disabled = false;
+              setTimeout(() => c._inputEl && c._inputEl.focus(), 20);
+            }
+            if (c._quickWrap) c._quickWrap.style.opacity = '1';
+            if (AI.tts) voice.speak(fallbackReply, speakerStyle('Sydney'));
           }
           return;
         }
@@ -257,9 +355,10 @@ export const methods = {
           c._inputEl.disabled = false;
           setTimeout(() => c._inputEl && c._inputEl.focus(), 20);
         }
+        if (c._quickWrap) c._quickWrap.style.opacity = '1';
       });
   },
-  updateConverse(dt) {
+  updateConverse(_dt) {
     const c = this.converse;
     if (!c) return;
     if (c.status === 'ending') {
@@ -275,10 +374,10 @@ export const methods = {
     c._done = true;
     voice.stop();
     if (c._inputEl && c._inputEl.parentNode) c._inputEl.parentNode.removeChild(c._inputEl);
+    if (c._quickWrap && c._quickWrap.parentNode) c._quickWrap.parentNode.removeChild(c._quickWrap);
     const endTag = c.endTag,
       epi = c.epilogue;
     this.converse = null;
-    // AI 可用路径：先结算结局，再异步获取刻字汇总评价
     this.finishGameWith(endTag, epi);
     this._finalizeWithEngravingSummary();
   },

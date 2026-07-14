@@ -1,5 +1,5 @@
 // 游戏主类
-import { W, H, FEATURES, UTTERANCE } from './config.js';
+import { W, H, FEATURES, UTTERANCE, BATTLE_MODES } from './config.js';
 import { input, bindCanvas } from './input.js';
 import { Player } from './player.js';
 import { scenes, DROP_TABLES, DEFAULT_DROPS } from './scenes.js';
@@ -9,7 +9,8 @@ import { SlashBattle } from './slash_battle.js';
 import { HackingBattle } from './hacking/HackingBattle.js';
 import { voice } from './ai/voice.js';
 import { AI } from './ai/config.js';
-import { recordBranchChoice, clearBranchHistory } from './ai/director.js';
+import { recordBranchChoice } from './ai/director.js';
+import { createEmptyStoryState, ensureStoryState, applyStoryDelta } from './ai/story.js';
 import { SideScrollLevel } from './sidescroll.js';
 import { SCENE_INTROS } from './tutorial.js';
 import { PACE } from './pacing.js';
@@ -55,7 +56,7 @@ export class Game {
     this.ctx = canvas.getContext('2d');
 
     // 清理 LLM 分支对话上下文（新游戏重置）
-    clearBranchHistory();
+    this.storyState = createEmptyStoryState();
 
     // 高 DPI 适配与分辨率限制（特效减弱时降低渲染倍率）
     let dpr = window.devicePixelRatio || 1;
@@ -226,6 +227,7 @@ export class Game {
   _loadSettings() {
     const defaults = {
       dialogSpeed: 'normal',
+      playbackRate: 1,
       highContrast: false,
       reducedFx: false,
       muted: false,
@@ -249,6 +251,13 @@ export class Game {
 
   _applySettingsRuntime() {
     audio.setMuted(!!(this.settings && this.settings.muted));
+    const rate = Number(this.settings && this.settings.playbackRate) || 1;
+    if (typeof audio.setPlaybackRate === 'function') audio.setPlaybackRate(rate);
+    try {
+      window.__kehengPlaybackRate = rate;
+    } catch {
+      /* ignore */
+    }
   }
 
   dialogTypeInterval() {
@@ -260,11 +269,18 @@ export class Game {
 
   _settingsRows() {
     const def = difficulty.getDifficultyDef(this.difficultyId);
+    const rate = Number(this.settings.playbackRate) || 1;
+    const rateLabel = rate === 0.75 ? '0.75×' : rate === 1.25 ? '1.25×' : rate === 1.5 ? '1.5×' : rate === 2 ? '2×' : '1×';
     return [
       {
         id: 'dialogSpeed',
         label: '对话速度',
         value: this.settings.dialogSpeed === 'fast' ? '快' : this.settings.dialogSpeed === 'slow' ? '慢' : '标准',
+      },
+      {
+        id: 'playbackRate',
+        label: '音频倍速',
+        value: rateLabel,
       },
       {
         id: 'highContrast',
@@ -289,6 +305,13 @@ export class Game {
       const values = ['slow', 'normal', 'fast'];
       const cur = values.indexOf(this.settings.dialogSpeed);
       this.settings.dialogSpeed = values[(cur + dir + values.length) % values.length];
+    } else if (id === 'playbackRate') {
+      const values = [0.75, 1, 1.25, 1.5, 2];
+      const cur = values.indexOf(Number(this.settings.playbackRate) || 1);
+      const idx = cur < 0 ? 1 : (cur + dir + values.length) % values.length;
+      this.settings.playbackRate = values[idx];
+      this._applySettingsRuntime();
+      this.showHint(`音频倍速：${this.settings.playbackRate}×`);
     } else if (id === 'difficulty') {
       const values = ['easy', 'normal', 'hard'];
       const cur = values.indexOf(this.difficultyId);
@@ -1357,9 +1380,56 @@ export class Game {
     return true;
   }
 
+  /** 解析开战模式：forceCombat > combat 标签 > 三模式随机（尽量不连开同一模式） */
+  _resolveBattleMode(enemy) {
+    const raw = (enemy && (enemy.forceCombat || enemy.combat)) || null;
+    const norm = (m) => {
+      if (!m) return null;
+      const s = String(m).toLowerCase();
+      if (s === 'ut' || s === 'menu' || s === 'battle' || s === 'bullet') return 'ut';
+      if (s === 'slash' || s === 'word' || s === 'cut') return 'slash';
+      if (s === 'hack' || s === 'hacking') return 'hack';
+      return null;
+    };
+    let mode = norm(raw);
+    if (!mode && FEATURES.battleRoll !== false) {
+      const pool = BATTLE_MODES.filter((m) => {
+        if (m === 'slash' && FEATURES.slashBattle === false) return false;
+        if (m === 'hack' && FEATURES.hacking === false) return false;
+        return true;
+      });
+      if (pool.length) {
+        mode = pool[Math.floor(Math.random() * pool.length)];
+        if (this._lastBattleMode && pool.length > 1) {
+          let guard = 0;
+          while (mode === this._lastBattleMode && guard < 8) {
+            mode = pool[Math.floor(Math.random() * pool.length)];
+            guard++;
+          }
+        }
+      }
+    }
+    if (!mode) mode = 'ut';
+    this._lastBattleMode = mode;
+    return mode;
+  }
+
   startBattle(enemy) {
-    // 统一走 UT 弹幕菜单战（传说之下式）
-    const Ctor = Battle;
+    const mode = this._resolveBattleMode(enemy);
+    let Ctor = Battle;
+    let label = '弹幕菜单战';
+    if (mode === 'slash' && FEATURES.slashBattle !== false) {
+      Ctor = SlashBattle;
+      label = '斩击·言锋对决';
+    } else if (mode === 'hack' && FEATURES.hacking !== false) {
+      Ctor = HackingBattle;
+      label = '骇入·逻辑空间';
+    } else {
+      Ctor = Battle;
+      label = '弹幕菜单战';
+    }
+    if (enemy) enemy._rolledCombat = mode === 'slash' ? 'slash' : mode === 'hack' ? 'hack' : 'ut';
+    this.showHint(`战场形态：${label}`, 'info');
     this.battle = new Ctor(
       enemy,
       this.player,
@@ -1369,7 +1439,7 @@ export class Game {
       },
       this
     );
-    // 战斗 BGM：BOSS 与普通敌人区分（均使用 bgm_02_battle，BOSS 同曲不额外切）
+    // 战斗 BGM：BOSS 与普通敌人区分
     audio.playBGM(enemy && enemy.boss ? '__boss__' : '__battle__');
   }
 
@@ -1392,11 +1462,13 @@ export class Game {
     }
 
     if (result === 'win' || result === 'purify') {
+      const isDreamBattle = !!(this.scene?.isDream || this.scene?.id === 'dream_tutorial');
       // 标记敌人击败
       this.defeatedEnemies.add(enemy.id);
-      if (result === 'purify') {
+      // 梦境的三种形态只是操作教学，道德值只由三阶段后的明确选择改变。
+      if (!isDreamBattle && result === 'purify') {
         this.karma.mercy += 1; // 以诗净化：倾向"火种"
-      } else {
+      } else if (!isDreamBattle) {
         this.karma.violence += 1; // 以武力消灭：倾向"燃尽"
       }
       // 从场景移除
@@ -1406,13 +1478,20 @@ export class Game {
       }
       if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
       // 梦境教学：不掉正式碎片、不推进主线 objective
-      if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
-        this.showHint(enemy.combat === 'hack' ? '噪声被撕开一道缝。' : '梗鬼在梦里散成光点。', 'success');
+      if (isDreamBattle) {
+        const mode = enemy._rolledCombat || enemy.combat;
+        const modeHint =
+          mode === 'hack'
+            ? '骇入空间里，噪声散开一道缝。'
+            : mode === 'slash'
+              ? '言锋对决中，烂梗被汉字顶开。'
+              : '弹幕战中，完整的句子让它溃散。';
+        this.showHint(modeHint, 'success');
         audio.playSfx('victory');
         fx.flash('#ffd866', 0.3, 300);
         this.player.dialogGrace = 1500;
         if (typeof this.notifyOnboarding === 'function') {
-          this.notifyOnboarding('battle_end', { result: 'win', enemy });
+          this.notifyOnboarding('battle_end', { result, enemy });
         }
         return;
       }
@@ -1450,14 +1529,14 @@ export class Game {
     } else if (result === 'spare') {
       // 以诗唤醒、宽恕：倾向"火种"
       this.defeatedEnemies.add(enemy.id);
-      this.karma.mercy += 1;
+      if (!(this.scene?.isDream || this.scene?.id === 'dream_tutorial')) this.karma.mercy += 1;
       if (this.scene.enemies) {
         const idx = this.scene.enemies.findIndex((e) => e.id === enemy.id);
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
       if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
       if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
-        this.showHint('梗鬼安静下来。（梦境宽恕）', 'success');
+        this.showHint('梗鬼安静下来。（宽恕 → 慈悲）', 'success');
         audio.playSfx('spare');
         this.player.dialogGrace = 1500;
         if (typeof this.notifyOnboarding === 'function') {
@@ -1804,33 +1883,20 @@ export class Game {
       // 接触伤害 / 进入战斗（侧向接触）
       const d = Math.hypot(e.x - p.x, e.y - p.y);
       if (d < 40 && !this._playerFalling) {
-        // 梦境教学：按步骤开战，不污染正式 first_geng / hack_core flags
+        // 梦境教学：同一回声的三种固定形态
         if (this.scene?.id === 'dream_tutorial' || this.scene?.isDream) {
           const step = this.flags.onboarding_step;
-          if (e.id === 'dream_geng_normal') {
-            if (step !== 'battle_menu') return;
-            if (!this.flags.onboarding_battle_intro_done) {
-              this.flags.onboarding_battle_intro_done = true;
-              this.startDialog(DIALOGS.onboarding_battle_intro || DIALOGS.first_geng_intro, '', () => {
-                this.startBattle(e);
-              });
-              return;
-            }
-            this.startBattle(e);
+          const dreamIds = ['dream_geng_1', 'dream_geng_2', 'dream_geng_3'];
+          if (!dreamIds.includes(e.id)) return;
+          if (step !== 'battle' && step !== 'wall4') return;
+          if (!this.flags.onboarding_battle_intro_done) {
+            this.flags.onboarding_battle_intro_done = true;
+            this.startDialog(DIALOGS.onboarding_battle_intro || DIALOGS.first_geng_intro, '', () => {
+              this.startBattle(e);
+            });
             return;
           }
-          if (e.id === 'dream_geng_hack') {
-            if (step !== 'battle_hack') return;
-            if (!this.flags.onboarding_hack_intro_done) {
-              this.flags.onboarding_hack_intro_done = true;
-              this.startDialog(DIALOGS.onboarding_hack_intro || DIALOGS.hack_core_intro, '', () => {
-                this.startBattle(e);
-              });
-              return;
-            }
-            this.startBattle(e);
-            return;
-          }
+          this.startBattle(e);
           return;
         }
         // 第一次遭遇剧情
@@ -1946,6 +2012,7 @@ export class Game {
     if (effect.trade) this.applyTrade(effect.trade);
     if (effect.flags) for (const k in effect.flags) this.flags[k] = effect.flags[k];
     if (effect.hint) this.showHint(effect.hint);
+    if (effect._storyDelta) applyStoryDelta(this, effect._storyDelta);
     // 梦境教学：对话选项「跳过教学」
     if (effect.flags && effect.flags.onboarding_skip_choice) {
       this._pendingSkipOnboarding = true;
@@ -2014,7 +2081,7 @@ export class Game {
       }
     }
     // 若本对话由 LLM 分支生成，把玩家的选择回写上下文，供下次对话复用
-    if (d.directorKey && opt.label) recordBranchChoice(d.directorKey, opt.label);
+    if (d.directorKey && opt.label) recordBranchChoice(d.directorKey, opt.label, this);
     this.applyEffect(opt.effect);
     if (
       d.dialogKey === 'abyss_final_choice' &&
@@ -2301,6 +2368,28 @@ export class Game {
     if (f.met_shuyuan) quests.push({ cat: '主线', text: '找到守砚并获赠刻刀', done: true });
     if (f.sidescroll_knife)
       quests.push({ cat: '主线', text: '在江堤获得记忆合金小刀', done: true });
+    // 叙事线索 / 世界史（AI 导演）
+    const st = ensureStoryState(this);
+    if (st.clues.length) {
+      for (const c of st.clues.slice(-8)) {
+        quests.push({ cat: '线索', text: c.label || c.id, done: true });
+      }
+    }
+    if (st.history.length) {
+      quests.push({
+        cat: '世界史',
+        text: st.history[st.history.length - 1],
+        done: true,
+      });
+    }
+    if (st.clues.length || st.history.length) {
+      quests.push({
+        cat: '规则',
+        text: `叙事导演：线索 ${st.clues.length} · 史 ${st.history.length}（终局 Sydney 会记得）`,
+        done: false,
+        optional: true,
+      });
+    }
     if (f.portal3d_done) quests.push({ cat: '主线', text: '穿过维度裂隙', done: true });
     if (f.stadium_puzzle_solved) quests.push({ cat: '主线', text: '点亮体育馆诗屏', done: true });
     if (f.stadium_geng_1_defeated || this.defeatedEnemies.has('stadium_geng_1')) {

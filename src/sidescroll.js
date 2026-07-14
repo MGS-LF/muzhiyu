@@ -7,6 +7,7 @@ import { W, H } from './config.js';
 import { DIALOGS } from './data/dialogs.js';
 import { CONTROL_HINTS } from './data/controls.js';
 import * as audio from './audio.js';
+import { directorEnabled } from './ai/director.js';
 
 // === 物理参数 ===
 const GRAVITY = 0.55;
@@ -334,9 +335,12 @@ export class SideScrollLevel {
         dialogKey = 'meet_shuyuan_ngplus';
         this.game.flags.ngplus_shuyuan_seen = true;
       }
-      this.game.startDialog(DIALOGS[dialogKey], '守砚', () => {
-        // 对话完成后：设置 flags 和物品（sidescroll 模式下 interact.js 不触发）
-        if (!this.game.flags.met_shuyuan) {
+      const afterShuyuan = () => {
+        if (typeof this.game._afterDirectorDialog === 'function') {
+          this.game._afterDirectorDialog(dialogKey);
+        } else if (typeof this.game._grantShuyuanItems === 'function') {
+          this.game._grantShuyuanItems();
+        } else if (!this.game.flags.met_shuyuan) {
           this.game.flags.met_shuyuan = true;
           this.game.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
           this.game.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
@@ -345,7 +349,6 @@ export class SideScrollLevel {
         }
         this.p.hasKnife = true;
         this.game.flags.sidescroll_knife = true;
-        // 交付提灯（返回传送点）
         this.returnPortal.active = true;
         this.game.flags.sidescroll_lantern = true;
         this.game.startDialog(RETURN_DIALOG, '守砚', () => {
@@ -353,7 +356,12 @@ export class SideScrollLevel {
             '空格跳跃踩踏梗鬼 · J 挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石'
           );
         });
-      });
+      };
+      if (directorEnabled() && typeof this.game._runDirectorBranch === 'function') {
+        this.game._runDirectorBranch(dialogKey, DIALOGS[dialogKey] || [], '守砚', afterShuyuan);
+      } else {
+        this.game.startDialog(DIALOGS[dialogKey], '守砚', afterShuyuan);
+      }
       return;
     }
     if (!this.p.hasKnife) {

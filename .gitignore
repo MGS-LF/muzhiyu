@@ -1,6 +1,8 @@
 # AI 接入产生的本地文件
 ai_keys.local.json
-cache/
+cache/*
+!cache/tts/
+!cache/tts/*.pcm
 
 # 临时/测试
 _tmp*

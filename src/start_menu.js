@@ -308,7 +308,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
             <div class="start-menu__actions">
               <button type="button" data-action="start">开始游戏</button>
               <button type="button" data-action="ngplus" data-ngplus hidden>二周目</button>
-              <button type="button" data-action="endless">言锋试炼</button>
+              <!-- <button type="button" data-action="endless">言锋试炼</button> -->
               <button type="button" data-action="saves">存档</button>
               <button type="button" data-action="about">关于游戏</button>
             </div>
