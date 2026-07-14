@@ -47,6 +47,7 @@ const SCENE_TO_BGM = {
   __ending_silence__: 'bgm_05_ending',
   // BGM-06 虚空：冷冻中心/数据中心/记忆深渊/网络中枢
   freeze_center: 'bgm_06_void',
+  dream_tutorial: 'bgm_06_void',
   data_center: 'bgm_06_void',
   memory_abyss: 'bgm_06_void',
   network_nexus: 'bgm_06_void',

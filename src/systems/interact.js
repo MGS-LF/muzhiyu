@@ -29,6 +29,7 @@ export const methods = {
     for (const it of this.scene.interactables) {
       // _cond 条件检查：未满足 flag 条件的交互点不可触发（如记忆碎片需先解谜）
       if (it._cond && !this.flags[it._cond]) continue;
+      if (it._hidden) continue;
       const d = Math.hypot(it.x - this.player.x, it.y - this.player.y);
       if (d < bd) {
         bd = d;
@@ -105,11 +106,52 @@ export const methods = {
         });
         return;
       }
+      if (best.type === 'dream_phone') {
+        const step = this.flags.onboarding_step;
+        if (step && step !== 'phone' && step !== 'intro') {
+          this.showHint('已经看过了。', 'info');
+          return;
+        }
+        this.startDialog(DIALOGS.onboarding_phone || [], best.label, () => {
+          if (typeof this.notifyOnboarding === 'function') this.notifyOnboarding('phone_ghost');
+        });
+        return;
+      }
+      if (best.type === 'dream_door') {
+        const doors = this.flags.onboarding_doors || {};
+        const key = best.door;
+        if (!doors[key]) {
+          if (typeof this.notifyOnboarding === 'function') {
+            this.notifyOnboarding('door_blocked', { door: key });
+          } else {
+            this.showHint('门还没开。', 'warn');
+          }
+          return;
+        }
+        // 已开门：把玩家推到门另一侧（向右）
+        const nx = (best.x || 0) + 40;
+        this.player.x = nx;
+        this.player.y = best.y || this.player.y;
+        if (typeof this.notifyOnboarding === 'function') {
+          this.notifyOnboarding('door_open', { door: key });
+        }
+        return;
+      }
+      if (best.type === 'dream_wake') {
+        if (best._hidden) return;
+        if (this.flags.onboarding_step !== 'wake_gate') {
+          this.showHint('裂隙还没稳定。', 'warn');
+          return;
+        }
+        if (typeof this.completeDreamOnboarding === 'function') this.completeDreamOnboarding();
+        return;
+      }
       if (best.type === 'scene_change') {
         // 章节门禁：前进型出口需满足条件
         if (best.gate) {
           const res = this.meetsGate(best.gate);
           if (!res.ok) {
+            if (typeof this.notifyOnboarding === 'function') this.notifyOnboarding('gate_blocked');
             this.startDialog(
               [
                 { s: '系统', t: best.gate.msg },
@@ -136,6 +178,7 @@ export const methods = {
             });
             return;
           }
+          if (typeof this.notifyOnboarding === 'function') this.notifyOnboarding('gate_opened');
         }
         this.loadScene(best.target, best.spawn);
         this.applySceneTransition(best.target);
@@ -275,6 +318,10 @@ export const methods = {
           this.recordChar(it.char);
           audio.playSfx('pickup');
           this.showHint(`获得：汉字碎片「${it.char}」`);
+          if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
+            if (typeof this.notifyOnboarding === 'function') this.notifyOnboarding('pickup_char', { char: it.char });
+            return;
+          }
           // 检查是否集齐
           const haveZhou = this.player.collectedCharsAll.filter((c) => c === '洲').length;
           const haveQiu = this.player.collectedCharsAll.filter((c) => c === '逑').length;

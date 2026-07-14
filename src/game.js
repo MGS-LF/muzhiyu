@@ -10,7 +10,7 @@ import { voice } from './ai/voice.js';
 import { AI } from './ai/config.js';
 import { recordBranchChoice, clearBranchHistory } from './ai/director.js';
 import { SideScrollLevel } from './sidescroll.js';
-import { SCENE_INTROS, createStartTutorial } from './tutorial.js';
+import { SCENE_INTROS } from './tutorial.js';
 import { PACE } from './pacing.js';
 // 新增系统：存档 / 音效 / 视觉特效 / 难度 / 小地图
 import {
@@ -33,6 +33,7 @@ import { POEM_LINES, PUZZLES } from './data/puzzles.js';
 import { methods as engraveMethods } from './systems/engrave.js';
 import { methods as dialogMethods } from './systems/dialog.js';
 import { methods as interactMethods } from './systems/interact.js';
+import { methods as onboardingMethods } from './systems/onboarding.js';
 import { EndlessMode } from './systems/endless.js';
 import { pushToast } from './ui/overlay.js';
 
@@ -104,6 +105,16 @@ export class Game {
       in_battle_hint: false,
       subway_depth_log_read: false,
       all_villagers_cured: false,
+      // 梦境教学
+      onboarding_dream_done: false,
+      onboarding_move_done: false,
+      onboarding_pickup_done: false,
+      onboarding_gate_taught: false,
+      onboarding_battle_done: false,
+      onboarding_hack_done: false,
+      onboarding_all_done: false,
+      onboarding_skipped: false,
+      _in_dream_onboarding: false,
     };
     // UI 面板：null | quest/map/inventory/settings/system/controls/debug
     this.uiPanel = null;
@@ -141,7 +152,8 @@ export class Game {
       // 死亡对话框
       dead: false,
     };
-    this.tutorial = createStartTutorial();
+    // 正式开局的全屏快捷键墙改为梦境教学；此处默认不弹
+    this.tutorial = null;
     // 模式：江堤横版 / 维度裂隙3D
     this.sidescroll = null;
     this.level3d = null;
@@ -314,10 +326,18 @@ export class Game {
     } catch (_) {
       /* ignore */
     }
+    // 默认进冷冻中心；若从序幕进入会由 main 再切到梦境教学
     this.loadScene('freeze_center');
     this.camera.snap(this.player.x, this.player.y, this.scene.width, this.scene.height);
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  /** 新游戏 / 序幕结束后：进入独立梦境教学场景 */
+  startOnboardingAfterIntro() {
+    if (typeof this.beginDreamOnboarding === 'function') {
+      this.beginDreamOnboarding({ skipStory: false });
+    }
   }
 
   loadScene(sceneId, spawnOverride) {
@@ -386,8 +406,9 @@ export class Game {
       // 预测预加载：当前场景的可到达目标场景 BGM 提前缓存
       this._preloadAdjacentScenes(sceneId);
     }
-    // 自动存档（节流：3 秒内不重复存，冷冻中心苏醒前不存）
-    const canSave = sceneId !== 'freeze_center' || this.flags.wake_done;
+    // 自动存档（节流：3 秒内不重复存；冷冻中心苏醒前 / 梦境教学中不存）
+    const inDream = sceneId === 'dream_tutorial' || this.flags._in_dream_onboarding;
+    const canSave = !inDream && (sceneId !== 'freeze_center' || this.flags.wake_done);
     if (canSave && performance.now() - this._lastAutoSave > 3000) {
       this._lastAutoSave = performance.now();
       autoSave(this);
@@ -530,6 +551,11 @@ export class Game {
 
   // 集中式目标计算：根据场景 + flags + 永久收集，得出当前该做什么 + 指引坐标 + 进度
   refreshObjective() {
+    // 梦境教学：由 onboarding 独占 objective（含 progress 字格）
+    if (this.scene?.id === 'dream_tutorial' || this.flags._in_dream_onboarding) {
+      if (typeof this._dreamRefreshObjective === 'function') this._dreamRefreshObjective();
+      return;
+    }
     const p = this.player;
     const has = (c) => p.collectedCharsAll.includes(c);
     const sid = this.scene.id;
@@ -1295,6 +1321,17 @@ export class Game {
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
       if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
+      // 梦境教学：不掉正式碎片、不推进主线 objective
+      if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
+        this.showHint(enemy.combat === 'hack' ? '噪声被撕开一道缝。' : '梗鬼在梦里散成光点。', 'success');
+        audio.playSfx('victory');
+        fx.flash('#ffd866', 0.3, 300);
+        this.player.dialogGrace = 1500;
+        if (typeof this.notifyOnboarding === 'function') {
+          this.notifyOnboarding('battle_end', { result: 'win', enemy });
+        }
+        return;
+      }
       // 掉落汉字碎片（数据驱动：从场景掉落表读取）
       const drops = DROP_TABLES[this.scene.id] || DEFAULT_DROPS;
       const drop = drops[Math.floor(Math.random() * drops.length)];
@@ -1330,6 +1367,15 @@ export class Game {
         if (idx >= 0) this.scene.enemies.splice(idx, 1);
       }
       if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
+      if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
+        this.showHint('梗鬼安静下来。（梦境宽恕）', 'success');
+        audio.playSfx('spare');
+        this.player.dialogGrace = 1500;
+        if (typeof this.notifyOnboarding === 'function') {
+          this.notifyOnboarding('battle_end', { result: 'spare', enemy });
+        }
+        return;
+      }
       this.showHint('梗鬼安静下来，化作一缕暖光散去。（宽恕）');
       audio.playSfx('spare');
       fx.flash('#ffd866', 0.4, 500);
@@ -1342,6 +1388,22 @@ export class Game {
       fx.shake(16, 600);
       fx.flash('#cc4444', 0.5, 400);
       this.player.san = this.player.maxSan;
+      if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
+        this.showHint('梦里倒下了……门还是开了。', 'warn');
+        // 教学失败也推进，并移除该敌，避免反复卡住
+        if (enemy?.id) {
+          this.defeatedEnemies.add(enemy.id);
+          if (this.scene.enemies) {
+            const idx = this.scene.enemies.findIndex((e) => e.id === enemy.id);
+            if (idx >= 0) this.scene.enemies.splice(idx, 1);
+          }
+        }
+        this.player.san = this.player.maxSan;
+        if (typeof this.notifyOnboarding === 'function') {
+          this.notifyOnboarding('battle_end', { result: 'lose', enemy });
+        }
+        return;
+      }
       const respawn = this._nearestKeystoneSpawn();
       if (respawn) {
         this.showHint('你在要石的微光中醒来……');
@@ -1653,6 +1715,35 @@ export class Game {
       // 接触伤害 / 进入战斗（侧向接触）
       const d = Math.hypot(e.x - p.x, e.y - p.y);
       if (d < 40 && !this._playerFalling) {
+        // 梦境教学：按步骤开战，不污染正式 first_geng / hack_core flags
+        if (this.scene?.id === 'dream_tutorial' || this.scene?.isDream) {
+          const step = this.flags.onboarding_step;
+          if (e.id === 'dream_geng_normal') {
+            if (step !== 'battle_menu') return;
+            if (!this.flags.onboarding_battle_intro_done) {
+              this.flags.onboarding_battle_intro_done = true;
+              this.startDialog(DIALOGS.onboarding_battle_intro || DIALOGS.first_geng_intro, '', () => {
+                this.startBattle(e);
+              });
+              return;
+            }
+            this.startBattle(e);
+            return;
+          }
+          if (e.id === 'dream_geng_hack') {
+            if (step !== 'battle_hack') return;
+            if (!this.flags.onboarding_hack_intro_done) {
+              this.flags.onboarding_hack_intro_done = true;
+              this.startDialog(DIALOGS.onboarding_hack_intro || DIALOGS.hack_core_intro, '', () => {
+                this.startBattle(e);
+              });
+              return;
+            }
+            this.startBattle(e);
+            return;
+          }
+          return;
+        }
         // 第一次遭遇剧情
         if (
           this.scene.id === 'street_01' &&
@@ -1766,6 +1857,10 @@ export class Game {
     if (effect.trade) this.applyTrade(effect.trade);
     if (effect.flags) for (const k in effect.flags) this.flags[k] = effect.flags[k];
     if (effect.hint) this.showHint(effect.hint);
+    // 梦境教学：对话选项「跳过教学」
+    if (effect.flags && effect.flags.onboarding_skip_choice) {
+      this._pendingSkipOnboarding = true;
+    }
   }
 
   applyTrade(kind) {
@@ -2501,4 +2596,4 @@ export class Game {
   }
 }
 
-Object.assign(Game.prototype, interactMethods, engraveMethods, dialogMethods);
+Object.assign(Game.prototype, interactMethods, engraveMethods, dialogMethods, onboardingMethods);

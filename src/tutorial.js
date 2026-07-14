@@ -3,6 +3,7 @@
 import { CONTROL_HINTS } from './data/controls.js';
 
 export const SCENE_INTROS = {
+  dream_tutorial: 'WASD 移动 · E 互动。一次只做一件事，跟着左上角目标走。',
   freeze_center: '左上角是你的目标。靠近发光物体按 E 互动。',
   street_01: '废墟街道很大——跟着金色箭头走，沿途按 E 拾取发光的汉字碎片。',
   riverside: '江风里有人在念诗。往西侧的光柱走，找到那位老人。',

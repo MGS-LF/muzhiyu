@@ -94,6 +94,101 @@ export const scenes = {
   },
 
   // ==========================================
+  // 梦境教学场（线性走廊，传说之下式）
+  // R0 序幕厅 → R1 捡字廊 → R2 常规战 → R3 言锋室 → 裂隙醒来
+  // 门墙由 onboarding 动态开关（dream_door_* id）
+  // ==========================================
+  dream_tutorial: {
+    id: 'dream_tutorial',
+    name: '梦境·失语前夜',
+    width: 2000,
+    height: 520,
+    bgColor: '#0c0a14',
+    isDream: true,
+    atmosphere: {
+      tint: 'rgba(120,90,180,0.1)',
+      motes: { n: 40, color: '180,150,255', speed: 0.28, size: 1.5 },
+      fog: 0.4,
+    },
+
+    // 外框 + 三道纵向隔断（中间留门洞 210–310，门洞由动态墙封住）
+    walls: [
+      { x: 0, y: 0, w: 2000, h: 10 },
+      { x: 0, y: 510, w: 2000, h: 10 },
+      { x: 0, y: 0, w: 10, h: 520 },
+      { x: 1990, y: 0, w: 10, h: 520 },
+      // 隔断 A (x=480)：R0|R1
+      { x: 480, y: 10, w: 12, h: 200, id: 'dream_wall_a_top' },
+      { x: 480, y: 310, w: 12, h: 200, id: 'dream_wall_a_bot' },
+      // 隔断 B (x=980)：R1|R2
+      { x: 980, y: 10, w: 12, h: 200, id: 'dream_wall_b_top' },
+      { x: 980, y: 310, w: 12, h: 200, id: 'dream_wall_b_bot' },
+      // 隔断 C (x=1480)：R2|R3
+      { x: 1480, y: 10, w: 12, h: 200, id: 'dream_wall_c_top' },
+      { x: 1480, y: 310, w: 12, h: 200, id: 'dream_wall_c_bot' },
+    ],
+
+    props: [
+      { x: 40, y: 40, w: 70, h: 120, name: '幻影高楼' },
+      { x: 160, y: 50, w: 50, h: 90, name: '幻影高楼' },
+      { x: 600, y: 40, w: 80, h: 100, name: '幻影高楼' },
+      { x: 1100, y: 50, w: 60, h: 110, name: '幻影高楼' },
+      { x: 1600, y: 40, w: 90, h: 130, name: '幻影高楼' },
+      { x: 1800, y: 60, w: 70, h: 100, name: '幻影高楼' },
+    ],
+
+    // 敌人由 onboarding 按步骤动态放入；初始为空
+    enemies: [],
+
+    interactables: [
+      {
+        id: 'dream_phone',
+        x: 280,
+        y: 260,
+        label: '发光的手机幻象',
+        type: 'dream_phone',
+      },
+      {
+        id: 'dream_door_a',
+        x: 486,
+        y: 255,
+        label: '前路',
+        type: 'dream_door',
+        door: 'a',
+      },
+      {
+        id: 'dream_door_b',
+        x: 986,
+        y: 255,
+        label: '被污染的路口',
+        type: 'dream_door',
+        door: 'b',
+        gateChars: ['言', '语'],
+      },
+      {
+        id: 'dream_door_c',
+        x: 1486,
+        y: 255,
+        label: '噪声更深的门',
+        type: 'dream_door',
+        door: 'c',
+      },
+      {
+        id: 'dream_wake',
+        x: 1850,
+        y: 260,
+        label: '醒来的金色裂隙',
+        type: 'dream_wake',
+      },
+    ],
+
+    // 碎片初始不放，phone 完成后再刷到 R1
+    items: [],
+
+    spawn: { x: 120, y: 260 },
+  },
+
+  // ==========================================
   // 废弃街道（第一章主场景）
   // ==========================================
   street_01: {

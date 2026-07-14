@@ -236,6 +236,7 @@ export function summarize(snap) {
   const timeStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   const sceneNames = {
     freeze_center: '冷冻中心',
+    dream_tutorial: '梦境·失语前夜',
     street_01: '废弃街道',
     riverside: '江堤',
     subway: '地铁站',

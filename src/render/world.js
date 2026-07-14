@@ -268,6 +268,7 @@ export const INTERACTABLES_WITH_VISUAL = new Set([
 
 export function isInteractableVisible(it, game) {
   if (!it) return false;
+  if (it._hidden) return false;
   if (!it._cond) return true;
   return !!(game && game.flags && game.flags[it._cond]);
 }

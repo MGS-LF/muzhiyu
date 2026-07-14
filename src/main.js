@@ -66,6 +66,7 @@ function shouldWriteRefreshResume() {
   if (!game.scene) return false;
   if (game.endless) return false;
   if (game.flags.game_complete || game.ending) return false;
+  if (game.scene.id === 'dream_tutorial' || game.flags._in_dream_onboarding) return false;
   // 正在返回标题时不要写续玩快照
   try {
     if (sessionStorage.getItem('keheng_to_title') === '1') return false;
@@ -120,6 +121,10 @@ function finishIntroOverlay() {
   window.removeEventListener('keydown', skipIntroFromParent, true);
   introFrame = null;
   game.flags.wake_done = true;
+  // 序幕结束后进入独立梦境教学（非二周目）
+  if (typeof game.startOnboardingAfterIntro === 'function') {
+    setTimeout(() => game.startOnboardingAfterIntro(), 380);
+  }
 }
 
 function skipIntroFromParent(e) {
@@ -168,6 +173,10 @@ function finishBoot() {
     }
     if ((!FROM_INTRO && !restoredRefresh && !startMenu) || (TO_TITLE && !startMenu)) {
       startMenu = mountStartMenu(game, { fromIntro: false });
+    }
+    // 从 intro_3d 整页跳转回来：直接进梦境教学
+    if (FROM_INTRO && !restoredRefresh && typeof game.startOnboardingAfterIntro === 'function') {
+      setTimeout(() => game.startOnboardingAfterIntro(), 200);
     }
   }, 280);
 }

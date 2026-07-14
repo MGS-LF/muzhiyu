@@ -131,7 +131,8 @@ export function render(game, gameTime) {
     scene.id === 'ruined_library' ||
     scene.id === 'network_nexus' ||
     scene.id === 'memory_abyss' ||
-    scene.id === 'lost_village'
+    scene.id === 'lost_village' ||
+    scene.id === 'dream_tutorial'
   ) {
     drawGenericScene(ctx, W2S, scene, gameTime, game);
   }
