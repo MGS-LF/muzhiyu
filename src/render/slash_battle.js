@@ -474,7 +474,7 @@ export function drawSlashBattle(ctx, battle, gameTime) {
 
     ctx.fillStyle = 'rgba(7, 8, 10, 0.98)';
     ctx.fillRect(W / 2 - tw / 2, 46, tw, 28);
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+    ctx.strokeStyle = 'rgba(232, 176, 88, 0.6)';
     ctx.lineWidth = 1;
     ctx.strokeRect(W / 2 - tw / 2, 46, tw, 28);
 

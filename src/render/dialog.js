@@ -1,12 +1,19 @@
 import { roundRect, wrapText } from './util.js';
 import { W, H } from '../config.js';
-import { UI, SPACE, font, STROKE } from '../ui/tokens.js';
+import {
+  UI,
+  SPACE,
+  font,
+  RADIUS,
+  STROKE,
+  drawCornerHooks,
+  drawTopGlowLine,
+  panelFrame,
+} from '../ui/tokens.js';
 import { drawToasts, drawOverlayState } from '../ui/overlay.js';
 
-// ===== from dialog.js =====
-// 渲染模块：dialog
+// 渲染模块：dialog · 贴纸手账信纸
 
-// ============================================================
 export function drawDialog(ctx, d, gameTime, game) {
   ctx.save();
   ctx.textAlign = 'left';
@@ -14,111 +21,157 @@ export function drawDialog(ctx, d, gameTime, game) {
   const line = d.lines[d.idx];
   const text = line.t !== undefined ? line.t.substring(0, d.charIdx) : '';
 
-  const boxX = 80,
-    boxY = H - 170,
-    boxW = W - 160,
-    boxH = 130;
+  const boxX = 72,
+    boxY = H - 168,
+    boxW = W - 144,
+    boxH = 136;
   const highContrast = !!(game && game.settings && game.settings.highContrast);
+  const reduced = !!(game && game.settings && game.settings.reducedFx);
+  const r = RADIUS;
 
-  // 1. 直角投影
+  // 半透明信纸底
   ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-  ctx.shadowBlur = 12;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.96)' : 'rgba(18, 14, 12, 0.78)';
+  roundRect(ctx, boxX, boxY, boxW, boxH, r);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
 
-  // 默认对比度提升：底色采用终端炭黑
-  ctx.fillStyle = UI.panelBg;
-  ctx.fillRect(boxX, boxY, boxW, boxH);
-  ctx.restore(); // 清除投影
-
-  // 2. 直角 1px 细线框
-  ctx.strokeStyle = UI.panelLine;
+  ctx.strokeStyle = highContrast ? 'rgba(255,220,140,0.95)' : UI.panelLine;
   ctx.lineWidth = STROKE;
-  ctx.strokeRect(boxX, boxY, boxW, boxH);
-
-  // 3. 顶部横向青色装饰线
-  ctx.strokeStyle = UI.ok;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(boxX + 20, boxY);
-  ctx.lineTo(boxX + boxW - 20, boxY);
+  roundRect(ctx, boxX, boxY, boxW, boxH, r);
   ctx.stroke();
 
-  // 4. 头像装饰框 (直角)
-  ctx.fillStyle = 'rgba(20, 22, 26, 0.9)';
-  ctx.fillRect(boxX + 16, boxY + 16, 60, 60);
-  ctx.strokeStyle = UI.panelLine;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(boxX + 16, boxY + 16, 60, 60);
+  // 顶缘灯火
+  drawTopGlowLine(ctx, boxX, boxY, boxW);
 
-  const cx = boxX + 46,
-    cy = boxY + 46;
-  ctx.fillStyle = 'rgba(0, 240, 255, 0.2)'; // 头像底图配置低饱和荧光青蓝
+  // 轻扫描（非减动效）
+  if (!reduced && !highContrast) {
+    const scanT = ((gameTime * 0.04) % (boxW + 80)) - 40;
+    const sg = ctx.createLinearGradient(boxX + scanT, boxY, boxX + scanT + 60, boxY);
+    sg.addColorStop(0, 'rgba(255,230,170,0)');
+    sg.addColorStop(0.5, 'rgba(255,230,170,0.06)');
+    sg.addColorStop(1, 'rgba(255,230,170,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(boxX + 2, boxY + 2, boxW - 4, boxH - 4);
+  }
+
+  // 左侧墨金竖条
+  const railPulse = reduced ? 0.85 : 0.55 + (Math.sin(gameTime * 0.004) * 0.5 + 0.5) * 0.45;
+  const railG = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
+  railG.addColorStop(0, 'rgba(255,200,100,0)');
+  railG.addColorStop(0.2, `rgba(255,200,100,${railPulse})`);
+  railG.addColorStop(0.8, `rgba(255,180,80,${railPulse * 0.9})`);
+  railG.addColorStop(1, 'rgba(255,200,100,0)');
+  ctx.fillStyle = railG;
+  ctx.fillRect(boxX + 1, boxY + 8, 3, boxH - 16);
+
+  // 头像 + 四角勾（不转圈）
+  const ax = boxX + 16,
+    ay = boxY + 18,
+    as = 56;
+  ctx.fillStyle = highContrast ? 'rgba(0,0,0,0.9)' : 'rgba(40, 32, 24, 0.85)';
+  roundRect(ctx, ax, ay, as, as, 4);
+  ctx.fill();
+  ctx.strokeStyle = UI.goldLine;
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, ax, ay, as, as, 4);
+  ctx.stroke();
+  drawCornerHooks(ctx, ax - 3, ay - 3, as + 6, as + 6, 10, `rgba(255, 210, 140, ${0.5 + railPulse * 0.4})`);
+
+  const cx = ax + as / 2,
+    cy = ay + as / 2;
+  ctx.fillStyle = 'rgba(232, 176, 88, 0.35)';
   ctx.beginPath();
   ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillRect(cx - 12, cy, 24, 20);
 
-  ctx.fillStyle = UI.ok;
-  ctx.font = font(16, true);
-  ctx.textBaseline = 'top';
+  // 朱砂小印
+  ctx.fillStyle = 'rgba(180, 50, 45, 0.75)';
+  ctx.fillRect(ax + as - 14, ay + as - 14, 16, 16);
+  ctx.strokeStyle = 'rgba(255, 120, 100, 0.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(ax + as - 14, ay + as - 14, 16, 16);
+  ctx.fillStyle = 'rgba(255, 230, 220, 0.95)';
+  ctx.font = font(9, true);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('言', ax + as - 6, ay + as - 6);
 
-  // 说话人名称 (Speaker Name) 左侧增加垂直小青色装饰立线
   const speakerName = line.s || d.name || '';
-  ctx.fillText(speakerName, boxX + 90, boxY + 18);
-  if (speakerName) {
-    ctx.fillStyle = UI.ok;
-    ctx.fillRect(boxX + 83, boxY + 19, 2.5, 14);
-  }
+  const textLeft = boxX + 88;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = highContrast ? '#fff0a8' : UI.goldBright;
+  ctx.font = font(15, true);
+  ctx.fillText(speakerName, textLeft, boxY + 18);
 
-  ctx.strokeStyle = 'rgba(94, 99, 107, 0.25)'; // 细横线
+  // 名下短金线
+  ctx.strokeStyle = 'rgba(255, 210, 140, 0.2)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(boxX + 90, boxY + 40);
+  ctx.moveTo(textLeft, boxY + 40);
   ctx.lineTo(boxX + boxW - 20, boxY + 40);
   ctx.stroke();
+  const nameLineW = 40 + (reduced ? 0 : Math.sin(gameTime * 0.003) * 16);
+  ctx.strokeStyle = `rgba(255, 210, 120, ${0.7 + railPulse * 0.25})`;
+  ctx.beginPath();
+  ctx.moveTo(textLeft, boxY + 40);
+  ctx.lineTo(textLeft + nameLineW, boxY + 40);
+  ctx.stroke();
 
-  ctx.fillStyle = UI.ink;
-  ctx.font = font(16, true);
-  let y = boxY + 60;
+  ctx.fillStyle = highContrast ? '#ffffff' : UI.ink;
+  ctx.font = font(15, true);
+  let y = boxY + 56;
   const maxW = boxW - 110;
-  const lineH = SPACE.x4 + 6; // 行高约 22
+  const lineH = SPACE.x4 + 6;
   let line_text = '';
   for (const c of text) {
     if (c === '\n') {
-      ctx.fillText(line_text, boxX + 90, y);
+      ctx.fillText(line_text, textLeft, y);
       line_text = '';
       y += lineH;
       continue;
     }
     const test = line_text + c;
     if (ctx.measureText(test).width > maxW) {
-      ctx.fillText(line_text, boxX + 90, y);
+      ctx.fillText(line_text, textLeft, y);
       line_text = c;
       y += lineH;
     } else {
       line_text = test;
     }
   }
-  ctx.fillText(line_text, boxX + 90, y);
+  ctx.fillText(line_text, textLeft, y);
+  // 打字光标
+  if (!d.done && !d.choosing && !reduced) {
+    const caretOn = Math.floor(gameTime / 350) % 2 === 0;
+    if (caretOn) {
+      const cw = ctx.measureText(line_text).width;
+      ctx.fillStyle = UI.goldBright;
+      ctx.fillRect(textLeft + cw + 2, y + 2, 2, 14);
+    }
+  }
 
   if (d.choosing && line.choice) {
     drawChoices(ctx, d, boxX, boxY, boxW, gameTime);
   } else if (d.done) {
-    const a = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
-    ctx.fillStyle = `rgba(0, 240, 255, ${a})`; // 优化为荧光青蓝淡入淡出
-    ctx.font = font(12, true);
+    const a = 0.55 + Math.sin(gameTime * 0.005) * 0.35;
+    ctx.fillStyle = `rgba(232, 176, 88, ${a})`;
+    ctx.font = font(11, true);
     ctx.textAlign = 'right';
-    const hint = line.choice ? '▼ E 做出选择' : '▼ E / 空格 继续';
-    ctx.fillText(hint, boxX + boxW - 20, boxY + boxH - 14);
+    ctx.fillText(line.choice ? 'E 做出选择' : 'E / 空格 继续', boxX + boxW - 18, boxY + boxH - 14);
   }
   ctx.restore();
 }
 
-// 选项菜单（浮在对话框上方）
 export function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
   const opts = d.lines[d.idx].choice;
   const ow = 460,
-    oh = 30,
+    oh = 32,
     gap = 6;
   const totalH = opts.length * (oh + gap);
   const ox = boxX + boxW - ow - 16;
@@ -129,36 +182,35 @@ export function drawChoices(ctx, d, boxX, boxY, boxW, gameTime) {
     const ry = oy + i * (oh + gap);
     const breath = sel ? 0.08 + (Math.sin(gameTime * 0.005) * 0.5 + 0.5) * 0.08 : 0;
 
-    // 选中选项采用自左向右淡出的荧光青蓝微光背景，未选中为更柔和的终端炭黑
     if (sel) {
       const optGrad = ctx.createLinearGradient(ox, ry, ox + ow, ry);
-      optGrad.addColorStop(0, `rgba(0, 240, 255, ${0.18 + breath * 2.2})`);
-      optGrad.addColorStop(0.3, `rgba(0, 240, 255, ${0.08 + breath * 1.2})`);
-      optGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+      optGrad.addColorStop(0, `rgba(232, 176, 88, ${0.2 + breath * 2})`);
+      optGrad.addColorStop(0.35, `rgba(232, 176, 88, ${0.08 + breath})`);
+      optGrad.addColorStop(1, 'rgba(232, 176, 88, 0)');
       ctx.fillStyle = optGrad;
     } else {
-      ctx.fillStyle = 'rgba(7, 8, 10, 0.95)';
+      ctx.fillStyle = 'rgba(18, 14, 12, 0.88)';
     }
-
-    ctx.fillRect(ox, ry, ow, oh);
-    ctx.strokeStyle = sel ? UI.ok : 'rgba(94, 99, 107, 0.3)';
+    roundRect(ctx, ox, ry, ow, oh, 5);
+    ctx.fill();
+    ctx.strokeStyle = sel ? UI.goldBright : 'rgba(232, 176, 88, 0.28)';
     ctx.lineWidth = sel ? 1.5 : 1;
-    ctx.strokeRect(ox, ry, ow, oh);
+    roundRect(ctx, ox, ry, ow, oh, 5);
+    ctx.stroke();
 
-    // 选中时光标为一个充满技术冷冽感的水墨小圆点 ●
     if (sel) {
-      ctx.fillStyle = UI.ok;
+      ctx.fillStyle = UI.goldBright;
       ctx.beginPath();
       ctx.arc(ox + 14, ry + oh / 2, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.fillStyle = sel ? 'rgba(0, 240, 255, 1)' : UI.inkSoft;
+    ctx.fillStyle = sel ? UI.goldBright : UI.inkSoft;
     ctx.font = font(14, true);
     ctx.textAlign = 'left';
     ctx.fillText(opts[i].label, ox + 28, ry + oh / 2);
   }
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = `rgba(0, 240, 255, ${0.5 + Math.sin(gameTime * 0.005) * 0.3})`;
+  ctx.fillStyle = `rgba(232, 176, 88, ${0.5 + Math.sin(gameTime * 0.005) * 0.3})`;
   ctx.font = font(12, true);
   ctx.textAlign = 'right';
   ctx.fillText('↑ ↓ 选择 · E 确认', boxX + boxW - 16, oy - 8);
@@ -176,54 +228,33 @@ export function drawHints(ctx, hints) {
 // 教程覆盖层
 // ============================================================
 export function drawTutorial(ctx, gameTime, tutorial) {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillStyle = 'rgba(8,6,5,0.65)';
   ctx.fillRect(0, 0, W, H);
 
-  // 面板尺寸：加宽加高，适配 9 个快捷键 + 充足留白
   const pw = 560,
     ph = 460;
   const px = (W - pw) / 2,
     py = (H - ph) / 2;
 
-  // 面板背景
-  ctx.fillStyle = UI.panelBg;
-  ctx.fillRect(px, py, pw, ph);
-  ctx.strokeStyle = UI.panelLine;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(px, py, pw, ph);
+  panelFrame(ctx, px, py, pw, ph, { title: null, solid: true });
 
-  // ASCII 角标
-  ctx.fillStyle = UI.inkSoft;
-  ctx.font = fontMono(11, false);
-  ctx.fillText('┌', px + 3, py + 11);
-  ctx.fillText('┐', px + pw - 10, py + 11);
-  ctx.fillText('└', px + 3, py + ph - 3);
-  ctx.fillText('┘', px + pw - 10, py + ph - 3);
-
-  // 顶部青色装饰条
-  ctx.fillStyle = UI.ok;
-  ctx.fillRect(px + 20, py, pw - 40, 1.5);
-
-  // === 标题区 ===
-  ctx.fillStyle = UI.ok;
-  ctx.font = 'bold 26px serif';
+  ctx.fillStyle = UI.goldBright;
+  ctx.font = font(24, true);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillText(tutorial.title || '墓 之 语', px + pw / 2, py + 28);
 
   ctx.fillStyle = UI.inkSoft;
-  ctx.font = 'bold 12px serif';
+  ctx.font = font(12, true);
   ctx.fillText('公元 2147 · 上海废墟', px + pw / 2, py + 64);
 
-  // 分隔线
-  ctx.strokeStyle = 'rgba(94, 99, 107, 0.25)';
+  ctx.strokeStyle = 'rgba(232, 176, 88, 0.25)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(px + 60, py + 92);
   ctx.lineTo(px + pw - 60, py + 92);
   ctx.stroke();
 
-  // === 快捷键列表（双列布局，避免拥挤）===
   const keys = tutorial.keys || [
     { k: 'WASD', d: '移动' },
     { k: 'Shift', d: '奔跑' },
@@ -237,26 +268,26 @@ export function drawTutorial(ctx, gameTime, tutorial) {
   const descW = colW - keyBoxW - 14;
 
   for (let i = 0; i < keys.length; i++) {
-    const col = i % 2; // 0=左列, 1=右列
+    const col = i % 2;
     const row = Math.floor(i / 2);
     const kx = px + 40 + col * (colW + colGap);
     const ky = startY + row * rowH;
 
-    // 按键标签框
-    ctx.fillStyle = 'rgba(20, 22, 26, 0.95)';
-    ctx.fillRect(kx, ky - 12, keyBoxW, keyBoxH);
-    ctx.strokeStyle = 'rgba(94, 99, 107, 0.5)';
+    ctx.fillStyle = 'rgba(40, 32, 24, 0.9)';
+    roundRect(ctx, kx, ky - 12, keyBoxW, keyBoxH, 4);
+    ctx.fill();
+    ctx.strokeStyle = UI.goldLine;
     ctx.lineWidth = 1;
-    ctx.strokeRect(kx, ky - 12, keyBoxW, keyBoxH);
-    ctx.fillStyle = UI.ok;
-    ctx.font = 'bold 11px monospace';
+    roundRect(ctx, kx, ky - 12, keyBoxW, keyBoxH, 4);
+    ctx.stroke();
+    ctx.fillStyle = UI.goldBright;
+    ctx.font = font(11, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(keys[i].k, kx + keyBoxW / 2, ky);
 
-    // 描述文字
     ctx.fillStyle = UI.ink;
-    ctx.font = 'bold 12px serif';
+    ctx.font = font(12, true);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const descLines = _measureWrapLines(ctx, keys[i].d, descW, 2);
@@ -266,9 +297,8 @@ export function drawTutorial(ctx, gameTime, tutorial) {
     }
   }
 
-  // === 底部提示区 ===
   const tipY = startY + Math.ceil(keys.length / 2) * rowH + 20;
-  ctx.strokeStyle = 'rgba(94, 99, 107, 0.25)';
+  ctx.strokeStyle = 'rgba(232, 176, 88, 0.2)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(px + 60, tipY);
@@ -276,17 +306,15 @@ export function drawTutorial(ctx, gameTime, tutorial) {
   ctx.stroke();
 
   ctx.fillStyle = UI.inkSoft;
-  ctx.font = 'bold 12px serif';
+  ctx.font = font(12, true);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   const tip = tutorial.tip || '提示：靠近发光的物体按 E 交互。';
-  // 长提示自动换行
   _wrapText(ctx, tip, px + pw / 2, tipY + 14, pw - 80, 18);
 
-  // 开始提示（闪烁）
   const blink = 0.5 + Math.sin(gameTime * 0.004) * 0.4;
-  ctx.fillStyle = `rgba(0, 240, 255, ${blink})`;
-  ctx.font = 'bold 15px serif';
+  ctx.fillStyle = `rgba(232, 176, 88, ${blink})`;
+  ctx.font = font(15, true);
   ctx.textBaseline = 'top';
   ctx.fillText('▼ 按 E 或 空格 开始', px + pw / 2, py + ph + 8);
   ctx.textAlign = 'left';

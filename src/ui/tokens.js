@@ -1,28 +1,30 @@
-// UI 设计令牌：Canvas 与 DOM 共用语义色 / 字体 / 间距
+// UI 设计令牌：贴纸手账 · 透明废墟便签
 import { W, H } from '../config.js';
+import { roundRect } from '../render/util.js';
 
 export const UI = {
-  ink: 'rgba(235, 230, 220, 0.98)', // 拓片骨白，对比度极高且字重显厚
-  inkSoft: 'rgba(150, 155, 165, 0.95)', // 废墟水泥灰
-  inkFaint: 'rgba(100, 105, 115, 0.85)', // 次要终端说明字
-  gold: 'rgba(217, 155, 66, 0.95)', // 琥珀古金
-  goldBright: 'rgba(255, 200, 120, 0.98)', // 高亮古金
-  goldSoft: 'rgba(217, 155, 66, 0.08)', // 极淡金色区域背景
-  goldLine: 'rgba(217, 155, 66, 0.35)', // 辅助修饰金线
-  panelBg: 'rgba(7, 8, 10, 0.98)', // 终端炭黑背景
-  panelLine: 'rgba(94, 99, 107, 0.45)', // 终端细线框 (1px 直角)
-  panelMask: 'rgba(3, 4, 5, 0.92)', // 黑暗环境遮罩
-  ok: 'rgba(0, 240, 255, 0.95)', // 荧光青蓝 (AI与纯净色)
-  warn: 'rgba(217, 155, 66, 0.95)', // 琥珀古金 (警告)
-  danger: 'rgba(211, 54, 54, 0.98)', // 朱砂红 (理性流失/梗污染)
-  dangerSoft: 'rgba(211, 54, 54, 0.15)', // 朱砂流砂底色
-  barBg: 'rgba(20, 22, 26, 0.9)', // 终端能量底色
-  // toast 分级
+  ink: 'rgba(255, 248, 235, 0.98)',
+  inkSoft: 'rgba(220, 200, 165, 0.88)',
+  inkFaint: 'rgba(170, 150, 120, 0.7)',
+  gold: 'rgba(232, 176, 88, 0.95)',
+  goldBright: 'rgba(255, 214, 130, 0.98)',
+  goldSoft: 'rgba(232, 176, 88, 0.14)',
+  goldLine: 'rgba(232, 176, 88, 0.42)',
+  panelBg: 'rgba(18, 14, 12, 0.72)',
+  panelBgSolid: 'rgba(18, 14, 12, 0.94)',
+  panelLine: 'rgba(232, 176, 88, 0.4)',
+  panelMask: 'rgba(8, 6, 5, 0.82)',
+  ok: 'rgba(110, 200, 150, 0.95)',
+  warn: 'rgba(232, 176, 88, 0.95)',
+  danger: 'rgba(220, 86, 86, 0.96)',
+  dangerSoft: 'rgba(220, 86, 86, 0.14)',
+  barBg: 'rgba(28, 22, 18, 0.85)',
+  spirit: 'rgba(120, 190, 210, 0.85)',
   toast: {
-    info: { bar: 'rgba(0, 240, 255, 0.95)', bg: 'rgba(7, 8, 10, 0.98)' },
-    success: { bar: 'rgba(0, 240, 255, 0.95)', bg: 'rgba(7, 8, 10, 0.98)' },
-    warn: { bar: 'rgba(217, 155, 66, 0.95)', bg: 'rgba(7, 8, 10, 0.98)' },
-    danger: { bar: 'rgba(211, 54, 54, 0.98)', bg: 'rgba(7, 8, 10, 0.98)' },
+    info: { bar: 'rgba(232, 176, 88, 0.95)', bg: 'rgba(18, 14, 12, 0.78)' },
+    success: { bar: 'rgba(110, 200, 150, 0.95)', bg: 'rgba(14, 20, 16, 0.78)' },
+    warn: { bar: 'rgba(232, 176, 88, 0.95)', bg: 'rgba(22, 16, 10, 0.8)' },
+    danger: { bar: 'rgba(220, 86, 86, 0.96)', bg: 'rgba(24, 12, 12, 0.82)' },
   },
 };
 
@@ -38,98 +40,154 @@ export const TYPE = {
 
 export const SPACE = { x1: 4, x2: 8, x3: 12, x4: 16, x6: 24 };
 
-export const RADIUS = 0; // 彻底直角美学
-export const STROKE = 1.0; // 像素级细线
+export const RADIUS = 6;
+export const STROKE = 1.5;
 
-/** UI 缩放因子：以短边 760 为基准 */
 export function uiScale() {
   return Math.min(W, H) / 760;
 }
 
-/** 竖屏判定 */
 export function isPortrait() {
   return H > W;
 }
 
 export function font(size, bold = true) {
-  // 中文全部加粗以提高清晰度，强制加粗
-  return `bold ${size}px ${TYPE.font}`;
+  return `${bold ? 'bold ' : ''}${size}px ${TYPE.font}`;
 }
 
-export function fontMono(size, bold = true) {
+export function fontMono(size, bold = false) {
   return `${bold ? 'bold ' : ''}${size}px ${TYPE.fontMono}`;
 }
 
-/** 统一面板外框 + 可选标题 */
-export function panelFrame(ctx, x, y, w, h, { title, highContrast = false } = {}) {
-  const bg = UI.panelBg;
-  const line = UI.panelLine;
+/** 便签角勾（四角短 L） */
+export function drawCornerHooks(ctx, x, y, w, h, size = 10, color = UI.gold) {
+  const s = size;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  // TL
+  ctx.moveTo(x, y + s);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + s, y);
+  // TR
+  ctx.moveTo(x + w - s, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + s);
+  // BL
+  ctx.moveTo(x, y + h - s);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x + s, y + h);
+  // BR
+  ctx.moveTo(x + w - s, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w, y + h - s);
+  ctx.stroke();
+}
+
+/** 顶缘灯火渐变线 */
+export function drawTopGlowLine(ctx, x, y, w, color = 'rgba(255, 210, 120, 0.85)') {
+  const g = ctx.createLinearGradient(x, y, x + w, y);
+  g.addColorStop(0, 'rgba(255, 210, 120, 0)');
+  g.addColorStop(0.5, color);
+  g.addColorStop(1, 'rgba(255, 210, 120, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x + 8, y + 1, w - 16, 2);
+}
+
+/** 统一面板：半透明暖纸 + 金线 + 四角勾 + 顶胶带感 */
+export function panelFrame(ctx, x, y, w, h, { title, highContrast = false, solid = false } = {}) {
+  const bg = highContrast
+    ? 'rgba(0,0,0,0.96)'
+    : solid
+      ? UI.panelBgSolid
+      : UI.panelBg;
+  const line = highContrast ? 'rgba(255,220,140,0.95)' : UI.panelLine;
+  const r = RADIUS;
+  const s = uiScale();
 
   ctx.save();
-  // 1. 直角框投影
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-  ctx.shadowBlur = 12 * uiScale();
-
-  // 2. 绘制面板背景板
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 16 * s;
   ctx.fillStyle = bg;
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+  ctx.shadowBlur = 0;
 
-  // 3. 绘制外框细线
   ctx.strokeStyle = line;
   ctx.lineWidth = STROKE;
-  ctx.strokeRect(x, y, w, h);
-
-  // 4. ASCII角标字符装饰：┌ ┐ └ ┘
-  ctx.fillStyle = UI.inkSoft;
-  ctx.font = fontMono(11, false);
-  ctx.fillText('┌', x + 3, y + 11);
-  ctx.fillText('┐', x + w - 10, y + 11);
-  ctx.fillText('└', x + 3, y + h - 3);
-  ctx.fillText('┘', x + w - 10, y + h - 3);
-
-  // 5. 顶线装饰：由渐变金改为带科技感像素断续的灰/青细线
-  ctx.strokeStyle = UI.ok;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + 20, y);
-  ctx.lineTo(x + w - 20, y);
+  roundRect(ctx, x, y, w, h, r);
   ctx.stroke();
 
+  if (!highContrast) {
+    ctx.strokeStyle = 'rgba(232, 176, 88, 0.12)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, x + 4, y + 4, w - 8, h - 8, Math.max(2, r - 2));
+    ctx.stroke();
+  }
+
+  drawCornerHooks(
+    ctx,
+    x + 5,
+    y + 5,
+    w - 10,
+    h - 10,
+    9 * s,
+    highContrast ? 'rgba(255,220,140,0.9)' : 'rgba(255, 210, 140, 0.75)'
+  );
+
+  // 顶「胶带」小条
+  if (!highContrast) {
+    const tw = Math.min(48, w * 0.12);
+    ctx.fillStyle = 'rgba(255, 180, 120, 0.22)';
+    ctx.fillRect(x + w / 2 - tw / 2, y - 3, tw, 8);
+    ctx.strokeStyle = 'rgba(255, 200, 150, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + w / 2 - tw / 2, y - 3, tw, 8);
+  }
+
+  drawTopGlowLine(ctx, x, y, w, highContrast ? 'rgba(255,230,160,0.9)' : 'rgba(255, 210, 120, 0.8)');
+
   if (title) {
-    ctx.fillStyle = UI.ok;
+    ctx.fillStyle = highContrast ? '#fff0a8' : UI.goldBright;
     ctx.font = font(17, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`── [ ${title} ] ──`, x + w / 2, y + 26);
+    ctx.fillText(title, x + w / 2, y + 28);
+    const mw = Math.min(w * 0.35, ctx.measureText(title).width + 20);
+    ctx.strokeStyle = 'rgba(232, 176, 88, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2 - mw / 2, y + 40);
+    ctx.lineTo(x + w / 2 + mw / 2, y + 40);
+    ctx.stroke();
     ctx.textAlign = 'left';
   }
   ctx.restore();
 }
 
-/** 选中行呼吸高亮，优化频率和范围使其更柔和 */
 export function selectionPulse(gameTime, reduced = false) {
   if (reduced) return 0.12;
-  return 0.08 + (Math.sin(gameTime * 0.004) * 0.5 + 0.5) * 0.08;
+  return 0.08 + (Math.sin(gameTime * 0.004) * 0.5 + 0.5) * 0.1;
 }
 
-/** DOM 用 CSS 变量字符串（与 UI 令牌镜像） */
 export function cssVarsBlock() {
   return `
     :root {
-      --ink: rgba(235, 230, 220, 0.98);
-      --ink-soft: rgba(150, 155, 165, 0.95);
-      --ink-faint: rgba(100, 105, 115, 0.85);
-      --gold: rgba(217, 155, 66, 0.95);
-      --gold-bright: rgba(255, 200, 120, 0.98);
-      --gold-soft: rgba(217, 155, 66, 0.08);
-      --gold-line: rgba(217, 155, 66, 0.35);
-      --panel-bg: rgba(7, 8, 10, 0.98);
-      --panel-line: rgba(94, 99, 107, 0.45);
-      --ok: rgba(0, 240, 255, 0.95);
-      --warn: rgba(217, 155, 66, 0.95);
-      --danger: rgba(211, 54, 54, 0.98);
-      --danger-soft: rgba(211, 54, 54, 0.15);
+      --ink: rgba(255, 248, 235, 0.98);
+      --ink-soft: rgba(220, 200, 165, 0.88);
+      --ink-faint: rgba(170, 150, 120, 0.7);
+      --gold: rgba(232, 176, 88, 0.95);
+      --gold-bright: rgba(255, 214, 130, 0.98);
+      --gold-soft: rgba(232, 176, 88, 0.14);
+      --gold-line: rgba(232, 176, 88, 0.42);
+      --panel-bg: rgba(18, 14, 12, 0.78);
+      --panel-line: rgba(232, 176, 88, 0.4);
+      --ok: rgba(110, 200, 150, 0.95);
+      --warn: rgba(232, 176, 88, 0.95);
+      --danger: rgba(220, 86, 86, 0.96);
+      --danger-soft: rgba(220, 86, 86, 0.14);
+      --spirit: rgba(120, 190, 210, 0.85);
+      --radius: 6px;
     }
   `;
 }

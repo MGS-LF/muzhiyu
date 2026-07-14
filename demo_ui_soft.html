@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《墓之语》松软游戏 UI 方向</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #1a1520;
+    color: #f5efe6;
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+    padding: 20px 14px 40px;
+  }
+  .head { max-width: 1100px; margin: 0 auto 16px; text-align: center; }
+  .head h1 { font-size: 20px; letter-spacing: 0.12em; color: #ffd08a; }
+  .head p { margin-top: 8px; font-size: 13px; color: #b8aeb8; line-height: 1.7; }
+
+  .tabs {
+    max-width: 1100px; margin: 0 auto 14px;
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  }
+  .tabs button {
+    padding: 10px 16px; border: none; border-radius: 999px;
+    background: #2a2430; color: #d8d0d8; font: inherit; font-size: 13px;
+    cursor: pointer; box-shadow: 0 3px 0 #151018;
+  }
+  .tabs button.active {
+    background: #ff9f6b; color: #2a1810; font-weight: 700;
+    box-shadow: 0 3px 0 #c45a30;
+  }
+
+  .stage {
+    display: none; position: relative;
+    max-width: 1000px; height: min(620px, 75vh);
+    margin: 0 auto; border-radius: 24px; overflow: hidden;
+  }
+  .stage.active { display: block; }
+
+  /* ========== 1 软糖废墟 ========== */
+  .soft {
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255, 160, 200, 0.15), transparent 40%),
+      radial-gradient(circle at 80% 60%, rgba(140, 200, 255, 0.12), transparent 40%),
+      linear-gradient(160deg, #2a2238, #1a1528);
+    border: 4px solid #3d3450;
+  }
+  .soft .blob {
+    position: absolute; background: rgba(30, 24, 40, 0.92);
+    border-radius: 22px; border: 3px solid;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 10px 24px rgba(0,0,0,0.25);
+  }
+  .soft .hud {
+    top: 18px; left: 18px; width: 240px; padding: 14px;
+    border-color: #ff9f6b;
+  }
+  .soft .hearts { display: flex; gap: 4px; margin-bottom: 8px; }
+  .soft .hearts span {
+    width: 22px; height: 20px; background: #ff6b8a;
+    border-radius: 10px 10px 4px 4px;
+    box-shadow: 0 2px 0 #c04060;
+  }
+  .soft .hearts span.empty { background: #4a4058; box-shadow: none; }
+  .soft .lbl { font-size: 13px; color: #ffd08a; margin-bottom: 6px; }
+  .soft .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .soft .chip {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #ffd08a; color: #3a2810; display: grid; place-items: center;
+    font-weight: 800; font-size: 14px;
+    box-shadow: 0 3px 0 #c49040;
+  }
+  .soft .chip.g { background: #8edcb0; box-shadow: 0 3px 0 #4a9870; }
+  .soft .obj {
+    top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 20px; border-color: #8ec8ff; color: #fff;
+    font-size: 14px; font-weight: 700;
+  }
+  .soft .obj b { color: #8ec8ff; }
+  .soft .dialog {
+    left: 28px; right: 28px; bottom: 18px; min-height: 120px; padding: 14px 16px;
+    border-color: #c8a0ff; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .soft .face {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(145deg, #ffd08a, #ff9f6b);
+    border: 3px solid #fff3; flex-shrink: 0;
+  }
+  .soft .name { color: #ffd08a; font-size: 15px; font-weight: 800; }
+  .soft .body { margin-top: 4px; font-size: 14px; line-height: 1.65; color: #f0e8f5; font-weight: 600; }
+  .soft .toast {
+    left: 18px; bottom: 160px; padding: 10px 14px 10px 12px;
+    border-color: #8edcb0; display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700;
+  }
+  .soft .toast .dot {
+    width: 28px; height: 28px; border-radius: 50%; background: #8edcb0; color: #1a3020;
+    display: grid; place-items: center; font-size: 14px; flex-shrink: 0;
+  }
+  .soft .utter {
+    left: 50%; top: 40%; transform: translate(-50%,-50%);
+    width: min(420px, 86%); padding: 18px; text-align: center; border-color: #ffd08a;
+  }
+  .soft .utter h3 { color: #ffd08a; font-size: 16px; margin-bottom: 10px; }
+  .soft .poem { font-size: 20px; font-weight: 800; margin-bottom: 12px; }
+  .soft .blank {
+    display: inline-grid; place-items: center; width: 36px; height: 36px;
+    border-radius: 12px; background: #ffd08a; color: #3a2810; margin: 0 3px;
+    box-shadow: 0 3px 0 #c49040; vertical-align: middle;
+  }
+  .soft .blank.open {
+    background: #3a3048; color: #ffd08a; border: 2px dashed #ffd08a; box-shadow: none;
+  }
+
+  /* ========== 2 贴纸手账 ========== */
+  .sticker {
+    background: #2d2830;
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(255,200,150,0.08) 0 2px, transparent 3px),
+      radial-gradient(circle at 70% 60%, rgba(180,220,255,0.06) 0 2px, transparent 3px);
+    border: 3px dashed #6a6070;
+  }
+  .sticker .note {
+    position: absolute; background: #fff8e8; color: #2a2018;
+    border-radius: 4px; padding: 12px 14px;
+    box-shadow: 3px 4px 0 rgba(0,0,0,0.2);
+    font-weight: 700;
+    transform: rotate(-2deg);
+  }
+  .sticker .hud {
+    top: 22px; left: 20px; width: 220px; transform: rotate(-3deg);
+    background: #fff3c8;
+  }
+  .sticker .tape {
+    position: absolute; top: -8px; left: 40%; width: 48px; height: 14px;
+    background: rgba(255, 160, 120, 0.55); transform: translateX(-50%) rotate(2deg);
+  }
+  .sticker .obj {
+    top: 24px; right: 24px; max-width: 200px; transform: rotate(2deg);
+    background: #e8f4ff; font-size: 13px;
+  }
+  .sticker .dialog {
+    left: 40px; right: 40px; bottom: 24px; min-height: 110px;
+    transform: rotate(0.5deg); background: #fff; font-size: 14px; line-height: 1.7;
+  }
+  .sticker .name { color: #c04050; margin-bottom: 4px; }
+  .sticker .toast {
+    left: 24px; bottom: 160px; background: #d8ffe8; transform: rotate(-1deg);
+    font-size: 13px; padding: 10px 12px;
+  }
+  .sticker .utter {
+    left: 50%; top: 38%; transform: translate(-50%,-50%) rotate(-1deg);
+    width: min(400px, 84%); background: #fff; text-align: center;
+  }
+  .sticker .poem { font-size: 20px; margin: 10px 0; }
+  .sticker .blank {
+    display: inline-block; min-width: 28px; border-bottom: 3px solid #c04050;
+    text-align: center; color: #c04050; margin: 0 2px;
+  }
+  .sticker .star {
+    position: absolute; font-size: 22px; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.2));
+  }
+
+  /* ========== 3 像素绘本 ========== */
+  .pixel {
+    background: #1c2030;
+    image-rendering: pixelated;
+    border: 4px solid #4a5068;
+    font-family: "Courier New", monospace;
+  }
+  .pixel .box {
+    position: absolute; background: #2a3048;
+    border: 4px solid #e8e0c8;
+    box-shadow: inset -4px -4px 0 #1a1e30, inset 4px 4px 0 #5a6080;
+  }
+  .pixel .hud { top: 16px; left: 16px; width: 230px; padding: 10px; }
+  .pixel .lbl { color: #ffe08a; font-size: 12px; margin-bottom: 4px; }
+  .pixel .bar {
+    height: 12px; background: #0c1018; border: 2px solid #e8e0c8;
+  }
+  .pixel .bar i { display: block; width: 70%; height: 100%; background: #5ad878; }
+  .pixel .obj {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 8px 12px; color: #fff; font-size: 12px;
+  }
+  .pixel .dialog {
+    left: 32px; right: 32px; bottom: 16px; height: 110px; padding: 12px;
+  }
+  .pixel .name { color: #ffe08a; font-size: 13px; }
+  .pixel .body { margin-top: 6px; color: #f0ece0; font-size: 13px; line-height: 1.6; }
+  .pixel .toast {
+    left: 16px; bottom: 146px; padding: 8px 10px; color: #5ad878; font-size: 12px;
+  }
+  .pixel .utter {
+    left: 50%; top: 40%; transform: translate(-50%,-50%);
+    width: min(400px, 86%); padding: 14px; text-align: center;
+  }
+  .pixel .poem { color: #fff; font-size: 16px; margin: 10px 0; }
+  .pixel .blank {
+    display: inline-grid; place-items: center; width: 28px; height: 28px;
+    border: 3px solid #ffe08a; color: #ffe08a; margin: 0 2px; background: #0c1018;
+  }
+
+  /* ========== 4 漂浮气泡 RPG ========== */
+  .bubble {
+    background:
+      linear-gradient(180deg, #3a2a4a 0%, #1e1830 100%);
+    border: 3px solid #6a5080;
+  }
+  .bubble .cloud {
+    position: absolute; background: rgba(255, 250, 245, 0.95); color: #2a2030;
+    border-radius: 20px; padding: 12px 16px; font-weight: 700;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+  }
+  .bubble .cloud::after {
+    content: ''; position: absolute; bottom: -10px; left: 24px;
+    border: 10px solid transparent; border-top-color: rgba(255,250,245,0.95);
+    border-bottom: 0;
+  }
+  .bubble .hud {
+    top: 18px; left: 18px; width: 220px;
+    background: linear-gradient(180deg, #5a4080, #3a2860);
+    color: #fff; border-radius: 18px; padding: 12px 14px;
+    border: 3px solid #c8a0ff;
+  }
+  .bubble .hud::after { display: none; }
+  .bubble .bar {
+    height: 14px; border-radius: 999px; background: #1a1028;
+    border: 2px solid #c8a0ff; overflow: hidden; margin-top: 6px;
+  }
+  .bubble .bar i {
+    display: block; height: 100%; width: 72%;
+    background: linear-gradient(90deg, #ff8ab0, #ffc08a);
+  }
+  .bubble .obj {
+    top: 20px; left: 50%; transform: translateX(-50%);
+    background: #fff8e0; color: #4a3020; font-size: 13px;
+  }
+  .bubble .obj::after { left: 50%; transform: translateX(-50%); }
+  .bubble .dialog {
+    left: 36px; right: 36px; bottom: 20px; min-height: 100px;
+    background: #fff; border-radius: 24px; padding: 14px 18px;
+  }
+  .bubble .dialog::after { left: 48px; }
+  .bubble .name { color: #8a50c0; font-size: 14px; }
+  .bubble .body { margin-top: 4px; font-size: 14px; line-height: 1.65; }
+  .bubble .toast {
+    left: 20px; bottom: 150px; background: #d8ffe8; color: #204030; font-size: 13px;
+  }
+  .bubble .toast::after { border-top-color: #d8ffe8; }
+  .bubble .utter {
+    left: 50%; top: 40%; transform: translate(-50%,-50%);
+    width: min(400px, 85%); background: #fff8f0; text-align: center;
+    border-radius: 24px; padding: 16px; border: 3px solid #ffb080;
+  }
+  .bubble .utter::after { display: none; }
+  .bubble .poem { font-size: 18px; margin: 10px 0; color: #3a2830; }
+  .bubble .blank {
+    display: inline-grid; place-items: center; width: 34px; height: 34px;
+    border-radius: 50%; background: #ffb080; color: #3a2010; margin: 0 3px;
+  }
+
+  .desc {
+    max-width: 1000px; margin: 14px auto 0; padding: 12px 14px;
+    background: #241e2c; border-radius: 12px; font-size: 13px; line-height: 1.75; color: #c8bec8;
+  }
+  .desc strong { color: #ffd08a; }
+  .links { text-align: center; margin-top: 14px; font-size: 12px; }
+  .links a { color: #ffb080; margin: 0 8px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>别那么严谨 · 四种「松」的游戏 UI</h1>
+    <p>去掉公文/终端/碑刻感。更圆、更软、更像能玩的玩具。点标签切换。游戏源码未动。</p>
+  </div>
+
+  <div class="tabs">
+    <button type="button" class="active" data-t="soft">1 · 软糖废墟</button>
+    <button type="button" data-t="sticker">2 · 贴纸手账</button>
+    <button type="button" data-t="pixel">3 · 像素绘本</button>
+    <button type="button" data-t="bubble">4 · 漂浮气泡</button>
+  </div>
+
+  <!-- 1 -->
+  <div class="stage soft active" id="s-soft">
+    <div class="blob hud">
+      <div class="lbl">理性还好吗？</div>
+      <div class="hearts">
+        <span></span><span></span><span></span><span class="empty"></span><span class="empty"></span>
+      </div>
+      <div class="chips">
+        <div class="chip">关</div><div class="chip">雎</div><div class="chip g">鸠</div>
+        <div class="chip" style="background:#4a4058;box-shadow:none;color:#888">?</div>
+      </div>
+    </div>
+    <div class="blob obj"><b>去！</b> 找江堤上的老爷爷</div>
+    <div class="blob utter">
+      <h3>把诗补完呀</h3>
+      <div class="poem">关关<span class="blank">雎</span><span class="blank open">?</span>，在河之洲</div>
+    </div>
+    <div class="blob toast"><div class="dot">✓</div> 捡到字啦！「鸠」</div>
+    <div class="blob dialog">
+      <div class="face"></div>
+      <div>
+        <div class="name">守砚爷爷</div>
+        <div class="body">嘿嘿，你眼睛里还有字呢。来，把句子说完整——世界就稳一点。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="stage sticker" id="s-sticker">
+    <div class="note hud">
+      <div class="tape"></div>
+      <div>理性：还行～</div>
+      <div style="margin-top:6px">字：关 / 雎 / 鸠</div>
+    </div>
+    <div class="note obj">★ 任务纸条<br>去找守砚</div>
+    <div class="note utter">
+      <div style="color:#c04050">补诗小练习</div>
+      <div class="poem">关关<span class="blank">雎</span><span class="blank">　</span>，在河之洲</div>
+    </div>
+    <div class="note toast">贴纸：获得「鸠」！</div>
+    <div class="note dialog">
+      <div class="name">守砚</div>
+      孩子，完整的句子像钉子——钉住快塌的世界。
+    </div>
+    <div class="star" style="top:40%;left:12%">✦</div>
+    <div class="star" style="top:55%;right:10%">★</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="stage pixel" id="s-pixel">
+    <div class="box hud">
+      <div class="lbl">HP SAN</div>
+      <div class="bar"><i></i></div>
+      <div style="margin-top:8px;color:#c8c0a8;font-size:11px">ITEM: 关 雎 鸠</div>
+    </div>
+    <div class="box obj">! 找到守砚</div>
+    <div class="box utter">
+      <div style="color:#ffe08a">POEM FIX</div>
+      <div class="poem">关关<span class="blank">雎</span><span class="blank">?</span></div>
+    </div>
+    <div class="box toast">+1 鸠 GET!</div>
+    <div class="box dialog">
+      <div class="name">* 守砚</div>
+      <div class="body">* 把字刻回去吧。</div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="stage bubble" id="s-bubble">
+    <div class="hud">
+      <div style="font-size:12px;opacity:0.85">心情条</div>
+      <div class="bar"><i></i></div>
+      <div style="margin-top:8px;font-size:12px">口袋字：关 雎 鸠</div>
+    </div>
+    <div class="cloud obj">去江边找老爷爷呀～</div>
+    <div class="utter">
+      <div style="color:#e07040;font-size:15px">补一句诗</div>
+      <div class="poem">关关<span class="blank">雎</span><span class="blank" style="background:#eee;color:#999">?</span></div>
+    </div>
+    <div class="cloud toast">耶！捡到「鸠」</div>
+    <div class="cloud dialog">
+      <div class="name">守砚</div>
+      <div class="body">来，慢慢说完整。不着急。</div>
+    </div>
+  </div>
+
+  <div class="desc" id="desc">
+    <strong>1 · 软糖废墟</strong>：大圆角、糖豆字块、爱心理性、厚阴影按钮感。废墟题材也能「好入口、好可爱一点」，像独立游戏商店页。
+  </div>
+  <div class="links">
+    <a href="demo_ui_styles.html">上一页·偏正经四款</a>
+    <a href="demo_ui_game.html">墨潮手札</a>
+    <a href="index.html">游戏</a>
+  </div>
+
+<script>
+const D = {
+  soft: '<strong>1 · 软糖废墟</strong>：大圆角、糖豆字块、爱心理性、厚阴影。废墟也能好入口，像独立游戏商店页。',
+  sticker: '<strong>2 · 贴纸手账</strong>：歪贴便签、胶带、浅色纸。像玩家在废墟里撕的纸条，轻松不公文。',
+  pixel: '<strong>3 · 像素绘本</strong>：厚像素框、块状血条、8-bit 节奏。复古游戏感，但不装严肃终端。',
+  bubble: '<strong>4 · 漂浮气泡</strong>：白对话泡、圆角云朵、暖粉进度。最「剧情向手游」，软、近人。',
+};
+document.querySelectorAll('.tabs button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach((x) => x.classList.remove('active'));
+    document.querySelectorAll('.stage').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('s-' + b.dataset.t).classList.add('active');
+    document.getElementById('desc').innerHTML = D[b.dataset.t];
+  };
+});
+</script>
+</body>
+</html>

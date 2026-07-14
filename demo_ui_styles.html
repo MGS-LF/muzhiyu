@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《墓之语》UI 风格对照</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #0a0a0b;
+    color: #e8e4dc;
+    font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+    padding: 24px 16px 48px;
+  }
+  .head {
+    max-width: 1200px;
+    margin: 0 auto 20px;
+    text-align: center;
+  }
+  .head h1 {
+    font-size: 20px;
+    letter-spacing: 0.24em;
+    color: #e8c888;
+  }
+  .head p {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #9a9488;
+    line-height: 1.7;
+  }
+  .tabs {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .tabs button {
+    padding: 8px 14px;
+    border: 1px solid #444;
+    background: #141416;
+    color: #c8c2b4;
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .tabs button.active {
+    border-color: #e8c888;
+    color: #e8c888;
+    background: rgba(232, 200, 136, 0.08);
+  }
+  .stage-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .stage {
+    display: none;
+    position: relative;
+    width: 100%;
+    height: min(640px, 78vh);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .stage.active { display: block; }
+
+  /* ========== A 霓虹残碑 ========== */
+  .s-neon {
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(255, 60, 140, 0.12), transparent 45%),
+      radial-gradient(ellipse at 85% 70%, rgba(80, 220, 255, 0.1), transparent 40%),
+      #0b0c12;
+    border: 1px solid rgba(255, 80, 160, 0.35);
+    box-shadow: 0 0 40px rgba(255, 60, 140, 0.08);
+  }
+  .s-neon .card {
+    position: absolute;
+    background: rgba(12, 14, 22, 0.88);
+    border: 1px solid rgba(255, 90, 160, 0.45);
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    box-shadow: 0 0 16px rgba(255, 60, 140, 0.15);
+  }
+  .s-neon .hud {
+    top: 16px; left: 16px; width: 250px; padding: 12px;
+  }
+  .s-neon .lbl { color: #ff5aa0; font-size: 11px; letter-spacing: 0.2em; }
+  .s-neon .bar {
+    margin-top: 6px; height: 10px; background: #1a1020;
+    border: 1px solid rgba(80, 220, 255, 0.4);
+  }
+  .s-neon .bar i {
+    display: block; width: 68%; height: 100%;
+    background: linear-gradient(90deg, #50dcff, #ff5aa0);
+    box-shadow: 0 0 12px rgba(80, 220, 255, 0.5);
+  }
+  .s-neon .obj {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 8px 18px; color: #50dcff; font-size: 13px;
+    border-color: rgba(80, 220, 255, 0.5);
+  }
+  .s-neon .dialog {
+    left: 36px; right: 36px; bottom: 18px; height: 120px; padding: 14px;
+  }
+  .s-neon .name { color: #ff5aa0; font-size: 14px; text-shadow: 0 0 10px rgba(255,90,160,0.5); }
+  .s-neon .body { margin-top: 8px; color: #e8e4f0; font-size: 14px; line-height: 1.7; }
+  .s-neon .toast {
+    left: 16px; bottom: 160px; padding: 8px 12px; font-size: 12px; color: #50dcff;
+  }
+  .s-neon .utter {
+    left: 50%; top: 42%; transform: translate(-50%,-50%);
+    width: min(480px, 88%); padding: 18px; text-align: center;
+  }
+  .s-neon .utter h3 { color: #ff5aa0; letter-spacing: 0.2em; font-size: 15px; }
+  .s-neon .poem { margin: 14px 0; font-size: 20px; color: #e8e4f0; }
+  .s-neon .blank {
+    display: inline-grid; place-items: center; width: 32px; height: 32px;
+    border: 1px solid #50dcff; color: #50dcff; margin: 0 2px;
+    box-shadow: 0 0 10px rgba(80,220,255,0.35);
+  }
+
+  /* ========== B 水墨残卷 ========== */
+  .s-ink {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(40, 40, 40, 0.5), transparent 55%),
+      #e8e2d4;
+    border: 2px solid #2a2a2a;
+    color: #1a1a1a;
+  }
+  .s-ink .card {
+    position: absolute;
+    background: rgba(248, 244, 234, 0.92);
+    border: 2px solid #1a1a1a;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+  }
+  .s-ink .hud {
+    top: 16px; left: 16px; width: 240px; padding: 12px 14px;
+  }
+  .s-ink .lbl { font-size: 12px; color: #1a1a1a; }
+  .s-ink .bar {
+    margin-top: 6px; height: 8px; background: #d0c8b8; border: 1px solid #1a1a1a;
+  }
+  .s-ink .bar i {
+    display: block; width: 68%; height: 100%; background: #1a1a1a;
+  }
+  .s-ink .obj {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 8px 16px; font-size: 13px; writing-mode: horizontal-tb;
+  }
+  .s-ink .obj::before {
+    content: '【目标】';
+    color: #a03030;
+    margin-right: 6px;
+  }
+  .s-ink .seal {
+    position: absolute; top: 20px; right: 24px;
+    width: 48px; height: 48px; border: 2px solid #a03030; color: #a03030;
+    display: grid; place-items: center; font-size: 18px;
+    transform: rotate(-8deg); opacity: 0.9;
+    background: rgba(160, 48, 48, 0.06);
+  }
+  .s-ink .dialog {
+    left: 40px; right: 40px; bottom: 20px; height: 118px; padding: 14px 16px;
+  }
+  .s-ink .name { color: #a03030; font-size: 15px; border-bottom: 1px solid #1a1a1a; padding-bottom: 6px; }
+  .s-ink .body { margin-top: 8px; font-size: 15px; line-height: 1.8; }
+  .s-ink .toast {
+    left: 16px; bottom: 160px; padding: 8px 12px; font-size: 12px;
+    border-left: 4px solid #a03030;
+  }
+  .s-ink .utter {
+    left: 50%; top: 40%; transform: translate(-50%,-50%);
+    width: min(460px, 88%); padding: 20px; text-align: center;
+  }
+  .s-ink .utter h3 { letter-spacing: 0.3em; font-size: 16px; }
+  .s-ink .poem { margin: 16px 0; font-size: 22px; }
+  .s-ink .blank {
+    display: inline-grid; place-items: center; width: 34px; height: 34px;
+    border: 2px solid #1a1a1a; margin: 0 3px; background: #fff;
+  }
+  .s-ink .blank.filled { background: #1a1a1a; color: #f8f4ea; }
+
+  /* ========== C 刻刀合金 ========== */
+  .s-blade {
+    background:
+      linear-gradient(160deg, #1a1c20 0%, #0e1014 50%, #161820 100%);
+    border: 1px solid #6a7078;
+  }
+  .s-blade .card {
+    position: absolute;
+    background: linear-gradient(180deg, rgba(40, 44, 50, 0.95), rgba(22, 24, 28, 0.96));
+    border: 1px solid #8a9098;
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 8px 20px rgba(0,0,0,0.4);
+  }
+  .s-blade .hud {
+    top: 16px; left: 16px; width: 255px; padding: 12px;
+  }
+  .s-blade .lbl {
+    font-size: 11px; color: #b8c0c8; letter-spacing: 0.14em;
+    font-family: monospace;
+  }
+  .s-blade .bar {
+    margin-top: 6px; height: 8px; background: #0a0c10;
+    border: 1px solid #6a7078; position: relative;
+  }
+  .s-blade .bar i {
+    display: block; width: 68%; height: 100%;
+    background: linear-gradient(90deg, #c8d0d8, #f0f4f8);
+  }
+  .s-blade .obj {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 8px 16px; font-size: 12px; color: #e0e4e8;
+    border-top: 2px solid #d0d4d8;
+  }
+  .s-blade .dialog {
+    left: 36px; right: 36px; bottom: 18px; height: 120px; padding: 14px;
+  }
+  .s-blade .name {
+    font-size: 13px; color: #f0f4f8; letter-spacing: 0.12em;
+    border-left: 3px solid #c8d0d8; padding-left: 8px;
+  }
+  .s-blade .body { margin-top: 8px; font-size: 14px; color: #c8ccd0; line-height: 1.7; }
+  .s-blade .toast {
+    left: 16px; bottom: 160px; padding: 8px 12px; font-size: 12px; color: #d0d4d8;
+  }
+  .s-blade .toast::before {
+    content: '▸ ';
+    color: #f0f4f8;
+  }
+  .s-blade .utter {
+    left: 50%; top: 42%; transform: translate(-50%,-50%);
+    width: min(480px, 88%); padding: 18px; text-align: center;
+  }
+  .s-blade .utter h3 {
+    font-size: 14px; letter-spacing: 0.25em; color: #e8ecf0;
+    font-family: monospace;
+  }
+  .s-blade .poem { margin: 14px 0; font-size: 20px; color: #e8ecf0; }
+  .s-blade .blank {
+    display: inline-grid; place-items: center; width: 32px; height: 32px;
+    border: 1px solid #c8d0d8; margin: 0 2px;
+    background: rgba(0,0,0,0.35); color: #f0f4f8;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
+
+  /* ========== D 弹幕信纸 ========== */
+  .s-paper {
+    background:
+      radial-gradient(circle at 50% 80%, rgba(255, 220, 120, 0.08), transparent 40%),
+      #121018;
+    border: 1px solid rgba(255, 210, 120, 0.3);
+  }
+  .s-paper .card {
+    position: absolute;
+    background: #1a1824;
+    border: 2px solid #fff;
+    border-radius: 0;
+  }
+  .s-paper .hud {
+    top: 16px; left: 16px; width: 240px; padding: 10px 12px;
+  }
+  .s-paper .lbl { color: #ffe08a; font-size: 12px; }
+  .s-paper .bar {
+    margin-top: 6px; height: 14px; background: #000; border: 2px solid #fff;
+  }
+  .s-paper .bar i {
+    display: block; width: 68%; height: 100%; background: #f44;
+  }
+  .s-paper .obj {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 8px 14px; color: #fff; font-size: 13px;
+  }
+  .s-paper .dialog {
+    left: 40px; right: 40px; bottom: 18px; height: 118px; padding: 12px 14px;
+  }
+  .s-paper .name { color: #ffe08a; font-size: 14px; }
+  .s-paper .body { margin-top: 8px; color: #fff; font-size: 14px; line-height: 1.7; }
+  .s-paper .toast {
+    left: 16px; bottom: 156px; padding: 6px 10px; font-size: 12px; color: #8f8;
+    border-color: #8f8;
+  }
+  .s-paper .utter {
+    left: 50%; top: 42%; transform: translate(-50%,-50%);
+    width: min(460px, 88%); padding: 16px; text-align: center;
+  }
+  .s-paper .utter h3 { color: #ffe08a; font-size: 15px; }
+  .s-paper .poem { margin: 12px 0; font-size: 20px; color: #fff; }
+  .s-paper .blank {
+    display: inline-grid; place-items: center; width: 30px; height: 30px;
+    border: 2px solid #ffe08a; margin: 0 2px; color: #ffe08a;
+  }
+  .s-paper .heart {
+    position: absolute; left: 50%; top: 58%; width: 12px; height: 12px;
+    background: #f44; transform: translate(-50%,-50%) rotate(45deg);
+    box-shadow: -3px 0 0 #f44, 0 -3px 0 #f44;
+  }
+
+  .desc {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 14px 16px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #121214;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #b8b2a6;
+  }
+  .desc strong { color: #e8c888; }
+  .desc em { color: #9ad; font-style: normal; }
+  .links {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    text-align: center;
+    font-size: 12px;
+  }
+  .links a {
+    color: #e8c888;
+    margin: 0 10px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(232,200,136,0.35);
+  }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>四种更「游戏」的 UI 方向</h1>
+    <p>点标签切换预览。游戏源码未改。选中一种再说，我再落代码。</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="active" data-tab="neon">A · 霓虹残碑</button>
+    <button type="button" data-tab="ink">B · 水墨残卷</button>
+    <button type="button" data-tab="blade">C · 刻刀合金</button>
+    <button type="button" data-tab="paper">D · 弹幕信纸</button>
+  </div>
+
+  <div class="stage-wrap">
+    <!-- A -->
+    <div class="stage s-neon active" id="tab-neon">
+      <div class="card hud">
+        <div class="lbl">SANITY</div>
+        <div class="bar"><i></i></div>
+        <div style="margin-top:10px;font-size:12px;color:#c8c0d0">词袋 关 雎 鸠 · · ·</div>
+      </div>
+      <div class="card obj">目标 · 找到守砚</div>
+      <div class="card utter">
+        <h3>POLLUTED SIGN</h3>
+        <div class="poem">关关<span class="blank">雎</span><span class="blank">□</span>，在河之洲</div>
+      </div>
+      <div class="card toast">拾得「鸠」 · 弹药 +1</div>
+      <div class="card dialog">
+        <div class="name">守砚</div>
+        <div class="body">完整的句子，才是钉子。把字刻回去。</div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="stage s-ink" id="tab-ink">
+      <div class="card hud">
+        <div class="lbl">理性</div>
+        <div class="bar"><i></i></div>
+        <div style="margin-top:10px;font-size:13px">字袋：关 · 雎 · 鸠</div>
+      </div>
+      <div class="card obj">在江堤找到守砚</div>
+      <div class="seal">刻</div>
+      <div class="card utter">
+        <h3>补 诗</h3>
+        <div class="poem">关关<span class="blank filled">雎</span><span class="blank">□</span>，在河之洲。</div>
+      </div>
+      <div class="card toast">记 · 你拾得汉字「鸠」</div>
+      <div class="card dialog">
+        <div class="name">守砚</div>
+        <div class="body">孩子，你的眼睛里还有字。这个世界死于失语。</div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="stage s-blade" id="tab-blade">
+      <div class="card hud">
+        <div class="lbl">RATIONALITY</div>
+        <div class="bar"><i></i></div>
+        <div style="margin-top:10px;font-size:12px;color:#a8b0b8;font-family:monospace">ENGRAVE · F</div>
+      </div>
+      <div class="card obj">OBJECTIVE // 找到守砚</div>
+      <div class="card utter">
+        <h3>// RESTORE_LINE</h3>
+        <div class="poem">关关<span class="blank">雎</span><span class="blank">□</span>，在河之洲</div>
+      </div>
+      <div class="card toast">记忆合金反馈：汉字「鸠」已收录</div>
+      <div class="card dialog">
+        <div class="name">守砚</div>
+        <div class="body">被这把刀刻下的字，会像钉子一样钉住空间。</div>
+      </div>
+    </div>
+
+    <!-- D -->
+    <div class="stage s-paper" id="tab-paper">
+      <div class="card hud">
+        <div class="lbl">HP 理性</div>
+        <div class="bar"><i></i></div>
+        <div style="margin-top:8px;font-size:12px;color:#ccc">* 关 * 雎 * 鸠 *</div>
+      </div>
+      <div class="card obj">* 找到守砚</div>
+      <div class="card utter">
+        <h3>* 净化 *</h3>
+        <div class="poem">关关<span class="blank">雎</span><span class="blank">□</span>，在河之洲</div>
+      </div>
+      <div class="heart" title="红心示意"></div>
+      <div class="card toast">* 你获得了「鸠」</div>
+      <div class="card dialog">
+        <div class="name">守砚</div>
+        <div class="body">* 完整的句子，才是钉子。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="desc" id="desc">
+    <strong>A · 霓虹残碑</strong>：夜上海废墟 + 霓虹粉/电青，切角面板、光晕。更「游戏夜景」，比冷终端更炫、比古风更赛博。<br>
+    风险：霓虹感强，若用多了会像通用赛博 UI，需把粉/青只当点缀。
+  </div>
+
+  <div class="links">
+    <a href="demo_ui.html">旧·数码碑刻</a>
+    <a href="demo_ui_game.html">旧·墨潮手札</a>
+    <a href="index.html">返回游戏</a>
+  </div>
+
+<script>
+const descs = {
+  neon: `<strong>A · 霓虹残碑</strong>：夜上海废墟 + 霓虹粉/电青，切角面板、光晕。更「游戏夜景」，比冷终端更炫、比古风更赛博。<br>风险：霓虹感强，若用多了会像通用赛博 UI，需把粉/青只当点缀。`,
+  ink: `<strong>B · 水墨残卷</strong>：浅宣纸底 + 墨线 + 朱砂「刻」印。像诗页摊开，和「补诗/刻字」最贴。<br>风险：浅色 UI 在废墟场景上对比方式要重做（探索时可能改深色变体）。`,
+  blade: `<strong>C · 刻刀合金</strong>：记忆合金银、刀口细线、冷金属渐变。道具「刻刀」变成整套 UI 材质。<br>风险：偏冷硬，需用暖纸色字保证可读，避免又变回严谨工业风。`,
+  paper: `<strong>D · 弹幕信纸</strong>：UT 白框 + 黄字 + 红心，战斗感最强，和现有弹幕战一脉。<br>风险：太像 Undertale 会被说「套皮」；只适合战斗层，探索层需降强度。`,
+};
+document.querySelectorAll('.tabs button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.stage').forEach((s) => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    document.getElementById('desc').innerHTML = descs[btn.dataset.tab];
+  });
+});
+</script>
+</body>
+</html>

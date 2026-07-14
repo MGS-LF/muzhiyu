@@ -48,10 +48,10 @@ function drawUtTutorial(ctx, battle) {
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(0, 240, 255, 0.98)';
+  ctx.fillStyle = 'rgba(232, 176, 88, 0.98)';
   ctx.font = 'bold 15px serif';
   ctx.fillText('弹幕菜单战 · 新手指引', x + 18, y + 28);
-  ctx.fillStyle = 'rgba(0, 240, 255, 0.9)';
+  ctx.fillStyle = 'rgba(232, 176, 88, 0.9)';
   ctx.font = 'bold 13px serif';
   ctx.fillText(lines[0], x + 18, y + 56);
   ctx.fillStyle = 'rgba(235, 230, 220, 0.9)';
@@ -61,13 +61,13 @@ function drawUtTutorial(ctx, battle) {
   }
 
   const clarityReady = battle.clarity >= battle.clarityMax;
-  ctx.fillStyle = clarityReady ? 'rgba(0, 240, 255, 0.1)' : 'rgba(255,255,255,0.03)';
+  ctx.fillStyle = clarityReady ? 'rgba(232, 176, 88, 0.1)' : 'rgba(255,255,255,0.03)';
   ctx.fillRect(x + 16, y + h - 46, w - 32, 30);
-  ctx.strokeStyle = clarityReady ? 'rgba(0, 240, 255, 0.4)' : 'rgba(94, 99, 107, 0.3)';
+  ctx.strokeStyle = clarityReady ? 'rgba(232, 176, 88, 0.4)' : 'rgba(94, 99, 107, 0.3)';
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 16, y + h - 46, w - 32, 30);
 
-  ctx.fillStyle = clarityReady ? 'rgba(0, 240, 255, 0.98)' : 'rgba(150, 155, 165, 0.8)';
+  ctx.fillStyle = clarityReady ? 'rgba(232, 176, 88, 0.98)' : 'rgba(150, 155, 165, 0.8)';
   ctx.font = 'bold 11px serif';
   ctx.fillText(
     clarityReady
@@ -123,13 +123,13 @@ export function drawBattle(ctx, battle, gameTime) {
       cyc = enemyCY + 104;
     ctx.fillStyle = 'rgba(20,22,26,0.9)';
     ctx.fillRect(enemyCX - cw / 2, cyc, cw, 6);
-    ctx.fillStyle = 'rgba(0, 240, 255, 0.95)';
+    ctx.fillStyle = 'rgba(232, 176, 88, 0.95)';
     ctx.fillRect(enemyCX - cw / 2, cyc, cw * (battle.clarity / battle.clarityMax), 6);
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
+    ctx.strokeStyle = 'rgba(232, 176, 88, 0.35)';
     ctx.lineWidth = 1;
     ctx.strokeRect(enemyCX - cw / 2, cyc, cw, 6);
     ctx.fillStyle =
-      battle.clarity >= battle.clarityMax ? 'rgba(0, 240, 255, 0.98)' : 'rgba(150, 155, 165, 0.85)';
+      battle.clarity >= battle.clarityMax ? 'rgba(232, 176, 88, 0.98)' : 'rgba(150, 155, 165, 0.85)';
     ctx.font = 'bold 10px serif';
     ctx.fillText(
       battle.clarity >= battle.clarityMax
@@ -151,7 +151,7 @@ export function drawBattle(ctx, battle, gameTime) {
     // 气泡直角面板框
     ctx.fillStyle = 'rgba(7, 8, 10, 0.98)';
     ctx.fillRect(enemyCX - tw / 2, enemyCY + 124, tw, 30);
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+    ctx.strokeStyle = 'rgba(232, 176, 88, 0.6)';
     ctx.lineWidth = 1;
     ctx.strokeRect(enemyCX - tw / 2, enemyCY + 124, tw, 30);
 
@@ -196,9 +196,9 @@ export function drawBattle(ctx, battle, gameTime) {
     for (const b of battle.bullets) {
       const warning = b.warn > 0;
       // 光晕
-      ctx.shadowColor = warning ? 'rgba(211, 54, 54, 0.7)' : 'rgba(0, 240, 255, 0.8)';
+      ctx.shadowColor = warning ? 'rgba(211, 54, 54, 0.7)' : 'rgba(232, 176, 88, 0.8)';
       ctx.shadowBlur = warning ? 3 : 6;
-      ctx.fillStyle = warning ? 'rgba(211, 54, 54, 0.15)' : 'rgba(0, 240, 255, 0.1)';
+      ctx.fillStyle = warning ? 'rgba(211, 54, 54, 0.15)' : 'rgba(232, 176, 88, 0.1)';
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r + (warning ? 7 : 2), 0, Math.PI * 2);
       ctx.fill();

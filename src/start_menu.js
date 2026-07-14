@@ -18,11 +18,11 @@ function ensureStyle() {
       display: grid;
       place-items: center;
       overflow: hidden;
-      color: var(--ink, #e2ded5);
-      background-color: #030405;
+      color: var(--ink, #fff8eb);
+      background-color: #0c0a08;
       background-image:
-        radial-gradient(circle at 50% 42%, rgba(0, 240, 255, 0.05), transparent 34%),
-        linear-gradient(90deg, #030405, #07080a 46%, #030405);
+        radial-gradient(circle at 50% 40%, rgba(232, 176, 88, 0.1), transparent 40%),
+        linear-gradient(180deg, #14110e, #0c0a08 60%);
       font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
       font-weight: bold;
     }
@@ -38,51 +38,45 @@ function ensureStyle() {
       width: min(980px, calc(100vw - 48px));
       min-height: 520px;
       padding: 44px 52px 38px;
-      border: 1px solid var(--panel-line, rgba(94, 99, 107, 0.45));
-      background: rgba(7, 8, 10, 0.98);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.82);
+      border: 1.5px solid var(--panel-line, rgba(232, 176, 88, 0.4));
+      border-radius: 10px;
+      background: rgba(18, 14, 12, 0.88);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 220, 160, 0.08);
       position: relative;
+      backdrop-filter: blur(8px);
     }
     .start-menu__panel::before {
-      content: "┌";
+      content: "";
       position: absolute;
-      top: 6px; left: 10px;
-      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
-      font-family: monospace;
-      font-size: 14px;
+      top: -4px; left: 50%;
+      transform: translateX(-50%) rotate(-2deg);
+      width: 56px; height: 12px;
+      background: rgba(255, 180, 120, 0.28);
+      border: 1px solid rgba(255, 200, 150, 0.25);
     }
-    .start-menu__panel::after {
-      content: "┘";
-      position: absolute;
-      bottom: 6px; right: 10px;
-      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
-      font-family: monospace;
-      font-size: 14px;
-    }
+    .start-menu__panel::after { content: none; }
     .start-menu__kicker {
-      color: var(--ok, rgba(0, 240, 255, 0.95));
+      color: var(--gold, rgba(232, 176, 88, 0.95));
       font-size: 12px;
-      letter-spacing: 0.36em;
+      letter-spacing: 0.28em;
       text-align: center;
-      font-family: monospace;
     }
     .start-menu__title {
       margin: 14px 0 8px;
-      color: var(--ink, #e2ded5);
+      color: var(--gold-bright, #ffd682);
       font-size: 42px;
       font-weight: 700;
-      letter-spacing: 0.34em;
+      letter-spacing: 0.28em;
       text-align: center;
-      text-indent: 0.34em;
-      text-shadow: 0 0 22px rgba(0, 240, 255, 0.3);
+      text-indent: 0.28em;
+      text-shadow: 0 0 24px rgba(232, 176, 88, 0.35);
     }
     .start-menu__subtitle {
       margin-bottom: 34px;
-      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
+      color: var(--ink-soft, rgba(220, 200, 165, 0.88));
       font-size: 13px;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.12em;
       text-align: center;
-      font-family: monospace;
     }
     .start-menu__view {
       display: none;
@@ -98,31 +92,30 @@ function ensureStyle() {
     }
     .start-menu__intro {
       padding-top: 2px;
-      border-top: 1px solid rgba(94, 99, 107, 0.25);
+      border-top: 1px solid rgba(232, 176, 88, 0.22);
     }
     .start-menu__intro-label,
     .start-menu__menu-label {
       margin-bottom: 18px;
-      color: var(--ok, rgba(0, 240, 255, 0.95));
+      color: var(--gold, rgba(232, 176, 88, 0.95));
       font-size: 12px;
-      letter-spacing: 0.28em;
-      font-family: monospace;
+      letter-spacing: 0.22em;
     }
     .start-menu__intro h2 {
       margin-bottom: 16px;
-      color: var(--ink, #e2ded5);
+      color: var(--ink, #fff8eb);
       font-size: 24px;
       font-weight: 700;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.12em;
       line-height: 1.45;
     }
     .start-menu__intro p {
       max-width: 58ch;
       margin: 0 0 14px;
-      color: var(--ink, #e2ded5);
+      color: var(--ink, #fff8eb);
       font-size: 14px;
       line-height: 1.9;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       font-weight: bold;
     }
     .start-menu__notes {
@@ -133,18 +126,18 @@ function ensureStyle() {
     }
     .start-menu__note {
       padding: 12px 10px;
-      border: 1px solid rgba(94, 99, 107, 0.3);
-      background: rgba(94, 99, 107, 0.05);
-      color: var(--ink-soft, rgba(150, 155, 165, 0.9));
+      border: 1px solid rgba(232, 176, 88, 0.28);
+      border-radius: 6px;
+      background: rgba(232, 176, 88, 0.06);
+      color: var(--ink-soft, rgba(220, 200, 165, 0.9));
       font-size: 12px;
       line-height: 1.6;
       letter-spacing: 0.08em;
       text-align: center;
-      font-family: monospace;
     }
     .start-menu__menu {
       padding: 2px 0 0 28px;
-      border-left: 1px solid rgba(94, 99, 107, 0.25);
+      border-left: 1px solid rgba(232, 176, 88, 0.22);
     }
     .start-menu__actions {
       display: grid;
@@ -154,23 +147,23 @@ function ensureStyle() {
     }
     .start-menu button {
       min-height: 46px;
-      border: 1px solid var(--panel-line, rgba(94, 99, 107, 0.45));
-      color: var(--ink, #e2ded5);
-      background: rgba(94, 99, 107, 0.06);
+      border: 1.5px solid var(--panel-line, rgba(232, 176, 88, 0.4));
+      color: var(--ink, #fff8eb);
+      background: rgba(232, 176, 88, 0.08);
       font: inherit;
       font-size: 15px;
       font-weight: bold;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.18em;
       cursor: pointer;
-      border-radius: 0;
+      border-radius: 8px;
       transition: transform 140ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
     }
     .start-menu button:hover,
     .start-menu button:focus-visible {
-      color: var(--ok, #00f0ff);
-      border-color: var(--ok, #00f0ff);
-      background: rgba(0, 240, 255, 0.08);
-      outline: 1px solid var(--ok, #00f0ff);
+      color: var(--gold-bright, #ffd682);
+      border-color: var(--gold-bright, #ffd682);
+      background: rgba(232, 176, 88, 0.16);
+      outline: 2px solid var(--gold-bright, #ffd682);
       outline-offset: 2px;
     }
     .start-menu button:active {
@@ -186,11 +179,11 @@ function ensureStyle() {
       margin-bottom: 20px;
       font-size: 12px;
       letter-spacing: 0.16em;
-      border-radius: 0;
+      border-radius: 8px;
     }
     .start-menu__heading {
       margin-bottom: 18px;
-      color: var(--ink, #e2ded5);
+      color: var(--ink, #fff8eb);
       font-size: 22px;
       letter-spacing: 0.2em;
       text-align: center;
@@ -208,13 +201,13 @@ function ensureStyle() {
       padding: 10px 16px;
       text-align: left;
       letter-spacing: 0.04em;
-      border-radius: 0;
+      border-radius: 8px;
     }
     .start-menu__save-title {
       display: flex;
       justify-content: space-between;
       gap: 16px;
-      color: var(--ink, #e2ded5);
+      color: var(--ink, #fff8eb);
       font-size: 14px;
       line-height: 1.5;
     }
@@ -230,12 +223,12 @@ function ensureStyle() {
       min-height: 156px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(94, 99, 107, 0.25);
+      border: 1px solid rgba(232, 176, 88, 0.25);
       color: var(--ink-soft, rgba(150, 155, 165, 0.8));
-      background: rgba(94, 99, 107, 0.03);
+      background: rgba(232, 176, 88, 0.03);
       font-size: 14px;
       letter-spacing: 0.08em;
-      border-radius: 0;
+      border-radius: 8px;
     }
     .start-menu__error {
       min-height: auto;
@@ -251,7 +244,7 @@ function ensureStyle() {
     }
     .start-menu__about p {
       margin: 0 0 12px;
-      color: var(--ink, #e2ded5);
+      color: var(--ink, #fff8eb);
       font-size: 14px;
       letter-spacing: 0.04em;
       font-weight: bold;
@@ -274,17 +267,17 @@ function ensureStyle() {
       gap: 4px 14px;
       align-items: center;
       padding: 12px 14px;
-      border: 1px solid rgba(94, 99, 107, 0.3);
-      background: rgba(94, 99, 107, 0.04);
-      border-radius: 0;
+      border: 1px solid rgba(232, 176, 88, 0.3);
+      background: rgba(232, 176, 88, 0.04);
+      border-radius: 8px;
     }
     .start-menu__avatar {
       width: 56px;
       height: 56px;
-      border-radius: 0; /* 彻底直角美学 */
+      border-radius: 8px; /* 彻底直角美学 */
       object-fit: cover;
-      border: 1px solid rgba(94, 99, 107, 0.5);
-      box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(232, 176, 88, 0.5);
+      box-shadow: 0 0 12px rgba(232, 176, 88, 0.1);
       grid-row: 1 / span 2;
       background: rgba(0, 0, 0, 0.35);
     }
@@ -292,13 +285,13 @@ function ensureStyle() {
       min-width: 0;
     }
     .start-menu__member-role {
-      color: var(--ok, rgba(0, 240, 255, 0.85));
+      color: var(--ok, rgba(232, 176, 88, 0.85));
       font-size: 11px;
       letter-spacing: 0.12em;
       font-family: monospace;
     }
     .start-menu__member-name {
-      color: var(--ink, #e2ded5);
+      color: var(--ink, #fff8eb);
       font-size: 15px;
       font-weight: 700;
       letter-spacing: 0.08em;

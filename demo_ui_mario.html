@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《墓之语》马里奥风格 UI 预览</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #5c94fc;
+    background-image:
+      linear-gradient(180deg, #5c94fc 0%, #5c94fc 55%, #00a800 55%, #00a800 62%, #c84c0c 62%, #c84c0c 100%);
+    padding: 20px 14px 40px;
+    color: #fff;
+  }
+
+  .sky-deco {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 999px;
+    opacity: 0.95;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  .head {
+    text-align: center;
+    margin-bottom: 14px;
+    text-shadow: 2px 2px 0 #000;
+  }
+  .head h1 {
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    color: #fc0;
+    -webkit-text-stroke: 1px #000;
+  }
+  .head p {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* 舞台：像一关横版画面 */
+  .stage {
+    position: relative;
+    height: min(640px, 78vh);
+    border: 4px solid #000;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.25);
+    background:
+      linear-gradient(180deg, #5c94fc 0 58%, #00a800 58% 68%, #c84c0c 68% 100%);
+  }
+
+  /* 远景砖 */
+  .bricks {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 32%;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #c84c0c 0 28px,
+        #a03c08 28px 30px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        #c84c0c 0 14px,
+        #a03c08 14px 16px
+      );
+    background-blend-mode: multiply;
+    opacity: 0.9;
+    border-top: 4px solid #000;
+  }
+  .grass {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 32%;
+    height: 10%;
+    background: repeating-linear-gradient(90deg, #00a800 0 20px, #008800 20px 40px);
+    border-top: 3px solid #006600;
+  }
+
+  /* 问号砖 / 金币 */
+  .q-block {
+    position: absolute;
+    width: 40px; height: 40px;
+    background: #fc0;
+    border: 3px solid #000;
+    box-shadow: inset -3px -3px 0 #c90, inset 3px 3px 0 #fe6;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 22px; color: #a40;
+    text-shadow: 1px 1px 0 #fe6;
+  }
+  .coin {
+    position: absolute;
+    width: 22px; height: 28px;
+    background: #fc0;
+    border: 3px solid #000;
+    border-radius: 50%;
+    box-shadow: inset -2px -2px 0 #c90;
+  }
+
+  /* HUD：马里奥式顶栏 */
+  .mario-hud {
+    position: absolute;
+    top: 12px; left: 12px; right: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    z-index: 5;
+  }
+  .hud-panel {
+    background: #000;
+    border: 3px solid #fff;
+    padding: 8px 12px;
+    min-width: 120px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.35);
+  }
+  .hud-panel .label {
+    font-size: 11px;
+    color: #fc0;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+  }
+  .hud-panel .value {
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+    margin-top: 2px;
+    letter-spacing: 0.04em;
+  }
+  .hud-panel .value small {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 700;
+  }
+  .lives {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mushroom {
+    width: 22px; height: 18px;
+    background: #e52521;
+    border: 2px solid #000;
+    border-radius: 10px 10px 4px 4px;
+    position: relative;
+  }
+  .mushroom::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 5px; height: 5px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 8px 0 #fff;
+  }
+
+  /* 目标条：像关卡名牌 */
+  .course {
+    position: absolute;
+    top: 78px; left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    border: 3px solid #fff;
+    padding: 8px 18px;
+    font-weight: 900;
+    font-size: 14px;
+    color: #fc0;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    z-index: 5;
+    white-space: nowrap;
+  }
+  .course span { color: #fff; }
+
+  /* 词袋：像道具栏方块 */
+  .items {
+    position: absolute;
+    top: 78px; left: 12px;
+    display: flex;
+    gap: 6px;
+    z-index: 5;
+  }
+  .item-slot {
+    width: 36px; height: 36px;
+    background: #5c4030;
+    border: 3px solid #000;
+    box-shadow: inset 2px 2px 0 #8b5a3c, 2px 2px 0 #000;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 15px; color: #fc0;
+  }
+  .item-slot.empty {
+    background: #2a2018;
+    color: transparent;
+  }
+
+  /* 补诗：大问号砖风格面板 */
+  .block-panel {
+    position: absolute;
+    left: 50%; top: 42%;
+    transform: translate(-50%, -50%);
+    width: min(440px, 90%);
+    background: #fc0;
+    border: 4px solid #000;
+    box-shadow:
+      inset -6px -6px 0 #c90,
+      inset 6px 6px 0 #fe6,
+      6px 6px 0 rgba(0,0,0,0.35);
+    padding: 16px 18px 14px;
+    z-index: 6;
+    text-align: center;
+  }
+  .block-panel h3 {
+    color: #a40;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-shadow: 1px 1px 0 #fe6;
+    margin-bottom: 6px;
+  }
+  .block-panel .sub {
+    color: #5a3000;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .poem {
+    font-size: 22px;
+    font-weight: 900;
+    color: #000;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+  .blank {
+    display: inline-grid;
+    place-items: center;
+    width: 34px; height: 34px;
+    margin: 0 3px;
+    vertical-align: middle;
+    background: #5c94fc;
+    border: 3px solid #000;
+    color: #fff;
+    font-size: 16px;
+    box-shadow: inset -2px -2px 0 #3a6fd0, inset 2px 2px 0 #8ab8ff;
+  }
+  .blank.open {
+    background: #fff;
+    color: #aaa;
+    box-shadow: none;
+  }
+  .choices {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .choices button {
+    min-width: 44px; height: 40px;
+    padding: 0 12px;
+    background: #e52521;
+    border: 3px solid #000;
+    color: #fff;
+    font: inherit;
+    font-weight: 900;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #8b0000;
+  }
+  .choices button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 0 #8b0000;
+  }
+  .choices button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #8b0000;
+  }
+  .choices button.on {
+    background: #00a800;
+    box-shadow: 0 4px 0 #006600;
+  }
+
+  /* 提示：像获得道具的弹出 */
+  .get-toast {
+    position: absolute;
+    left: 14px;
+    bottom: 168px;
+    background: #000;
+    border: 3px solid #fc0;
+    padding: 8px 12px;
+    font-weight: 900;
+    font-size: 13px;
+    color: #fc0;
+    z-index: 5;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .get-toast .ico {
+    display: inline-block;
+    width: 16px; height: 20px;
+    background: #fc0;
+    border: 2px solid #000;
+    border-radius: 50%;
+    vertical-align: -3px;
+    margin-right: 6px;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  /* 对话框：经典黑底白边 */
+  .dialog {
+    position: absolute;
+    left: 20px; right: 20px; bottom: 14px;
+    min-height: 118px;
+    background: #000;
+    border: 4px solid #fff;
+    padding: 12px 14px;
+    z-index: 7;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+  }
+  .dialog-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .face {
+    width: 44px; height: 44px;
+    background: #f4c2a0;
+    border: 3px solid #000;
+    border-radius: 4px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .face::before {
+    content: '';
+    position: absolute;
+    left: 8px; top: 14px;
+    width: 6px; height: 6px;
+    background: #000;
+    border-radius: 50%;
+    box-shadow: 18px 0 #000;
+  }
+  .face::after {
+    content: '';
+    position: absolute;
+    left: 12px; bottom: 10px;
+    width: 16px; height: 4px;
+    background: #000;
+    border-radius: 2px;
+  }
+  .hat {
+    position: absolute;
+    top: -10px; left: 4px; right: 4px;
+    height: 12px;
+    background: #e52521;
+    border: 2px solid #000;
+    border-bottom: none;
+  }
+  .name {
+    font-weight: 900;
+    font-size: 15px;
+    color: #fc0;
+  }
+  .name small {
+    display: block;
+    color: #8af;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .body {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.65;
+    color: #fff;
+  }
+  .cont {
+    text-align: right;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 900;
+    color: #fc0;
+    animation: blink 0.9s steps(2) infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0.2; }
+  }
+
+  /* 水管装饰 */
+  .pipe {
+    position: absolute;
+    right: 40px;
+    bottom: 32%;
+    width: 56px;
+    height: 70px;
+    background: #00a800;
+    border: 3px solid #000;
+    border-bottom: none;
+    z-index: 2;
+  }
+  .pipe::before {
+    content: '';
+    position: absolute;
+    top: -14px; left: -8px; right: -8px;
+    height: 20px;
+    background: #00a800;
+    border: 3px solid #000;
+  }
+  .pipe::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,0.2) 35%, transparent 50%);
+  }
+
+  .legend {
+    margin-top: 16px;
+    background: #000;
+    border: 3px solid #fff;
+    padding: 14px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.75;
+    color: #eee;
+  }
+  .legend h3 { color: #fc0; margin-bottom: 6px; font-size: 14px; }
+  .legend em { color: #8af; font-style: normal; }
+  .links {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .links a {
+    color: #fc0;
+    margin: 0 10px;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  @media (max-width: 640px) {
+    .course { font-size: 12px; padding: 6px 10px; }
+    .items { top: 120px; }
+    .get-toast { bottom: 190px; }
+  }
+</style>
+</head>
+<body>
+  <div class="sky-deco" aria-hidden="true">
+    <div class="cloud" style="width:70px;height:28px;top:8%;left:8%"></div>
+    <div class="cloud" style="width:90px;height:32px;top:12%;right:12%"></div>
+  </div>
+
+  <div class="page">
+    <div class="head">
+      <h1>SUPER 墓之语 · 马里奥式 UI</h1>
+      <p>经典任天堂平台风：蓝天草地、问号砖、金币、黑底白框对话框。仅预览，未改游戏。</p>
+    </div>
+
+    <div class="stage">
+      <div class="bricks"></div>
+      <div class="grass"></div>
+      <div class="pipe"></div>
+
+      <div class="q-block" style="top:38%;left:18%">?</div>
+      <div class="q-block" style="top:38%;left:26%">?</div>
+      <div class="coin" style="top:28%;left:48%"></div>
+      <div class="coin" style="top:30%;left:54%"></div>
+
+      <!-- HUD -->
+      <div class="mario-hud">
+        <div class="hud-panel">
+          <div class="label">顾言</div>
+          <div class="value lives">
+            <div class="mushroom" title="命"></div>
+            × 3
+          </div>
+        </div>
+        <div class="hud-panel">
+          <div class="label">理性 WORLD</div>
+          <div class="value">72 <small>/ 100</small></div>
+        </div>
+        <div class="hud-panel">
+          <div class="label">TIME · 字币</div>
+          <div class="value">× 03</div>
+        </div>
+      </div>
+
+      <div class="items" title="词袋">
+        <div class="item-slot">关</div>
+        <div class="item-slot">雎</div>
+        <div class="item-slot">鸠</div>
+        <div class="item-slot empty">·</div>
+        <div class="item-slot empty">·</div>
+      </div>
+
+      <div class="course">COURSE 1-1 · <span>去江堤找守砚！</span></div>
+
+      <!-- 补诗 = 顶砖开宝箱感 -->
+      <div class="block-panel">
+        <h3>？ 补诗砖块 ？</h3>
+        <div class="sub">顶一下 · 填对就通关这格</div>
+        <div class="poem">
+          关关<span class="blank">雎</span><span class="blank open">?</span>，在河之洲
+        </div>
+        <div class="choices">
+          <button type="button" class="on">鸠</button>
+          <button type="button">就</button>
+          <button type="button">旧</button>
+          <button type="button">居</button>
+        </div>
+      </div>
+
+      <div class="get-toast">
+        <span class="ico"></span>1-UP！获得汉字「鸠」
+      </div>
+
+      <div class="dialog">
+        <div class="dialog-top">
+          <div class="face"><div class="hat"></div></div>
+          <div class="name">
+            守砚
+            <small>NPC · LET'S-A GO</small>
+          </div>
+        </div>
+        <div class="body">
+          喂——完整的句子像钉子！把字顶回来，世界就不会掉进坑里。来，再跳一次！
+        </div>
+        <div class="cont">▼ A / 空格</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <h3>风格要点（马里奥经典）</h3>
+      · <em>色</em>：天空蓝 #5C94FC、草地绿、砖橙、问号金、蘑菇红<br>
+      · <em>形</em>：硬边 3～4px 黑描边、厚重立体块、少圆角<br>
+      · <em>HUD</em>：顶栏黑底白框，像原作分数/金币/时间<br>
+      · <em>交互</em>：补诗做成「问号砖面板」，字币=汉字碎片<br>
+      · <em>风险</em>：和「失语废墟」调性反差大——可只用于教学/轻松段，或做成「回忆童年游戏」彩蛋皮肤
+    </div>
+
+    <div class="links">
+      <a href="demo_ui_soft.html">软萌四款</a>
+      <a href="demo_ui_styles.html">正经四款</a>
+      <a href="index.html">返回游戏</a>
+    </div>
+  </div>
+
+<script>
+  document.querySelectorAll('.choices button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.choices button').forEach((b) => b.classList.remove('on'));
+      btn.classList.add('on');
+      const open = document.querySelector('.blank.open');
+      if (open) {
+        open.textContent = btn.textContent;
+        open.classList.remove('open');
+      }
+    });
+  });
+</script>
+</body>
+</html>

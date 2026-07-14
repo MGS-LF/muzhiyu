@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《墓之语》UI 方向预览 · 墨潮手札</title>
+<style>
+  :root {
+    --ink: #fff4dc;
+    --ink-soft: #c8b99b;
+    --ink-faint: #96876e;
+    --gold: #e8b058;
+    --gold-bright: #ffd682;
+    --gold-soft: rgba(232, 176, 88, 0.12);
+    --panel: rgba(18, 14, 12, 0.94);
+    --panel-line: rgba(232, 176, 88, 0.42);
+    --ok: #6ec896;
+    --danger: #dc5656;
+    --spirit: #78bed2;
+    --bg: #0a0807;
+    --radius: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(232, 176, 88, 0.08), transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(120, 190, 210, 0.05), transparent 45%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+    font-weight: bold;
+    padding: 28px 20px 48px;
+  }
+
+  .page-head {
+    max-width: 1100px;
+    margin: 0 auto 22px;
+    text-align: center;
+  }
+  .page-head h1 {
+    font-size: 22px;
+    letter-spacing: 0.28em;
+    color: var(--gold-bright);
+    font-weight: 700;
+  }
+  .page-head p {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+  }
+  .page-head .note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  .stage {
+    position: relative;
+    width: min(1100px, 100%);
+    height: min(700px, 72vh);
+    margin: 0 auto;
+    background:
+      linear-gradient(180deg, #12100e 0%, #0c0a09 100%);
+    border: 1.5px solid var(--panel-line);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    overflow: hidden;
+  }
+
+  /* 场景假背景 */
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(60, 50, 40, 0.4), transparent 55%),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 48px,
+        rgba(255,255,255,0.015) 48px,
+        rgba(255,255,255,0.015) 49px
+      );
+    pointer-events: none;
+  }
+
+  /* —— HUD 左上 —— */
+  .hud {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 268px;
+    padding: 12px 14px 14px;
+    background: var(--panel);
+    border: 1.5px solid var(--panel-line);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .hud::before {
+    content: '';
+    position: absolute;
+    top: 5px; left: 5px;
+    width: 8px; height: 3px;
+    background: var(--gold);
+    box-shadow:
+      0 5px 0 var(--gold),
+      calc(100% - 18px) 0 0 var(--gold),
+      calc(100% - 18px) 5px 0 var(--gold);
+  }
+  .hud-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .hud-label {
+    font-size: 12px;
+    color: var(--gold-bright);
+    width: 32px;
+  }
+  .bar {
+    flex: 1;
+    height: 12px;
+    background: rgba(28, 22, 18, 0.95);
+    border: 1px solid rgba(232, 176, 88, 0.3);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .bar > i {
+    display: block;
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, #6ec896, #8edcb0);
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(110, 200, 150, 0.45);
+  }
+  .bar-val {
+    font-size: 11px;
+    color: var(--ink);
+    min-width: 48px;
+    text-align: right;
+  }
+  .chars {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid rgba(232, 176, 88, 0.45);
+    background: rgba(232, 176, 88, 0.1);
+    color: var(--gold-bright);
+    font-size: 14px;
+  }
+  .chip.empty {
+    border-style: dashed;
+    border-color: rgba(150, 135, 110, 0.4);
+    background: transparent;
+    color: transparent;
+  }
+  .hud-foot {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.06em;
+  }
+
+  /* —— 目标条 顶中 —— */
+  .objective {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 280px;
+    max-width: 420px;
+    padding: 10px 20px;
+    background: var(--panel);
+    border: 1.5px solid var(--panel-line);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .objective .tag {
+    color: var(--gold-bright);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--gold-soft);
+    border: 1px solid rgba(232, 176, 88, 0.35);
+    white-space: nowrap;
+  }
+  .objective .txt {
+    font-size: 13px;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+
+  /* —— 右侧场景卡 —— */
+  .loc {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 190px;
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1.5px solid var(--panel-line);
+    border-radius: var(--radius);
+  }
+  .loc h3 {
+    font-size: 14px;
+    color: var(--gold-bright);
+    margin-bottom: 8px;
+    letter-spacing: 0.1em;
+  }
+  .loc-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  .loc-line b { color: var(--ink); font-weight: 700; }
+  .loc-line .ok { color: var(--ok); }
+  .loc-line .bad { color: var(--danger); }
+
+  /* —— 补诗面板 —— */
+  .utter {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    transform: translate(-50%, -50%);
+    width: min(560px, 90%);
+    padding: 22px 24px 18px;
+    background: var(--panel);
+    border: 1.5px solid var(--panel-line);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .utter-title {
+    text-align: center;
+    font-size: 16px;
+    color: var(--gold-bright);
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+  }
+  .utter-sub {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 18px;
+  }
+  .poem {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 22px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .blank {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid var(--gold);
+    background: var(--gold-soft);
+    display: grid;
+    place-items: center;
+    color: var(--gold-bright);
+    box-shadow: 0 0 12px rgba(232, 176, 88, 0.2);
+  }
+  .blank.dash {
+    border-style: dashed;
+    color: var(--ink-faint);
+    background: rgba(28,22,18,0.6);
+    box-shadow: none;
+  }
+  .pool {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .pool button {
+    min-width: 48px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(232, 176, 88, 0.4);
+    background: rgba(28, 22, 18, 0.9);
+    color: var(--ink);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s ease;
+  }
+  .pool button:hover,
+  .pool button.active {
+    border-color: var(--gold-bright);
+    color: var(--gold-bright);
+    background: var(--gold-soft);
+    transform: translateY(-1px);
+  }
+  .utter-tip {
+    text-align: center;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* —— 对话框 —— */
+  .dialog {
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: 22px;
+    height: 128px;
+    padding: 14px 18px 12px;
+    background: var(--panel);
+    border: 1.5px solid var(--panel-line);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .dialog-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(232, 176, 88, 0.2);
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1.5px solid var(--panel-line);
+    background: linear-gradient(145deg, rgba(232,176,88,0.25), rgba(28,22,18,0.9));
+  }
+  .speaker {
+    font-size: 15px;
+    color: var(--gold-bright);
+    letter-spacing: 0.12em;
+  }
+  .speaker small {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--spirit);
+    letter-spacing: 0.06em;
+    font-weight: normal;
+  }
+  .dialog-body {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+  .dialog-foot {
+    text-align: right;
+    font-size: 11px;
+    color: var(--gold);
+    opacity: 0.75;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  /* —— 提示浮签 左中 —— */
+  .toasts {
+    position: absolute;
+    left: 18px;
+    bottom: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 360px;
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px 12px 10px;
+    background: var(--panel);
+    border: 1.5px solid rgba(232, 176, 88, 0.45);
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .toast.ok { border-color: rgba(110, 200, 150, 0.55); }
+  .toast.danger { border-color: rgba(220, 86, 86, 0.55); }
+  .seal {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    background: var(--gold-soft);
+  }
+  .toast.ok .seal {
+    border-color: var(--ok);
+    color: var(--ok);
+    background: rgba(110, 200, 150, 0.14);
+  }
+  .toast.danger .seal {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(220, 86, 86, 0.14);
+  }
+  .toast p {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .toast .life {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 1px;
+    background: rgba(80, 70, 55, 0.35);
+  }
+  .toast .life > i {
+    display: block;
+    height: 100%;
+    width: 70%;
+    border-radius: 1px;
+    background: var(--gold);
+  }
+  .toast.ok .life > i { background: var(--ok); width: 45%; }
+  .toast.danger .life > i { background: var(--danger); width: 90%; }
+
+  /* 菜单侧栏示意 */
+  .menu-demo {
+    position: absolute;
+    right: 18px;
+    top: 130px;
+    width: 160px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1.5px solid var(--panel-line);
+    border-radius: var(--radius);
+    display: grid;
+    gap: 8px;
+  }
+  .menu-demo button {
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(232, 176, 88, 0.35);
+    background: rgba(232, 176, 88, 0.06);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    cursor: pointer;
+    transition: 0.15s ease;
+  }
+  .menu-demo button:hover,
+  .menu-demo button.primary {
+    background: var(--gold-soft);
+    border-color: var(--gold-bright);
+    color: var(--gold-bright);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 0.35; }
+  }
+
+  .legend {
+    max-width: 1100px;
+    margin: 22px auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .legend article {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(232, 176, 88, 0.25);
+    background: rgba(18, 14, 12, 0.65);
+  }
+  .legend h4 {
+    color: var(--gold-bright);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+  .legend p {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    font-weight: normal;
+  }
+
+  .links {
+    max-width: 1100px;
+    margin: 18px auto 0;
+    text-align: center;
+  }
+  .links a {
+    color: var(--gold);
+    font-size: 13px;
+    margin: 0 12px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(232, 176, 88, 0.35);
+  }
+  .links a:hover { color: var(--gold-bright); }
+
+  @media (max-width: 800px) {
+    .stage { height: auto; min-height: 920px; }
+    .loc, .menu-demo { display: none; }
+    .objective { max-width: calc(100% - 36px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>墨潮手札 · 更游戏的 UI 方向</h1>
+  <p>相对「工业终端」：圆角手札、灯笼金主交互、印章浮签、复苏青成功色。青蓝只留给 AI 旁注。</p>
+  <p class="note">仅预览页，未改动游戏源码。觉得可以再说改进游戏。</p>
+</div>
+
+<div class="stage" aria-label="UI 预览舞台">
+
+  <div class="hud">
+    <div class="hud-row">
+      <span class="hud-label">理性</span>
+      <div class="bar"><i></i></div>
+      <span class="bar-val">72/100</span>
+    </div>
+    <div class="chars">
+      <div class="chip">关</div>
+      <div class="chip">雎</div>
+      <div class="chip">鸠</div>
+      <div class="chip empty">□</div>
+      <div class="chip empty">□</div>
+      <div class="chip empty">□</div>
+    </div>
+    <div class="hud-foot">词袋 · 按 F 补诗净化</div>
+  </div>
+
+  <div class="objective">
+    <span class="tag">目标</span>
+    <span class="txt">在江堤找到守砚，问清失语的来由</span>
+  </div>
+
+  <div class="loc">
+    <h3>黄浦江堤</h3>
+    <div class="loc-line"><span>慈悲</span><b class="ok">2</b></div>
+    <div class="loc-line"><span>残忍</span><b class="bad">0</b></div>
+    <div class="loc-line"><span>已唤醒</span><b>1</b></div>
+  </div>
+
+  <div class="menu-demo" aria-label="菜单按钮示意">
+    <button class="primary">开始游戏</button>
+    <button>读取存档</button>
+    <button>关于</button>
+  </div>
+
+  <div class="utter">
+    <div class="utter-title">语义破译</div>
+    <div class="utter-sub">修复污染结界 · 补全诗句</div>
+    <div class="poem">
+      <span>关</span><span>关</span>
+      <div class="blank">雎</div>
+      <div class="blank dash">□</div>
+      <span>，在河之洲。</span>
+    </div>
+    <div class="pool">
+      <button class="active">鸠</button>
+      <button>就</button>
+      <button>旧</button>
+      <button>居</button>
+    </div>
+    <div class="utter-tip">点字填空 · 填对自动完成 · Esc 关闭</div>
+  </div>
+
+  <div class="toasts">
+    <div class="toast">
+      <div class="seal">记</div>
+      <p>你拾得汉字「鸠」。诗词弹药 +1</p>
+      <div class="life"><i></i></div>
+    </div>
+    <div class="toast ok">
+      <div class="seal">成</div>
+      <p>梗鬼安静下来。（宽恕 → 慈悲）</p>
+      <div class="life"><i></i></div>
+    </div>
+    <div class="toast danger">
+      <div class="seal">危</div>
+      <p>语义噪声掠过脑海……理性 -12</p>
+      <div class="life"><i></i></div>
+    </div>
+  </div>
+
+  <div class="dialog">
+    <div class="dialog-top">
+      <div class="avatar"></div>
+      <div class="speaker">
+        守砚
+        <small style="color: var(--ink-soft)">废墟上的老人</small>
+      </div>
+    </div>
+    <div class="dialog-body">
+      孩子，你的眼睛里还有字。这个世界不是死于战争，是死于失语——完整的句子，才是钉子。
+    </div>
+    <div class="dialog-foot">▼ E / 空格 继续</div>
+  </div>
+</div>
+
+<div class="legend">
+  <article>
+    <h4>色板</h4>
+    <p>灯下纸白 · 灯笼金 · 复苏青 · 朱砂红 · 暖墨底。青蓝只作 AI 灵光点缀，不再铺满 UI。</p>
+  </article>
+  <article>
+    <h4>形状</h4>
+    <p>圆角手札、胶囊目标条、印章圆标。去掉 ASCII 角标与硬直角终端感。</p>
+  </article>
+  <article>
+    <h4>签名元素</h4>
+    <p>四角小印章块 + 中文「记/成/警/危」浮签，像废墟里撕下来的纸条，而不是系统日志。</p>
+  </article>
+</div>
+
+<div class="links">
+  <a href="demo_ui.html">上一版：数码碑刻</a>
+  <a href="index.html">返回游戏</a>
+</div>
+
+<script>
+  document.querySelectorAll('.pool button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pool button').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const dash = document.querySelector('.blank.dash');
+      if (dash) {
+        dash.textContent = btn.textContent;
+        dash.classList.remove('dash');
+      }
+    });
+  });
+</script>
+</body>
+</html>

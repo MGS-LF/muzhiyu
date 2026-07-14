@@ -83,16 +83,16 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
 
   // 使用优雅的低饱和度古风色卡替换高亮度霓虹色
   const catColors = {
-    主线: 'rgba(0, 240, 255, 0.95)', // 荧光青蓝
-    可选: 'rgba(150, 155, 165, 0.95)', // 废墟水泥灰
-    支线: 'rgba(217, 155, 66, 0.95)', // 琥珀古金
-    收集: 'rgba(217, 155, 66, 0.95)',
-    倾向: 'rgba(150, 155, 165, 0.95)',
-    刻字: 'rgba(150, 155, 165, 0.95)',
-    余烬: 'rgba(211, 54, 54, 0.95)', // 朱砂红
-    线索: 'rgba(0, 240, 255, 0.95)',
-    世界史: 'rgba(150, 155, 165, 0.95)',
-    规则: 'rgba(150, 155, 165, 0.95)',
+    主线: 'rgba(232, 176, 88, 0.95)',
+    可选: 'rgba(170, 150, 120, 0.95)',
+    支线: 'rgba(110, 200, 150, 0.95)',
+    收集: 'rgba(232, 176, 88, 0.9)',
+    倾向: 'rgba(170, 150, 120, 0.95)',
+    刻字: 'rgba(200, 185, 155, 0.95)',
+    余烬: 'rgba(220, 86, 86, 0.95)',
+    线索: 'rgba(120, 190, 210, 0.95)',
+    世界史: 'rgba(170, 150, 120, 0.95)',
+    规则: 'rgba(150, 140, 125, 0.95)',
   };
   let yy = py + 58;
   let curCat = '';
@@ -105,7 +105,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
       ctx.fillStyle = catColors[q.cat] || '#ccc';
       ctx.font = font(12, true);
       ctx.fillText(q.cat, px + pad, yy);
-      ctx.strokeStyle = 'rgba(94, 99, 107, 0.2)'; // 细框分隔线
+      ctx.strokeStyle = 'rgba(232, 176, 88, 0.18)';
       ctx.beginPath();
       ctx.moveTo(px + 82, yy - 4);
       ctx.lineTo(px + pw - pad, yy - 4);
@@ -123,24 +123,26 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
     // 任务状态微章：直角、加粗高清晰文字对比
     let badgeBg, badgeBorder, badgeText;
     if (q.done) {
-      badgeBg = 'rgba(0, 240, 255, 0.08)';
-      badgeBorder = 'rgba(0, 240, 255, 0.35)';
+      badgeBg = 'rgba(110, 200, 150, 0.12)';
+      badgeBorder = 'rgba(110, 200, 150, 0.4)';
       badgeText = UI.ok;
     } else if (q.optional) {
-      badgeBg = 'rgba(150, 155, 165, 0.08)';
-      badgeBorder = 'rgba(150, 155, 165, 0.35)';
-      badgeText = 'rgba(180, 185, 195, 0.95)';
+      badgeBg = 'rgba(170, 150, 120, 0.1)';
+      badgeBorder = 'rgba(170, 150, 120, 0.4)';
+      badgeText = 'rgba(200, 185, 155, 0.95)';
     } else {
-      badgeBg = 'rgba(217, 155, 66, 0.08)';
-      badgeBorder = 'rgba(217, 155, 66, 0.35)';
-      badgeText = 'rgba(240, 180, 100, 0.95)';
+      badgeBg = 'rgba(232, 176, 88, 0.1)';
+      badgeBorder = 'rgba(232, 176, 88, 0.4)';
+      badgeText = 'rgba(255, 214, 130, 0.95)';
     }
 
     ctx.fillStyle = badgeBg;
-    ctx.fillRect(px + 48, yy - 12, 44, 18);
+    roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
+    ctx.fill();
     ctx.strokeStyle = badgeBorder;
     ctx.lineWidth = 1;
-    ctx.strokeRect(px + 48, yy - 12, 44, 18);
+    roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
+    ctx.stroke();
 
     ctx.fillStyle = badgeText;
     ctx.font = font(10, true);

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《墓之语》贴纸手账 · 透明废墟便签</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+    background: #0c0e12;
+    color: #f2ebe0;
+    padding: 20px 14px 48px;
+  }
+
+  .head {
+    max-width: 1080px;
+    margin: 0 auto 14px;
+    text-align: center;
+  }
+  .head h1 {
+    font-size: 20px;
+    letter-spacing: 0.14em;
+    color: #f0d090;
+    font-weight: 800;
+  }
+  .head p {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #a8a098;
+    line-height: 1.75;
+    max-width: 52ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 舞台 = 假装游戏画面：废墟场景透出来 */
+  .stage {
+    position: relative;
+    max-width: 1080px;
+    height: min(680px, 80vh);
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    /* 废墟场景底 */
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(80, 90, 70, 0.35), transparent 50%),
+      radial-gradient(ellipse at 75% 30%, rgba(60, 80, 100, 0.25), transparent 45%),
+      linear-gradient(180deg, #1a1e28 0%, #12151c 40%, #0e1016 100%);
+  }
+
+  /* 假场景：破楼剪影 */
+  .ruins {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ruins .sky {
+    position: absolute;
+    inset: 0 0 35% 0;
+    background:
+      radial-gradient(ellipse at 70% 20%, rgba(180, 120, 80, 0.12), transparent 40%),
+      linear-gradient(180deg, #252a38, #151820);
+  }
+  .ruins .building {
+    position: absolute;
+    bottom: 28%;
+    background: #0a0c10;
+    opacity: 0.85;
+  }
+  .ruins .b1 { left: 8%; width: 70px; height: 120px; clip-path: polygon(0 20%, 30% 0, 100% 15%, 100% 100%, 0 100%); }
+  .ruins .b2 { left: 22%; width: 90px; height: 160px; }
+  .ruins .b3 { right: 18%; width: 110px; height: 140px; clip-path: polygon(0 0, 80% 10%, 100% 0, 100% 100%, 0 100%); }
+  .ruins .ground {
+    position: absolute;
+    left: 0; right: 0; bottom: 0; height: 32%;
+    background:
+      linear-gradient(180deg, transparent, rgba(20, 24, 18, 0.9)),
+      repeating-linear-gradient(90deg, #1a1e16 0 40px, #161a14 40px 80px);
+    border-top: 1px solid rgba(100, 110, 90, 0.25);
+  }
+  .ruins .char-glow {
+    position: absolute;
+    left: 48%; bottom: 36%;
+    width: 14px; height: 22px;
+    background: rgba(240, 210, 140, 0.9);
+    border-radius: 3px;
+    box-shadow: 0 0 16px rgba(240, 200, 100, 0.6);
+  }
+  .ruins .npc {
+    position: absolute;
+    right: 32%; bottom: 38%;
+    width: 12px; height: 20px;
+    background: rgba(160, 170, 180, 0.5);
+    border-radius: 3px;
+  }
+  .ruins .npc-bubble {
+    position: absolute;
+    right: 28%; bottom: 48%;
+    font-size: 11px;
+    color: rgba(200, 220, 180, 0.7);
+    letter-spacing: 0.2em;
+  }
+
+  /* —— 透明手账便签系统 —— */
+  .note {
+    position: absolute;
+    z-index: 2;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 3px;
+    font-weight: 700;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.12) inset,
+      2px 3px 12px rgba(0,0,0,0.25);
+  }
+
+  /* 理性：半透明暖纸角 */
+  .note-san {
+    top: 16px; left: 16px;
+    width: 200px;
+    padding: 12px 14px 14px;
+    background: rgba(255, 248, 230, 0.22);
+    border: 1px solid rgba(255, 230, 180, 0.35);
+    color: #fff8e8;
+    transform: rotate(-1.5deg);
+  }
+  .note-san .tape {
+    position: absolute;
+    top: -7px; left: 50%;
+    transform: translateX(-50%) rotate(3deg);
+    width: 52px; height: 13px;
+    background: rgba(255, 180, 120, 0.28);
+    border: 1px solid rgba(255, 200, 150, 0.25);
+  }
+  .note-san .lbl {
+    font-size: 11px;
+    color: rgba(255, 230, 180, 0.85);
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+  .note-san .bar {
+    height: 8px;
+    border-radius: 99px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,230,180,0.2);
+    overflow: hidden;
+  }
+  .note-san .bar i {
+    display: block;
+    width: 72%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(240, 160, 100, 0.85), rgba(255, 210, 120, 0.95));
+  }
+  .note-san .val {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(255, 244, 220, 0.9);
+  }
+
+  /* 词袋：透明字贴 */
+  .note-bag {
+    top: 108px; left: 18px;
+    padding: 10px 12px;
+    background: rgba(255, 250, 240, 0.16);
+    border: 1px dashed rgba(255, 230, 190, 0.4);
+    transform: rotate(1deg);
+  }
+  .note-bag .lbl {
+    font-size: 10px;
+    color: rgba(255, 220, 160, 0.75);
+    margin-bottom: 6px;
+    letter-spacing: 0.1em;
+  }
+  .chars {
+    display: flex;
+    gap: 5px;
+  }
+  .char-sticker {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    font-size: 14px;
+    font-weight: 800;
+    background: rgba(255, 236, 180, 0.55);
+    color: #3a2810;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 220, 140, 0.5);
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.15);
+    transform: rotate(-2deg);
+  }
+  .char-sticker:nth-child(2) { transform: rotate(2deg); background: rgba(200, 230, 255, 0.45); }
+  .char-sticker:nth-child(3) { transform: rotate(-1deg); background: rgba(200, 255, 210, 0.45); }
+  .char-sticker.empty {
+    background: rgba(255,255,255,0.06);
+    border-style: dashed;
+    color: transparent;
+    box-shadow: none;
+  }
+
+  /* 目标：撕下的任务纸条，更透 */
+  .note-obj {
+    top: 18px; left: 50%;
+    transform: translateX(-50%) rotate(0.8deg);
+    max-width: min(380px, 70%);
+    padding: 8px 16px 10px;
+    background: rgba(255, 252, 240, 0.2);
+    border: 1px solid rgba(255, 240, 200, 0.35);
+    border-left: 3px solid rgba(200, 80, 70, 0.65);
+    font-size: 13px;
+    color: rgba(255, 248, 230, 0.95);
+  }
+  .note-obj .tag {
+    display: inline-block;
+    font-size: 10px;
+    color: rgba(255, 160, 140, 0.95);
+    letter-spacing: 0.14em;
+    margin-right: 8px;
+  }
+
+  /* 场景角：透明地名签 */
+  .note-loc {
+    top: 18px; right: 16px;
+    padding: 10px 12px;
+    background: rgba(180, 200, 220, 0.12);
+    border: 1px solid rgba(180, 210, 230, 0.28);
+    transform: rotate(2deg);
+    font-size: 12px;
+    color: rgba(230, 240, 250, 0.9);
+    min-width: 120px;
+  }
+  .note-loc strong {
+    display: block;
+    font-size: 14px;
+    color: rgba(255, 230, 180, 0.95);
+    margin-bottom: 4px;
+  }
+  .note-loc span { opacity: 0.75; font-size: 11px; }
+
+  /* 补诗：半透明诗页，像摊开的关雎残页 */
+  .note-poem {
+    left: 50%; top: 40%;
+    transform: translate(-50%, -50%) rotate(-0.6deg);
+    width: min(460px, 88%);
+    padding: 20px 22px 16px;
+    background: rgba(255, 250, 238, 0.28);
+    border: 1px solid rgba(255, 236, 200, 0.4);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.15),
+      4px 8px 28px rgba(0,0,0,0.35);
+  }
+  .note-poem .tape-l, .note-poem .tape-r {
+    position: absolute;
+    top: -8px;
+    width: 44px; height: 16px;
+    background: rgba(255, 200, 140, 0.32);
+    border: 1px solid rgba(255, 220, 180, 0.25);
+  }
+  .note-poem .tape-l { left: 18%; transform: rotate(-8deg); }
+  .note-poem .tape-r { right: 18%; transform: rotate(6deg); }
+  .note-poem h3 {
+    text-align: center;
+    font-size: 14px;
+    letter-spacing: 0.28em;
+    color: rgba(255, 230, 180, 0.95);
+    margin-bottom: 4px;
+  }
+  .note-poem .sub {
+    text-align: center;
+    font-size: 11px;
+    color: rgba(230, 210, 180, 0.65);
+    margin-bottom: 14px;
+  }
+  .poem-line {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: rgba(255, 248, 230, 0.98);
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .blank {
+    display: inline-grid;
+    place-items: center;
+    width: 34px; height: 34px;
+    margin: 0 3px;
+    vertical-align: middle;
+    background: rgba(255, 220, 140, 0.5);
+    color: #2a2010;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 210, 120, 0.55);
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.12);
+    transform: rotate(-2deg);
+  }
+  .blank.open {
+    background: rgba(0,0,0,0.2);
+    color: rgba(255, 230, 180, 0.45);
+    border-style: dashed;
+    box-shadow: none;
+    transform: none;
+  }
+  .pool {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pool button {
+    min-width: 42px; height: 36px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 230, 180, 0.4);
+    background: rgba(255, 248, 230, 0.35);
+    color: #2a2018;
+    font: inherit;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 2px;
+    transform: rotate(1deg);
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.12);
+    transition: 0.12s ease;
+  }
+  .pool button:nth-child(2) { transform: rotate(-2deg); }
+  .pool button:nth-child(3) { transform: rotate(1.5deg); }
+  .pool button:hover, .pool button.on {
+    background: rgba(255, 220, 140, 0.75);
+    border-color: rgba(255, 200, 100, 0.8);
+    transform: translateY(-2px) rotate(0deg);
+  }
+  .pool-tip {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(230, 210, 180, 0.55);
+  }
+
+  /* 提示：小贴纸浮签 */
+  .note-toast {
+    left: 18px;
+    bottom: 180px;
+    max-width: 280px;
+    padding: 10px 12px;
+    background: rgba(200, 255, 220, 0.22);
+    border: 1px solid rgba(160, 230, 180, 0.4);
+    color: rgba(230, 255, 240, 0.95);
+    font-size: 13px;
+    transform: rotate(-1.2deg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .note-toast .seal {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 2px;
+    background: rgba(100, 200, 140, 0.45);
+    border: 1px solid rgba(160, 230, 180, 0.5);
+    display: grid; place-items: center;
+    font-size: 12px;
+    color: #0a2010;
+  }
+  .note-toast.warn {
+    bottom: 236px;
+    background: rgba(255, 200, 140, 0.2);
+    border-color: rgba(255, 180, 100, 0.4);
+    color: rgba(255, 240, 210, 0.95);
+    transform: rotate(1deg);
+  }
+  .note-toast.warn .seal {
+    background: rgba(255, 180, 100, 0.5);
+    color: #3a2010;
+  }
+
+  /* 对话框：墨潮信纸 + 扫描光 / 印章 / 漂浮残字 */
+  .note-dialog {
+    left: 24px; right: 24px; bottom: 14px;
+    min-height: 132px;
+    padding: 0;
+    background:
+      linear-gradient(105deg, rgba(255, 248, 230, 0.08) 0%, transparent 40%),
+      rgba(18, 14, 12, 0.55);
+    border: 1px solid rgba(255, 210, 140, 0.45);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.35),
+      0 12px 40px rgba(0, 0, 0, 0.45),
+      0 0 28px rgba(232, 176, 88, 0.12);
+    transform: rotate(0.2deg);
+    overflow: hidden;
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  }
+  /* 顶缘灯火线 */
+  .note-dialog::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 210, 120, 0.15) 15%,
+      rgba(255, 220, 140, 0.95) 50%,
+      rgba(255, 210, 120, 0.15) 85%,
+      transparent
+    );
+    animation: dialog-glow 2.8s ease-in-out infinite;
+  }
+  /* 横向扫描光 */
+  .note-dialog::after {
+    content: '';
+    position: absolute;
+    left: -40%;
+    top: 0;
+    width: 35%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 230, 170, 0.07),
+      transparent
+    );
+    animation: dialog-scan 4.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes dialog-glow {
+    0%, 100% { opacity: 0.55; filter: brightness(1); }
+    50% { opacity: 1; filter: brightness(1.35); }
+  }
+  @keyframes dialog-scan {
+    0% { transform: translateX(0); opacity: 0; }
+    12% { opacity: 1; }
+    55% { transform: translateX(320%); opacity: 0.6; }
+    100% { transform: translateX(320%); opacity: 0; }
+  }
+
+  .note-dialog .dialog-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 14px;
+    padding: 14px 16px 12px;
+    min-height: 132px;
+  }
+  /* 左侧墨金竖条 */
+  .note-dialog .dialog-rail {
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 3px;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(255, 200, 100, 0.95) 20%,
+      rgba(255, 160, 80, 0.8) 80%,
+      transparent
+    );
+    box-shadow: 0 0 12px rgba(255, 190, 100, 0.55);
+    animation: rail-pulse 2s ease-in-out infinite;
+  }
+  @keyframes rail-pulse {
+    0%, 100% { opacity: 0.65; box-shadow: 0 0 8px rgba(255, 190, 100, 0.35); }
+    50% { opacity: 1; box-shadow: 0 0 16px rgba(255, 210, 120, 0.75); }
+  }
+
+  .note-dialog .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+  }
+  .note-dialog .avatar {
+    width: 56px; height: 56px;
+    border-radius: 4px;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255, 230, 180, 0.55), transparent 50%),
+      linear-gradient(145deg, rgba(80, 60, 40, 0.7), rgba(20, 16, 12, 0.85));
+    border: 1px solid rgba(255, 210, 140, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.3),
+      0 0 18px rgba(255, 190, 100, 0.25);
+    animation: avatar-breathe 3s ease-in-out infinite;
+  }
+  /* 残缺印章框：四角勾线，不整圈狂转 */
+  .note-dialog .avatar-ring {
+    position: absolute;
+    inset: -5px;
+    border-radius: 6px;
+    pointer-events: none;
+    background: transparent;
+    border: none;
+    animation: none;
+  }
+  .note-dialog .avatar-ring::before,
+  .note-dialog .avatar-ring::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: rgba(255, 210, 140, 0.85);
+    border-style: solid;
+    border-width: 0;
+  }
+  .note-dialog .avatar-ring::before {
+    top: 0; left: 0;
+    border-top-width: 1.5px;
+    border-left-width: 1.5px;
+    box-shadow: 0 0 8px rgba(255, 200, 100, 0.35);
+    animation: corner-glow 2.4s ease-in-out infinite;
+  }
+  .note-dialog .avatar-ring::after {
+    bottom: 0; right: 0;
+    border-bottom-width: 1.5px;
+    border-right-width: 1.5px;
+    box-shadow: 0 0 8px rgba(255, 200, 100, 0.35);
+    animation: corner-glow 2.4s ease-in-out infinite 1.2s;
+  }
+  /* 另外两角用子元素 */
+  .note-dialog .avatar-corner-tr,
+  .note-dialog .avatar-corner-bl {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: rgba(255, 210, 140, 0.7);
+    border-style: solid;
+    border-width: 0;
+    pointer-events: none;
+  }
+  .note-dialog .avatar-corner-tr {
+    top: -5px; right: -5px;
+    border-top-width: 1.5px;
+    border-right-width: 1.5px;
+    animation: corner-glow 2.4s ease-in-out infinite 0.6s;
+  }
+  .note-dialog .avatar-corner-bl {
+    bottom: -5px; left: -5px;
+    border-bottom-width: 1.5px;
+    border-left-width: 1.5px;
+    animation: corner-glow 2.4s ease-in-out infinite 1.8s;
+  }
+  /* 内侧虚线框：缓慢呼吸，像贴不牢的胶带边 */
+  .note-dialog .avatar-dash {
+    position: absolute;
+    inset: -2px;
+    border: 1px dashed rgba(255, 210, 140, 0.28);
+    border-radius: 5px;
+    animation: dash-breathe 3.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes avatar-breathe {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 0 12px rgba(255, 190, 100, 0.2); }
+    50% { box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 0 22px rgba(255, 200, 120, 0.45); }
+  }
+  @keyframes corner-glow {
+    0%, 100% { opacity: 0.45; filter: brightness(0.9); }
+    50% { opacity: 1; filter: brightness(1.4); }
+  }
+  @keyframes dash-breathe {
+    0%, 100% { opacity: 0.35; transform: scale(1); }
+    50% { opacity: 0.75; transform: scale(1.02); }
+  }
+  .note-dialog .avatar-seal {
+    position: absolute;
+    right: -6px; bottom: -6px;
+    width: 20px; height: 20px;
+    border-radius: 2px;
+    background: rgba(180, 50, 45, 0.75);
+    border: 1px solid rgba(255, 120, 100, 0.6);
+    color: rgba(255, 230, 220, 0.95);
+    font-size: 10px;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+    transform: rotate(-8deg);
+    box-shadow: 0 0 10px rgba(200, 60, 50, 0.4);
+    animation: seal-stamp 4s ease-in-out infinite;
+  }
+  @keyframes seal-stamp {
+    0%, 70%, 100% { transform: rotate(-8deg) scale(1); opacity: 0.9; }
+    75% { transform: rotate(-8deg) scale(1.15); opacity: 1; }
+    80% { transform: rotate(-6deg) scale(0.95); }
+    85% { transform: rotate(-8deg) scale(1); }
+  }
+
+  .note-dialog .dialog-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .note-dialog .name-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 210, 140, 0.18);
+    position: relative;
+  }
+  .note-dialog .name-row::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -1px;
+    width: 48px;
+    height: 1px;
+    background: rgba(255, 210, 120, 0.85);
+    box-shadow: 0 0 8px rgba(255, 200, 100, 0.6);
+    animation: name-line 2.4s ease-in-out infinite;
+  }
+  @keyframes name-line {
+    0%, 100% { width: 36px; opacity: 0.6; }
+    50% { width: 72px; opacity: 1; }
+  }
+  .note-dialog .name {
+    font-size: 15px;
+    color: rgba(255, 220, 150, 1);
+    letter-spacing: 0.16em;
+    text-shadow: 0 0 12px rgba(255, 190, 100, 0.45);
+    margin-bottom: 0;
+  }
+  .note-dialog .name small {
+    font-size: 11px;
+    color: rgba(200, 210, 220, 0.55);
+    font-weight: 600;
+    margin-left: 0;
+    letter-spacing: 0.04em;
+  }
+  .note-dialog .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #6ec896;
+    box-shadow: 0 0 8px #6ec896;
+    animation: live-blink 1.2s steps(2) infinite;
+    margin-left: auto;
+  }
+  @keyframes live-blink {
+    50% { opacity: 0.25; }
+  }
+
+  .note-dialog .body {
+    font-size: 14.5px;
+    line-height: 1.75;
+    color: rgba(255, 248, 235, 0.96);
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    min-height: 2.6em;
+    flex: 1;
+  }
+  .note-dialog .body .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -2px;
+    background: rgba(255, 210, 120, 0.95);
+    box-shadow: 0 0 6px rgba(255, 200, 100, 0.8);
+    animation: caret 0.7s steps(1) infinite;
+  }
+  @keyframes caret {
+    50% { opacity: 0; }
+  }
+
+  .note-dialog .foot {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: rgba(255, 210, 140, 0.75);
+  }
+  .note-dialog .foot .hint-ink {
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+  }
+  .note-dialog .foot .cont {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid rgba(255, 210, 140, 0.35);
+    border-radius: 2px;
+    background: rgba(255, 200, 100, 0.08);
+    animation: cont-bob 1.4s ease-in-out infinite;
+  }
+  .note-dialog .foot .cont i {
+    display: inline-block;
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid rgba(255, 210, 120, 0.9);
+    animation: cont-arrow 0.9s ease-in-out infinite;
+  }
+  @keyframes cont-bob {
+    0%, 100% { transform: translateY(0); box-shadow: 0 0 0 rgba(255,200,100,0); }
+    50% { transform: translateY(2px); box-shadow: 0 0 12px rgba(255,200,100,0.25); }
+  }
+  @keyframes cont-arrow {
+    0%, 100% { transform: translateY(0); opacity: 0.7; }
+    50% { transform: translateY(3px); opacity: 1; }
+  }
+
+  /* 漂浮残字粒子 */
+  .note-dialog .float-chars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .note-dialog .float-chars span {
+    position: absolute;
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255, 210, 140, 0.22);
+    animation: float-char 7s linear infinite;
+  }
+  .note-dialog .float-chars span:nth-child(1) { left: 18%; bottom: -10%; animation-delay: 0s; }
+  .note-dialog .float-chars span:nth-child(2) { left: 42%; bottom: -10%; animation-delay: 1.8s; font-size: 13px; }
+  .note-dialog .float-chars span:nth-child(3) { left: 68%; bottom: -10%; animation-delay: 3.2s; }
+  .note-dialog .float-chars span:nth-child(4) { left: 85%; bottom: -10%; animation-delay: 4.6s; font-size: 10px; }
+  @keyframes float-char {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    15% { opacity: 0.35; }
+    85% { opacity: 0.15; }
+    100% { transform: translateY(-120px) rotate(12deg); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .note-dialog::before,
+    .note-dialog::after,
+    .note-dialog .avatar,
+    .note-dialog .avatar-ring::before,
+    .note-dialog .avatar-ring::after,
+    .note-dialog .avatar-corner-tr,
+    .note-dialog .avatar-corner-bl,
+    .note-dialog .avatar-dash,
+    .note-dialog .avatar-seal,
+    .note-dialog .name-row::after,
+    .note-dialog .live-dot,
+    .note-dialog .body .cursor,
+    .note-dialog .foot .cont,
+    .note-dialog .foot .cont i,
+    .note-dialog .float-chars span,
+    .note-dialog .dialog-rail {
+      animation: none !important;
+    }
+  }
+
+  @keyframes pulse {
+    50% { opacity: 0.35; }
+  }
+
+  /* 刻刀小贴：右下角道具感 */
+  .note-knife {
+    right: 20px;
+    bottom: 150px;
+    padding: 8px 10px;
+    background: rgba(200, 210, 220, 0.14);
+    border: 1px solid rgba(200, 210, 220, 0.3);
+    font-size: 11px;
+    color: rgba(220, 230, 240, 0.85);
+    transform: rotate(3deg);
+  }
+
+  .why {
+    max-width: 1080px;
+    margin: 18px auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+  }
+  .why article {
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    line-height: 1.75;
+    color: #b0a8a0;
+  }
+  .why h4 {
+    color: #f0d090;
+    font-size: 13px;
+    margin-bottom: 6px;
+    letter-spacing: 0.08em;
+  }
+  .links {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12px;
+  }
+  .links a {
+    color: #e0b070;
+    margin: 0 10px;
+  }
+
+  @media (max-width: 720px) {
+    .note-loc, .note-knife { display: none; }
+    .stage { height: auto; min-height: 820px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>贴纸手账 · 透明废墟便签</h1>
+  <p>
+    界面不是挡在画面上的系统窗，而是贴在 2147 废墟上的<strong>半透明纸条、诗页、字贴</strong>。
+    能透过便签看见楼影与地面——像顾言把捡到的字，随手贴在记忆里。
+  </p>
+</div>
+
+<div class="stage" aria-label="透明手账 UI 预览">
+  <!-- 假场景：废墟透出来 -->
+  <div class="ruins">
+    <div class="sky"></div>
+    <div class="building b1"></div>
+    <div class="building b2"></div>
+    <div class="building b3"></div>
+    <div class="ground"></div>
+    <div class="char-glow" title="玩家"></div>
+    <div class="npc"></div>
+    <div class="npc-bubble">……梗……</div>
+  </div>
+
+  <!-- HUD -->
+  <div class="note note-san">
+    <div class="tape"></div>
+    <div class="lbl">理性 · 还撑得住</div>
+    <div class="bar"><i></i></div>
+    <div class="val">72 / 100</div>
+  </div>
+
+  <div class="note note-bag">
+    <div class="lbl">口袋里的字（像贴纸）</div>
+    <div class="chars">
+      <div class="char-sticker">关</div>
+      <div class="char-sticker">雎</div>
+      <div class="char-sticker">鸠</div>
+      <div class="char-sticker empty">·</div>
+      <div class="char-sticker empty">·</div>
+    </div>
+  </div>
+
+  <div class="note note-obj">
+    <span class="tag">纸条</span>
+    去江堤找守砚——问清「失语」是怎么开始的
+  </div>
+
+  <div class="note note-loc">
+    <strong>黄浦江堤</strong>
+    <span>慈悲 2 · 残忍 0</span>
+  </div>
+
+  <!-- 补诗 = 半透明诗页 -->
+  <div class="note note-poem">
+    <div class="tape-l"></div>
+    <div class="tape-r"></div>
+    <h3>残 页 · 关 雎</h3>
+    <div class="sub">污染把中间的字啃掉了 · 把字贴回去</div>
+    <div class="poem-line">
+      关关<span class="blank">雎</span><span class="blank open">□</span>，在河之洲。
+    </div>
+    <div class="pool">
+      <button type="button" class="on">鸠</button>
+      <button type="button">就</button>
+      <button type="button">旧</button>
+      <button type="button">居</button>
+    </div>
+    <div class="pool-tip">点一下字贴 · 贴对就粘住 · Esc 收起</div>
+  </div>
+
+  <div class="note note-toast warn">
+    <div class="seal">拾</div>
+    <div>瓦砾下摸到一张烫金边的字：「鸠」</div>
+  </div>
+  <div class="note note-toast">
+    <div class="seal">愈</div>
+    <div>失语者眼睛亮了一下。（慈悲 +1）</div>
+  </div>
+
+  <div class="note note-knife">✂ 记忆合金刻刀</div>
+
+  <div class="note note-dialog">
+    <div class="float-chars" aria-hidden="true">
+      <span>言</span><span>诗</span><span>钉</span><span>字</span>
+    </div>
+    <div class="dialog-rail"></div>
+    <div class="dialog-inner">
+      <div class="avatar-wrap">
+        <div class="avatar-dash"></div>
+        <div class="avatar-ring"></div>
+        <div class="avatar-corner-tr"></div>
+        <div class="avatar-corner-bl"></div>
+        <div class="avatar"></div>
+        <div class="avatar-seal">砚</div>
+      </div>
+      <div class="dialog-main">
+        <div class="name-row">
+          <div class="name">守砚</div>
+          <small>纸页一样薄的老人</small>
+          <div class="live-dot" title="说话中"></div>
+        </div>
+        <div class="body" id="dialogBody"></div>
+        <div class="foot">
+          <span class="hint-ink">完整的句子 · 像钉子</span>
+          <span class="cont"><i></i> E / 空格</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+  <article>
+    <h4>为什么贴游戏</h4>
+    主线就是<strong>捡字、补诗、诗页、刻刀</strong>。UI 做成「贴在废墟上的便签/字贴」，比终端框、公文窗更贴内容，也不那么死板。
+  </article>
+  <article>
+    <h4>透明怎么用</h4>
+    便签 15%～30% 不透明 + 轻微毛玻璃，<strong>场景始终透出来</strong>。字用高对比浅色 + 薄阴影，保证可读。
+  </article>
+  <article>
+    <h4>签名元素</h4>
+    每个汉字是一张<strong>微微歪斜的字贴</strong>；补诗是<strong>胶带固定的残页</strong>；提示是撕下来的小条——不是系统 log。
+  </article>
+  <article>
+    <h4>调性边界</h4>
+    轻松但不幼稚：不画爱心蘑菇，用旧纸、朱砂边、刻刀角标。战斗仍可另用更利落的框，探索/对话用手账。
+  </article>
+</div>
+
+<div class="links">
+  <a href="demo_ui_soft.html">软萌对照</a>
+  <a href="demo_ui_mario.html">马里奥对照</a>
+  <a href="index.html">返回游戏</a>
+</div>
+
+<script>
+  document.querySelectorAll('.pool button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pool button').forEach((b) => b.classList.remove('on'));
+      btn.classList.add('on');
+      const open = document.querySelector('.blank.open');
+      if (open) {
+        open.textContent = btn.textContent;
+        open.classList.remove('open');
+      }
+    });
+  });
+
+  // 对话框打字机
+  (function typeDialog() {
+    const el = document.getElementById('dialogBody');
+    if (!el) return;
+    const full =
+      '你看，字是可以贴回去的。完整的句子像钉子——钉住快要塌平的世界。来，把这页补完。';
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      el.textContent = full;
+      return;
+    }
+    let i = 0;
+    el.innerHTML = '<span class="cursor"></span>';
+    const tick = () => {
+      if (i >= full.length) return;
+      el.innerHTML = full.slice(0, ++i) + '<span class="cursor"></span>';
+      setTimeout(tick, 36 + (full[i - 1] === '。' || full[i - 1] === '——' ? 120 : 0));
+    };
+    setTimeout(tick, 280);
+  })();
+</script>
+</body>
+</html>

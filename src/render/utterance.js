@@ -1,9 +1,8 @@
 import { W, H } from '../config.js';
-import * as cfg from '../config.js';
 import { roundRect } from './util.js';
-import { UI, font, panelFrame, selectionPulse } from '../ui/tokens.js';
+import { UI, font, panelFrame, selectionPulse, RADIUS } from '../ui/tokens.js';
 
-/** 诗句/成语补空面板：点字填空，填对自动完成 */
+/** 诗句/成语补空面板：残页 + 字贴 */
 export function drawUtterance(ctx, game, gameTime) {
   const u = game.utteranceState;
   if (!u) return;
@@ -21,16 +20,16 @@ export function drawUtterance(ctx, game, gameTime) {
   const px = (W - pw) / 2;
   const py = H - ph - 18;
 
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillStyle = 'rgba(8, 6, 5, 0.45)';
   ctx.fillRect(0, 0, W, H);
 
-  panelFrame(ctx, px, py, pw, ph, { title: null });
+  panelFrame(ctx, px, py, pw, ph, { title: null, solid: true });
 
-  ctx.fillStyle = UI.ok;
+  ctx.fillStyle = UI.goldBright;
   ctx.font = font(16, true);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('── [ 语义破译 · ' + title + ' ] ──', px + pw / 2, py + 20);
+  ctx.fillText('残 页 · ' + title, px + pw / 2, py + 22);
 
   const targetName =
     u.target && (u.target.label || u.target.pollutedLabel)
@@ -38,12 +37,12 @@ export function drawUtterance(ctx, game, gameTime) {
       : '';
   ctx.fillStyle = UI.inkSoft;
   ctx.font = font(12, true);
-  ctx.fillText(targetName ? '封锁对象：' + targetName : '未锁定封锁', px + pw / 2, py + 40);
+  ctx.fillText(targetName ? '对象：' + targetName : '未锁定对象', px + pw / 2, py + 42);
 
   ctx.fillStyle = UI.inkFaint;
   ctx.font = font(11, true);
   ctx.textAlign = 'left';
-  ctx.fillText('点击候选字填入 □，全部填对以解除封锁。', px + 22, py + 60);
+  ctx.fillText('点选字贴填入 □，填对自动完成', px + 22, py + 60);
 
   ctx.font = font(20, true);
   const box = 32;
@@ -81,25 +80,28 @@ export function drawUtterance(ctx, game, gameTime) {
       const bx = x;
       const by = lineY - box / 2;
       blankHits.push({ x: bx, y: by, w: box, h: box, i: u0.i });
-      ctx.fillStyle = filled ? 'rgba(0, 240, 255, 0.1)' : 'rgba(20, 22, 26, 0.95)';
-      ctx.fillRect(bx, by, box, box);
-      ctx.strokeStyle = activeBlank ? UI.ok : filled ? UI.gold : 'rgba(94, 99, 107, 0.5)';
+      ctx.fillStyle = filled ? 'rgba(255, 220, 140, 0.55)' : 'rgba(28, 22, 18, 0.9)';
+      roundRect(ctx, bx, by, box, box, 4);
+      ctx.fill();
+      ctx.strokeStyle = activeBlank ? UI.goldBright : filled ? UI.gold : 'rgba(150, 135, 110, 0.5)';
       ctx.lineWidth = activeBlank ? 2 : 1.5;
       if (!filled) ctx.setLineDash([3, 3]);
-      ctx.strokeRect(bx, by, box, box);
+      roundRect(ctx, bx, by, box, box, 4);
+      ctx.stroke();
       ctx.setLineDash([]);
       if (activeBlank) {
-        ctx.fillStyle = `rgba(0, 240, 255, ${0.1 + pulse})`;
-        ctx.fillRect(bx, by, box, box);
+        ctx.fillStyle = `rgba(232, 176, 88, ${0.1 + pulse})`;
+        roundRect(ctx, bx, by, box, box, 4);
+        ctx.fill();
       }
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       if (filled) {
-        ctx.fillStyle = UI.ok;
+        ctx.fillStyle = 'rgba(40, 28, 12, 0.95)';
         ctx.font = font(18, true);
         ctx.fillText(filled, x + box / 2, lineY);
       } else {
-        ctx.fillStyle = 'rgba(100, 105, 115, 0.65)';
+        ctx.fillStyle = 'rgba(150, 135, 110, 0.55)';
         ctx.font = font(15, true);
         ctx.fillText('□', x + box / 2, lineY);
       }
@@ -111,7 +113,7 @@ export function drawUtterance(ctx, game, gameTime) {
   ctx.fillStyle = UI.inkSoft;
   ctx.font = font(11, true);
   ctx.textAlign = 'left';
-  ctx.fillText('候选字碎片 (点击或键盘选择)', px + 22, lineY + 36);
+  ctx.fillText('候选字贴', px + 22, lineY + 36);
 
   const chipH = 36;
   const chipGap = 10;
@@ -129,7 +131,7 @@ export function drawUtterance(ctx, game, gameTime) {
     ctx.fillStyle = UI.warn;
     ctx.font = font(13, true);
     ctx.textAlign = 'center';
-    ctx.fillText('没有候选字——先去探索废墟并收集汉字碎片', px + pw / 2, cy + chipH / 2);
+    ctx.fillText('没有候选字——先去探索废墟收集汉字', px + pw / 2, cy + chipH / 2);
   }
 
   for (let i = 0; i < chips.length; i++) {
@@ -137,16 +139,19 @@ export function drawUtterance(ctx, game, gameTime) {
     const w = cWidths[i];
     const active = sel === c.i;
     chipHits.push({ x: cx, y: cy, w, h: chipH, i: c.i });
-    ctx.fillStyle = active ? 'rgba(0, 240, 255, 0.12)' : 'rgba(20, 22, 26, 0.95)';
-    ctx.fillRect(cx, cy, w, chipH);
-    ctx.strokeStyle = active ? UI.ok : 'rgba(94, 99, 107, 0.45)';
+    ctx.fillStyle = active ? 'rgba(255, 220, 140, 0.55)' : 'rgba(40, 32, 24, 0.92)';
+    roundRect(ctx, cx, cy, w, chipH, 5);
+    ctx.fill();
+    ctx.strokeStyle = active ? UI.goldBright : 'rgba(232, 176, 88, 0.35)';
     ctx.lineWidth = active ? 2 : 1;
-    ctx.strokeRect(cx, cy, w, chipH);
+    roundRect(ctx, cx, cy, w, chipH, 5);
+    ctx.stroke();
     if (active) {
-      ctx.fillStyle = `rgba(0, 240, 255, ${0.08 + pulse * 0.5})`;
-      ctx.fillRect(cx, cy, w, chipH);
+      ctx.fillStyle = `rgba(232, 176, 88, ${0.08 + pulse * 0.5})`;
+      roundRect(ctx, cx, cy, w, chipH, 5);
+      ctx.fill();
     }
-    ctx.fillStyle = active ? 'rgba(0, 240, 255, 1)' : UI.ink;
+    ctx.fillStyle = active ? 'rgba(40, 28, 12, 0.95)' : UI.ink;
     ctx.font = font(16, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -159,7 +164,7 @@ export function drawUtterance(ctx, game, gameTime) {
   ctx.font = font(10, true);
   ctx.textAlign = 'center';
   ctx.fillText(
-    '[ 鼠标点击 ] 或 [ Tab 切换空位 ] · [ ←→ 选字 ] · [ E键 填入 ] · [ Backspace 清除 ] · [ Esc 关闭 ]',
+    '点字 · Tab 换空 · ←→ 选字 · E 填入 · Backspace 清除 · Esc 关闭',
     px + pw / 2,
     py + ph - 16 - (u.message ? 16 : 0)
   );
@@ -172,4 +177,5 @@ export function drawUtterance(ctx, game, gameTime) {
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+  void RADIUS;
 }

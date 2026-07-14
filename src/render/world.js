@@ -289,11 +289,11 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
       const bh = 18;
       ctx.fillStyle = done ? 'rgba(7, 8, 10, 0.95)' : 'rgba(20, 22, 26, 0.95)';
       ctx.fillRect(bx, by, bw, bh);
-      ctx.strokeStyle = done ? 'rgba(0, 240, 255, 0.6)' : `rgba(211, 54, 54, ${0.5 + pulse * 0.28})`;
+      ctx.strokeStyle = done ? 'rgba(232, 176, 88, 0.6)' : `rgba(211, 54, 54, ${0.5 + pulse * 0.28})`;
       ctx.lineWidth = 1;
       ctx.strokeRect(bx, by, bw, bh);
       ctx.fillStyle = done
-        ? `rgba(0, 240, 255, ${0.85 + pulse * 0.15})`
+        ? `rgba(232, 176, 88, ${0.85 + pulse * 0.15})`
         : `rgba(235, 230, 220, ${0.9 + pulse * 0.1})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
