@@ -363,8 +363,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
               <button type="button" data-action="ngplus" data-ngplus hidden>二周目</button>
               <!-- <button type="button" data-action="endless">言锋试炼</button> -->
               <button type="button" data-action="saves">存档</button>
-              <button type="button" data-action="about">关于游戏</button>
-              <button type="button" data-action="team">关于我们</button>
+              <button type="button" data-action="about">关于</button>
             </div>
           </nav>
         </div>
@@ -377,18 +376,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
       </div>
       <div class="start-menu__view" data-view="about">
         <button type="button" class="start-menu__back" data-action="back">返回</button>
-        <h2 class="start-menu__heading">关于游戏</h2>
-        <div class="start-menu__about">
-          <p>《墓之语》是一款废墟探索与诗词弹幕战斗游戏。你将扮演顾言，在 2147 年的上海废墟中收集散落文字，唤醒失语者，并追寻 Sydney 与方知远留下的记忆。</p>
-          <p>主线：俯视角探索、捡字补诗、江堤横版关卡、弹幕战斗与多结局。余烬章节与言锋试炼为可选内容。</p>
-          <ul>
-            ${CONTROL_HINTS.startMenu.map((line) => `<li>${line}</li>`).join('')}
-          </ul>
-        </div>
-      </div>
-      <div class="start-menu__view" data-view="team">
-        <button type="button" class="start-menu__back" data-action="back">返回</button>
-        <h2 class="start-menu__heading">关于我们</h2>
+        <h2 class="start-menu__heading">关于</h2>
         <div class="start-menu__about">
           <p>我们是一支围绕「语言与记忆」主题做叙事游戏的小团队。用文字、关卡与一点点 AI，在废墟里重温完整的句子。</p>
           <div class="start-menu__team" aria-label="团队成员">
@@ -417,7 +405,11 @@ export function mountStartMenu(game, { fromIntro } = {}) {
               <div class="start-menu__member-desc">负责游戏美术风格设计。</div>
             </div>
           </div>
-          <p class="start-menu__team-note">仓库：cnb.cool/TvTink/666 · 作品《墓之语》</p>
+          <p style="margin-top:18px">《墓之语》是一款废墟探索与诗词弹幕战斗游戏。你将扮演顾言，在 2147 年的上海废墟中收集散落文字，唤醒失语者，并追寻 Sydney 与方知远留下的记忆。</p>
+          <p>主线：俯视角探索、捡字补诗、江堤横版关卡、弹幕战斗与多结局。余烬章节为可选内容。</p>
+          <ul>
+            ${CONTROL_HINTS.startMenu.map((line) => `<li>${line}</li>`).join('')}
+          </ul>
         </div>
       </div>
     </section>
@@ -517,8 +509,6 @@ export function mountStartMenu(game, { fromIntro } = {}) {
       showView('saves');
     } else if (action === 'about') {
       showView('about');
-    } else if (action === 'team') {
-      showView('team');
     } else if (action === 'back') {
       showView('main');
     }
