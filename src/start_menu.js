@@ -234,6 +234,45 @@ function ensureStyle() {
       font-size: 13px;
       line-height: 1.9;
     }
+    .start-menu__team {
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .start-menu__member {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 10px 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(212, 168, 90, 0.2);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .start-menu__member-role {
+      color: rgba(212, 168, 90, 0.85);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      align-self: start;
+      padding-top: 2px;
+    }
+    .start-menu__member-name {
+      color: #f0dfbd;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .start-menu__member-desc {
+      margin-top: 4px;
+      color: rgba(232, 220, 200, 0.62);
+      font-size: 13px;
+      line-height: 1.7;
+      letter-spacing: 0.03em;
+    }
+    .start-menu__team-note {
+      margin-top: 16px !important;
+      color: rgba(232, 220, 200, 0.5) !important;
+      font-size: 12px !important;
+      letter-spacing: 0.06em !important;
+    }
     @media (max-width: 720px) {
       .start-menu__panel {
         width: calc(100vw - 28px);
@@ -311,6 +350,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
               <!-- <button type="button" data-action="endless">言锋试炼</button> -->
               <button type="button" data-action="saves">存档</button>
               <button type="button" data-action="about">关于游戏</button>
+              <button type="button" data-action="team">关于我们</button>
             </div>
           </nav>
         </div>
@@ -330,6 +370,44 @@ export function mountStartMenu(game, { fromIntro } = {}) {
           <ul>
             ${CONTROL_HINTS.startMenu.map((line) => `<li>${line}</li>`).join('')}
           </ul>
+        </div>
+      </div>
+      <div class="start-menu__view" data-view="team">
+        <button type="button" class="start-menu__back" data-action="back">返回</button>
+        <h2 class="start-menu__heading">关于我们</h2>
+        <div class="start-menu__about">
+          <p>我们是一支围绕「语言与记忆」主题做叙事游戏的小团队。用文字、关卡与一点点 AI，在废墟里重温完整的句子。</p>
+          <div class="start-menu__team" aria-label="团队成员">
+            <div class="start-menu__member">
+              <div class="start-menu__member-role">主创 / 程序</div>
+              <div>
+                <div class="start-menu__member-name">taiyi747</div>
+                <div class="start-menu__member-desc">项目统筹、核心系统与玩法实现。</div>
+              </div>
+            </div>
+            <div class="start-menu__member">
+              <div class="start-menu__member-role">程序 / 关卡</div>
+              <div>
+                <div class="start-menu__member-name">MGS_CRAZY</div>
+                <div class="start-menu__member-desc">战斗、场景与系统功能开发。</div>
+              </div>
+            </div>
+            <div class="start-menu__member">
+              <div class="start-menu__member-role">叙事 / 内容</div>
+              <div>
+                <div class="start-menu__member-name">cnb.GG · xingyao</div>
+                <div class="start-menu__member-desc">剧情脚本、世界观与文本打磨。</div>
+              </div>
+            </div>
+            <div class="start-menu__member">
+              <div class="start-menu__member-role">协作</div>
+              <div>
+                <div class="start-menu__member-name">全体贡献者</div>
+                <div class="start-menu__member-desc">测试、工具链与持续迭代。感谢每一位推过代码的人。</div>
+              </div>
+            </div>
+          </div>
+          <p class="start-menu__team-note">仓库：cnb.cool/TvTink/666 · 作品《墓之语》</p>
         </div>
       </div>
     </section>
@@ -429,6 +507,8 @@ export function mountStartMenu(game, { fromIntro } = {}) {
       showView('saves');
     } else if (action === 'about') {
       showView('about');
+    } else if (action === 'team') {
+      showView('team');
     } else if (action === 'back') {
       showView('main');
     }
