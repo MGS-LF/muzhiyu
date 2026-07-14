@@ -180,9 +180,6 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
     const done = !!(it.doneFlag && game && game.flags && game.flags[it.doneFlag]);
     const pulse = 0.5 + Math.sin(gameTime * 0.004 + it.x * 0.01) * 0.3;
     const kind = it.purifyKind || '';
-    // 语言即维度：未净化「塌平」；净化后「立起」——只压扁形体，文字保持正常比例
-    const scaleY = done ? 1 : 0.55;
-    const scaleX = done ? 1 : 1.12;
 
     if (kind === 'meme_wall' || /墙|招牌|路牌|梗/.test(kind + (it.label || '') + (it.pollutedLabel || ''))) {
       const text = done
@@ -190,77 +187,65 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
         : it.pollutedLabel || it.label || '梗';
       ctx.font = 'bold 13px serif';
       const tw = ctx.measureText(text).width;
-      const w = Math.max(72, tw + 24);
-      const h = 36;
-      // 塌平后牌面视觉高度 ≈ h * scaleY，文字仍按正常高度排版
-      const boardTop = s.y - (done ? h + 14 : h * scaleY + 18);
-      const boardCy = boardTop + (done ? h / 2 : (h * scaleY) / 2);
+      const w = Math.max(76, tw + 28);
+      const h = 34;
+      const poleH = 16;
+      const boardTop = s.y - poleH - h;
+      const boardCy = boardTop + h / 2;
 
-      // 地面塌陷/立起圈
+      // 地面光圈：未净化绿噪，净化后金
       ctx.strokeStyle = done
-        ? `rgba(224,178,98,${0.25 + pulse * 0.2})`
-        : `rgba(80,160,100,${0.2 + pulse * 0.15})`;
+        ? `rgba(224,178,98,${0.28 + pulse * 0.2})`
+        : `rgba(80,160,100,${0.22 + pulse * 0.15})`;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(s.x, s.y + 6, done ? 28 : 34, done ? 7 : 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(s.x, s.y + 6, done ? 28 : 32, done ? 7 : 5, 0, 0, Math.PI * 2);
       ctx.stroke();
 
-      // 形体（杆+牌）可塌平
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.scale(scaleX, scaleY);
-      ctx.translate(-s.x, -s.y);
-
+      // 杆 + 牌（不缩放，避免字与牌错位）
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath();
-      ctx.ellipse(s.x, s.y + 4, 22, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(s.x, s.y + 4, 20, 5, 0, 0, Math.PI * 2);
       ctx.fill();
-      const bodyTop = s.y - h - 14;
       ctx.fillStyle = done ? '#3a3228' : '#1a1814';
-      ctx.fillRect(s.x - 2, bodyTop + h - 4, 4, s.y - (bodyTop + h) + 6);
-      ctx.fillStyle = done ? 'rgba(48,38,20,0.98)' : 'rgba(18,28,20,0.92)';
-      ctx.fillRect(s.x - w / 2, bodyTop, w, h);
-      ctx.strokeStyle = done ? 'rgba(224,178,98,0.85)' : `rgba(80,200,100,${0.45 + pulse * 0.35})`;
+      ctx.fillRect(s.x - 2, boardTop + h, 4, poleH + 2);
+      ctx.fillStyle = done ? 'rgba(48,38,20,0.98)' : 'rgba(18,28,20,0.94)';
+      ctx.fillRect(s.x - w / 2, boardTop, w, h);
+      ctx.strokeStyle = done ? 'rgba(224,178,98,0.9)' : `rgba(80,200,100,${0.5 + pulse * 0.35})`;
       ctx.lineWidth = done ? 2 : 1.5;
-      ctx.strokeRect(s.x - w / 2, bodyTop, w, h);
+      ctx.strokeRect(s.x - w / 2, boardTop, w, h);
       if (!done) {
-        ctx.strokeStyle = `rgba(100,220,120,${0.12 + pulse * 0.1})`;
+        ctx.strokeStyle = `rgba(100,220,120,${0.14 + pulse * 0.1})`;
         ctx.lineWidth = 1;
         for (let ly = 0; ly < 3; ly++) {
-          const yy = bodyTop + 8 + ly * 10 + Math.sin(gameTime * 0.008 + ly) * 1.5;
+          const yy = boardTop + 8 + ly * 8 + Math.sin(gameTime * 0.008 + ly) * 1.2;
           ctx.beginPath();
           ctx.moveTo(s.x - w / 2 + 4, yy);
           ctx.lineTo(s.x + w / 2 - 4, yy);
           ctx.stroke();
         }
       }
-      ctx.restore();
 
-      // 文字在 scale 外绘制，避免被压扁
+      // 字与牌同一中心
       ctx.font = 'bold 13px serif';
       ctx.fillStyle = done
-        ? `rgba(255,220,140,${0.92 + pulse * 0.08})`
-        : `rgba(120,230,140,${0.85 + pulse * 0.15})`;
+        ? `rgba(255,220,140,${0.94 + pulse * 0.06})`
+        : `rgba(130,235,150,${0.88 + pulse * 0.12})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(text, s.x, boardCy);
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
     } else {
+      // 失语者：不压扁人形，用绿雾/描边区分污染态
       const bob = Math.sin(gameTime * 0.002 + it.x) * 1.2;
       ctx.strokeStyle = done
         ? `rgba(224,178,98,${0.22 + pulse * 0.15})`
-        : `rgba(80,160,100,${0.18 + pulse * 0.12})`;
+        : `rgba(80,160,100,${0.2 + pulse * 0.14})`;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(s.x, s.y + 8, done ? 16 : 20, done ? 5 : 3, 0, 0, Math.PI * 2);
+      ctx.ellipse(s.x, s.y + 8, done ? 16 : 18, done ? 5 : 4, 0, 0, Math.PI * 2);
       ctx.stroke();
-
-      // 人影可塌平
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.scale(scaleX, scaleY);
-      ctx.translate(-s.x, -s.y);
 
       if (done) {
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -277,35 +262,36 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
         ctx.fill();
       } else {
         drawLostPerson(ctx, s.x, s.y + bob, 0);
-        ctx.fillStyle = `rgba(40,60,45,${0.12 + pulse * 0.08})`;
+        // 污染光晕（不缩放人物）
+        const haze = ctx.createRadialGradient(s.x, s.y - 10, 2, s.x, s.y - 8, 22);
+        haze.addColorStop(0, `rgba(60,140,80,${0.18 + pulse * 0.1})`);
+        haze.addColorStop(1, 'rgba(40,80,50,0)');
+        ctx.fillStyle = haze;
         ctx.beginPath();
-        ctx.ellipse(s.x, s.y - 4, 14, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(s.x, s.y - 6, 18, 22, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.restore();
 
-      // 气泡文字在 scale 外，正常比例
       const bubbleText = done
         ? it.cleansedLabel || '…'
         : it.pollutedSpeech || it.pollutedLabel || '…';
       ctx.font = '11px serif';
-      const bw = Math.min(120, Math.max(36, ctx.measureText(bubbleText).width + 14));
+      const bw = Math.min(130, Math.max(40, ctx.measureText(bubbleText).width + 16));
       const bx = s.x - bw / 2;
-      // 塌平后人更矮，气泡略抬高一点避免叠人
-      const by = s.y - (done ? 36 : 28);
+      const by = s.y - 42;
       const bh = 18;
-      ctx.fillStyle = done ? 'rgba(20,16,10,0.85)' : 'rgba(12,20,14,0.88)';
+      ctx.fillStyle = done ? 'rgba(20,16,10,0.88)' : 'rgba(12,20,14,0.9)';
       roundRect(ctx, bx, by, bw, bh, 4);
       ctx.fill();
       ctx.strokeStyle = done
         ? 'rgba(224,178,98,0.55)'
-        : `rgba(80,200,100,${0.45 + pulse * 0.3})`;
+        : `rgba(80,200,100,${0.5 + pulse * 0.28})`;
       ctx.lineWidth = 1;
       roundRect(ctx, bx, by, bw, bh, 4);
       ctx.stroke();
       ctx.fillStyle = done
-        ? `rgba(255,220,140,${0.8 + pulse * 0.2})`
-        : `rgba(150,235,160,${0.85 + pulse * 0.15})`;
+        ? `rgba(255,220,140,${0.85 + pulse * 0.15})`
+        : `rgba(155,240,165,${0.9 + pulse * 0.1})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(bubbleText, s.x, by + bh / 2);
