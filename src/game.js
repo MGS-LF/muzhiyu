@@ -1,5 +1,5 @@
 // 游戏主类
-import { W, H } from './config.js';
+import { W, H, FEATURES, UTTERANCE } from './config.js';
 import { input, bindCanvas } from './input.js';
 import { Player } from './player.js';
 import { scenes, DROP_TABLES, DEFAULT_DROPS } from './scenes.js';
@@ -33,6 +33,7 @@ import { POEM_LINES, PUZZLES } from './data/puzzles.js';
 import { methods as engraveMethods } from './systems/engrave.js';
 import { methods as dialogMethods } from './systems/dialog.js';
 import { methods as interactMethods } from './systems/interact.js';
+import { methods as utteranceMethods } from './systems/utterance.js';
 import { EndlessMode } from './systems/endless.js';
 import { pushToast } from './ui/overlay.js';
 
@@ -123,6 +124,7 @@ export class Game {
     this.aiThinking = false; // 等待 LLM 时冻结输入并提示
     this.converse = null; // Sydney自由对话模式（非 null 时处于对话界面）
     this.engraveState = null; // 刻字模式状态（进入时刻字时设置）
+    this.utteranceState = null; // 组句释放（P0 净化梗墙/失语者）
     this.endingEpilogue = null; // LLM 生成的个性化结语（覆盖默认结局副标题）
     // 任务目标
     this.objective = { text: '换上衣服，离开冷冻中心', done: false };
@@ -568,9 +570,17 @@ export class Game {
     } else if (sid === 'street_01') {
       const need = ['洲', '逑'];
       progress = { title: '《关雎》', chars: charProgress(need) };
+      const wallDone = !!this.flags.utter_meme_wall_01;
+      const aphDone = !!this.flags.utter_aphasic_01;
       if (!need.every(has)) {
-        text = '在废弃街道收集《关雎》碎片「洲」「逑」';
+        text = '捡起发光的汉字「洲」「逑」（词袋会显示）';
         target = point(nearestChar(need)) || point(it('keystone_guanju'));
+      } else if (!wallDone) {
+        text = '靠近招牌，按 F 补全《关雎》净化「YYDS大道」';
+        target = point(it('meme_wall_01'));
+      } else if (!aphDone) {
+        text = '靠近失语者，按 F 补诗唤醒他';
+        target = point(it('aphasic_utter_01'));
       } else {
         text = '穿过南面路口，前往黄浦江江堤';
         target = point(it('to_riverside'));
@@ -1036,6 +1046,12 @@ export class Game {
       return;
     }
 
+    // 组句释放（净化）
+    if (this.utteranceState) {
+      this.updateUtterance(dt);
+      return;
+    }
+
     // 战斗模式（系统菜单打开时冻结战斗逻辑）
     if (this.battle) {
       if (this.uiPanel || this._saveMenu) {
@@ -1118,8 +1134,62 @@ export class Game {
 
     // 交互
     if (input.wasPressed('e')) {
-      this.tryInteract();
+      if (!this.tryExplorePurifyEnemy()) this.tryInteract();
     }
+
+    if (FEATURES.utterance && input.wasPressed(UTTERANCE.key)) {
+      if (!this.tryExplorePurifyEnemy()) this.openUtterance();
+    }
+  }
+
+  /** 探索中对弱梗鬼：E/F 用字劝退（不进弹幕） */
+  tryExplorePurifyEnemy() {
+    if (this.battle || this.dialogState || this.compose || this.utteranceState) return false;
+    if (!this.scene || !this.scene.enemies) return false;
+    let best = null;
+    let bd = 52;
+    for (const e of this.scene.enemies) {
+      if (this.defeatedEnemies.has(e.id)) continue;
+      if (e.boss || e.combat === 'hack') continue;
+      const weak = !e.typeId || e.typeId === 'geng_weak' || (e.maxHp || e.hp || 30) <= 35;
+      if (!weak) continue;
+      const d = Math.hypot(e.x - this.player.x, e.y - this.player.y);
+      if (d < bd) {
+        bd = d;
+        best = e;
+      }
+    }
+    if (!best) return false;
+
+    const ammo = this.player.collectedChars || [];
+    if (!ammo.length) {
+      this.showHint('靠近弱梗鬼可按 E/F 劝退，但需要至少 1 个汉字弹药。');
+      return true;
+    }
+
+    this.player.collectedChars.pop();
+    this.defeatedEnemies.add(best.id);
+    this.karma.mercy += 1;
+    const idx = this.scene.enemies.findIndex((e) => e.id === best.id);
+    if (idx >= 0) this.scene.enemies.splice(idx, 1);
+
+    const drops = DROP_TABLES[this.scene.id] || DEFAULT_DROPS;
+    const drop = drops[Math.floor(Math.random() * drops.length)];
+    this.scene.items.push({
+      id: `drop_${best.id}_${Date.now()}`,
+      x: best.x,
+      y: best.y,
+      type: 'char_fragment',
+      char: drop,
+    });
+
+    this.showHint(`你念出一字——弱梗鬼散成「${drop}」。（探索净化 · 仁慈 +1）`);
+    audio.playSfx('purifyWave');
+    fx.flash('#ffd866', 0.35, 400);
+    fx.purifyWave(best.x, best.y, 200);
+    this.player.dialogGrace = 800;
+    autoSave(this);
+    return true;
   }
 
   // ============================================
@@ -1131,6 +1201,7 @@ export class Game {
       this.battle ||
       this.dialogState ||
       this.compose ||
+      this.utteranceState ||
       this.level3d ||
       this.sidescroll ||
       this.uiPanel ||
@@ -1285,10 +1356,14 @@ export class Game {
       audio.playBGM(this.scene.id);
     }
 
-    if (result === 'win') {
+    if (result === 'win' || result === 'purify') {
       // 标记敌人击败
       this.defeatedEnemies.add(enemy.id);
-      this.karma.violence += 1; // 以武力消灭：倾向"燃尽"
+      if (result === 'purify') {
+        this.karma.mercy += 1; // 以诗净化：倾向"火种"
+      } else {
+        this.karma.violence += 1; // 以武力消灭：倾向"燃尽"
+      }
       // 从场景移除
       if (this.scene.enemies) {
         const idx = this.scene.enemies.findIndex((e) => e.id === enemy.id);
@@ -1306,9 +1381,14 @@ export class Game {
         type: 'char_fragment',
         char: drop,
       });
-      this.showHint(`击败梗鬼！掉落汉字碎片「${drop}」`);
+      this.showHint(
+        result === 'purify'
+          ? `净化梗鬼！烂梗化作汉字「${drop}」`
+          : `击败梗鬼！掉落汉字碎片「${drop}」`
+      );
       audio.playSfx('victory');
       fx.flash('#ffd866', 0.3, 300);
+      if (result === 'purify') fx.purifyWave(enemy.x || this.player.x, enemy.y || this.player.y, 320);
       // 检查集齐
       const haveZhou = this.player.collectedCharsAll.filter((c) => c === '洲').length;
       const haveQiu = this.player.collectedCharsAll.filter((c) => c === '逑').length;
@@ -2501,4 +2581,4 @@ export class Game {
   }
 }
 
-Object.assign(Game.prototype, interactMethods, engraveMethods, dialogMethods);
+Object.assign(Game.prototype, interactMethods, engraveMethods, dialogMethods, utteranceMethods);

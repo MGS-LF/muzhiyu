@@ -45,8 +45,11 @@ export const methods = {
         this.startDialog(DIALOGS.exitOpen, '大门', () => {
           this.flags.door_opened = true;
           this.loadScene('street_01', { x: 440, y: 160 });
-          this.objective = { text: '探索废弃街道，找到「关雎」的所有碎片', done: false };
-          this.showHint('走出冷冻中心，外面是废墟的世界。');
+          this.objective = {
+            text: '捡汉字 → 按 F 补诗，净化招牌与失语者',
+            done: false,
+          };
+          this.showHint('外面是大失语后的废墟。捡发光的字，靠近招牌按 F 补全诗句。');
         });
         return;
       }
@@ -200,6 +203,13 @@ export const methods = {
           this.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
           this.showHint('获得：刻刀、诗词纸片《关雎》');
           this.objective = { text: '前往废墟居民区，跟随守砚', done: false };
+          // karma 口风：暴力多 vs 净化/宽恕多
+          const k = this.karma || {};
+          if ((k.violence || 0) > (k.mercy || 0) + 1) {
+            this.showHint('守砚多看了你一眼：「……你的刀，比你的诗更响。」');
+          } else if ((k.mercy || 0) >= 2) {
+            this.showHint('守砚点头：「你用字劝退过鬼。路会记得你。」');
+          }
         }
         if (key === 'shuyuan_alley') {
           this.flags.alley_briefed = true;
@@ -230,6 +240,31 @@ export const methods = {
         if (key === 'memory_shard_3') {
           this.flags.shard3_done = true;
           this.flags.all_memory_shards = true;
+        }
+        return;
+      }
+      if (best.type === 'purify') {
+        const done = best.doneFlag && this.flags[best.doneFlag];
+        if (done) {
+          const name =
+            best.cleansedLabel || (best.purifyKind === 'aphasic' ? '被唤醒的人' : best.label);
+          this.showHint(
+            best.purifyKind === 'meme_wall'
+              ? `招牌上写着「${name}」。字还在。`
+              : '他安静地站着，好像在回想一句完整的话。'
+          );
+          return;
+        }
+        const lookKey =
+          best.purifyKind === 'meme_wall'
+            ? 'utter_meme_wall_look'
+            : best.purifyKind === 'aphasic'
+              ? 'utter_aphasic_look'
+              : null;
+        if (lookKey && DIALOGS[lookKey]) {
+          this.startDialog(DIALOGS[lookKey], best.label);
+        } else {
+          this.showHint('按 F 组句，用完整的汉字改写这里。');
         }
         return;
       }

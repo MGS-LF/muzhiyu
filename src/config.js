@@ -16,3 +16,18 @@ export const COLORS = {
 
 export const W = 1200;
 export const H = 760;
+
+export const FEATURES = {
+  utterance: true,
+  level3d: true, // leave true for now, P3 will disable
+  hacking: true,
+  sidescrollLong: true,
+  aiDirector: true,
+};
+
+export const UTTERANCE = {
+  beltMax: 6,
+  slotMax: 4,
+  range: 70,
+  key: 'f',
+};

@@ -115,29 +115,204 @@ export function drawInteractHints(ctx, W2S, scene, player, collected, gameTime, 
     if (d > 60) continue;
     const s = W2S(it.x, it.y);
     const pulse = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
+    const isPurify = it.type === 'purify';
+    const isWall =
+      isPurify &&
+      (it.purifyKind === 'meme_wall' ||
+        /墙|招牌|路牌|梗/.test((it.purifyKind || '') + (it.label || '') + (it.pollutedLabel || '')));
+
+    // 环：净化物抬高，避免盖住招牌/气泡
+    const ringY = isWall ? s.y - 8 : s.y;
     ctx.strokeStyle = `rgba(255,220,140,${pulse})`;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
-    ctx.arc(s.x, s.y, 22, 0, Math.PI * 2);
+    ctx.arc(s.x, ringY, isWall ? 18 : 22, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const label = it.label || '';
+    let text;
+    // 提示条高度：招牌把「F」放在牌顶上方；普通交互仍在脚边上方
+    let tipY = s.y - 38;
+    if (isPurify) {
+      const done = !!(it.doneFlag && game && game.flags && game.flags[it.doneFlag]);
+      if (done) {
+        text = isWall
+          ? '按 E 查看「' + (it.cleansedLabel || it.label || '路名') + '」'
+          : '已唤醒 · 按 E 交谈';
+        tipY = isWall ? s.y - 78 : s.y - 52;
+      } else {
+        const name = it.label || it.pollutedLabel || (isWall ? '招牌' : '失语者');
+        text = isWall ? '按 F 补诗净化' + name : '按 F 补诗唤醒' + name;
+        tipY = isWall ? s.y - 78 : s.y - 54;
+      }
+    } else {
+      text = 'E · ' + (it.label || '');
+    }
     ctx.font = 'bold 11px serif';
-    const text = 'E · ' + label;
     const w = ctx.measureText(text).width + 16;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(s.x - w / 2, s.y - 38, w, 18);
-    ctx.strokeStyle = 'rgba(255,220,140,0.7)';
+    const boxH = 18;
+    const boxY = tipY - boxH / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx.fillRect(s.x - w / 2, boxY, w, boxH);
+    ctx.strokeStyle = 'rgba(255,220,140,0.75)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(s.x - w / 2, s.y - 38, w, 18);
+    ctx.strokeRect(s.x - w / 2, boxY, w, boxH);
     ctx.fillStyle = `rgba(255,220,140,${0.9 + pulse * 0.1})`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, s.x, s.y - 29);
+    ctx.fillText(text, s.x, tipY);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
+  }
+}
+
+// ============================================================
+// 组句净化物：梗墙 / 失语者
+// ============================================================
+export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
+  if (!scene || !scene.interactables) return;
+  for (const it of scene.interactables) {
+    if (!isInteractableVisible(it, game)) continue;
+    if (it.type !== 'purify') continue;
+    const s = W2S(it.x, it.y);
+    if (s.x < -80 || s.x > W + 80 || s.y < -100 || s.y > H + 80) continue;
+    const done = !!(it.doneFlag && game && game.flags && game.flags[it.doneFlag]);
+    const pulse = 0.5 + Math.sin(gameTime * 0.004 + it.x * 0.01) * 0.3;
+    const kind = it.purifyKind || '';
+    // 语言即维度：未净化「塌平」；净化后「立起」
+    const scaleY = done ? 1 : 0.55;
+    const scaleX = done ? 1 : 1.12;
+
+    if (kind === 'meme_wall' || /墙|招牌|路牌|梗/.test(kind + (it.label || '') + (it.pollutedLabel || ''))) {
+      const text = done
+        ? it.cleansedLabel || it.label || '正名'
+        : it.pollutedLabel || it.label || '梗';
+      ctx.font = 'bold 12px serif';
+      const tw = ctx.measureText(text).width;
+      const w = Math.max(72, tw + 20);
+      const h = 40;
+      const boardTop = s.y - h - 14;
+      const boardCy = boardTop + h / 2;
+
+      // 地面塌陷/立起圈
+      ctx.strokeStyle = done
+        ? `rgba(224,178,98,${0.25 + pulse * 0.2})`
+        : `rgba(80,160,100,${0.2 + pulse * 0.15})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 6, done ? 28 : 34, done ? 7 : 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.scale(scaleX, scaleY);
+      ctx.translate(-s.x, -s.y);
+
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 4, 22, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = done ? '#3a3228' : '#1a1814';
+      ctx.fillRect(s.x - 2, boardTop + h - 4, 4, s.y - (boardTop + h) + 6);
+      ctx.fillStyle = done ? 'rgba(48,38,20,0.98)' : 'rgba(18,28,20,0.92)';
+      ctx.fillRect(s.x - w / 2, boardTop, w, h);
+      ctx.strokeStyle = done ? 'rgba(224,178,98,0.85)' : `rgba(80,200,100,${0.45 + pulse * 0.35})`;
+      ctx.lineWidth = done ? 2 : 1.5;
+      ctx.strokeRect(s.x - w / 2, boardTop, w, h);
+      if (!done) {
+        // 噪点感：细碎扫描线
+        ctx.strokeStyle = `rgba(100,220,120,${0.12 + pulse * 0.1})`;
+        ctx.lineWidth = 1;
+        for (let ly = 0; ly < 3; ly++) {
+          const yy = boardTop + 8 + ly * 10 + Math.sin(gameTime * 0.008 + ly) * 1.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x - w / 2 + 4, yy);
+          ctx.lineTo(s.x + w / 2 - 4, yy);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = done
+        ? `rgba(255,220,140,${0.92 + pulse * 0.08})`
+        : `rgba(120,230,140,${0.75 + pulse * 0.2})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, s.x, boardCy);
+      ctx.restore();
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    } else {
+      const bob = Math.sin(gameTime * 0.002 + it.x) * 1.2;
+      ctx.strokeStyle = done
+        ? `rgba(224,178,98,${0.22 + pulse * 0.15})`
+        : `rgba(80,160,100,${0.18 + pulse * 0.12})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 8, done ? 16 : 20, done ? 5 : 3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.scale(scaleX, scaleY);
+      ctx.translate(-s.x, -s.y);
+
+      if (done) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y + 6, 8, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(205,178,138,0.95)';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y - 2 + bob * 0.3, 6, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(232,205,165,1)';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y - 12 + bob * 0.3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        const bubble = it.cleansedLabel || '…';
+        ctx.font = '10px serif';
+        const bw = ctx.measureText(bubble).width + 12;
+        const bx = s.x - bw / 2;
+        const by = s.y - 36;
+        ctx.fillStyle = 'rgba(20,16,10,0.8)';
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(224,178,98,0.55)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255,220,140,${0.75 + pulse * 0.2})`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(bubble, s.x, by + 8);
+      } else {
+        drawLostPerson(ctx, s.x, s.y + bob, 0);
+        // 塌平噪点罩
+        ctx.fillStyle = `rgba(40,60,45,${0.12 + pulse * 0.08})`;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y - 4, 14, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const speech = it.pollutedSpeech || it.pollutedLabel || '…';
+        ctx.font = '10px serif';
+        const bw = Math.min(90, ctx.measureText(speech).width + 12);
+        const bx = s.x - bw / 2;
+        const by = s.y - 38;
+        ctx.fillStyle = 'rgba(12,20,14,0.85)';
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(80,200,100,${0.4 + pulse * 0.3})`;
+        ctx.lineWidth = 1;
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(140,230,150,${0.75 + pulse * 0.2})`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(speech, s.x, by + 8);
+      }
+      ctx.restore();
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    }
   }
 }
 
@@ -288,6 +463,7 @@ export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
     // 已有独立渲染的类型跳过
     if (it.type === 'keystone') continue; // drawKeystones
     if (it.type === 'cure') continue; // drawCureNPCs
+    if (it.type === 'purify') continue; // drawPurifyProps
     if (it.type === 'scene_change' && it.gate) continue; // drawGates
     // 已在场景函数中专门绘制的交互点跳过
     if (INTERACTABLES_WITH_VISUAL.has(it.id)) continue;

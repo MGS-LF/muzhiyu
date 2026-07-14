@@ -137,39 +137,59 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.textAlign = 'left';
     }
   } else if (battle.phase === 'attack_aim' && battle.attackBar) {
-    // 攻击条
+    // 攻击准星条（打怪主手感）
     const barW = BOX_W - 20;
     const barH = 30;
     ctx.fillStyle = '#222';
     ctx.fillRect(-barW / 2, -barH / 2, barW, barH);
-    // 中心区域（高伤害区）
-    ctx.fillStyle = 'rgba(255,220,120,0.3)';
+    ctx.fillStyle = 'rgba(255,220,120,0.32)';
     ctx.fillRect(-barW * 0.1, -barH / 2, barW * 0.2, barH);
-    // 移动指示器
     const ix = -barW / 2 + battle.attackBar.pos * barW;
     ctx.fillStyle = '#ff4';
     ctx.fillRect(ix - 3, -barH / 2, 6, barH);
-    // 标签
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('按 E / 空格 攻击', 0, -barH / 2 - 14);
+    ctx.fillText('按 E / 空格 砍下！', 0, -barH / 2 - 14);
     ctx.textAlign = 'left';
-  } else if (battle.phase === 'poem') {
-    // 诗词特效：金色光幕
-    const t = battle.timer / 3000;
-    const a = Math.sin(t * Math.PI) * 0.5;
-    ctx.fillStyle = `rgba(255,220,120,${a})`;
+  } else if (battle.phase === 'poem' || battle.phase === 'purify_cast') {
+    // 念诗：四句逐行亮起，亮起时按 E 接唱
+    const lines = battle.poemLines || ['关关雎鸠', '在河之洲', '窈窕淑女', '君子好逑'];
+    const idx = battle.poemIndex | 0;
+    const beat = battle.poemBeat || 0;
+    const beatLen = battle.poemBeatLen || 720;
+    const t = Math.min(1, beat / beatLen);
+    const canHit = t >= 0.22 && t <= 0.88;
+    ctx.fillStyle = 'rgba(20,16,10,0.55)';
     ctx.fillRect(-BOX_W / 2, -BOX_H / 2, BOX_W, BOX_H);
-    // 诗句
-    ctx.fillStyle = `rgba(255,240,180,${0.7 + a})`;
-    ctx.font = 'bold 16px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('关关雎鸠', 0, -20);
-    ctx.fillText('在河之洲', 0, 0);
-    ctx.fillText('窈窕淑女', 0, 20);
-    ctx.fillText('君子好逑', 0, 40);
+    for (let i = 0; i < lines.length; i++) {
+      const y = -36 + i * 22;
+      if (i < idx) {
+        ctx.fillStyle = 'rgba(255,230,150,0.95)';
+        ctx.font = 'bold 15px serif';
+      } else if (i === idx) {
+        const glow = canHit ? 0.55 + Math.sin(beat * 0.02) * 0.35 : 0.25 + t * 0.3;
+        ctx.fillStyle = `rgba(255,240,180,${glow})`;
+        ctx.font = 'bold 17px serif';
+        if (canHit) {
+          ctx.strokeStyle = `rgba(255,220,120,${0.5 + glow * 0.3})`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-70, y - 11, 140, 20);
+        }
+      } else {
+        ctx.fillStyle = 'rgba(140,130,110,0.45)';
+        ctx.font = '14px serif';
+      }
+      ctx.fillText(lines[i], 0, y);
+    }
+    ctx.fillStyle = canHit ? 'rgba(120,230,150,0.95)' : 'rgba(200,190,160,0.7)';
+    ctx.font = 'bold 12px serif';
+    ctx.fillText(canHit ? '▶ 按 E 接唱！' : '等金光亮起……', 0, 58);
+    ctx.fillStyle = 'rgba(180,170,140,0.7)';
+    ctx.font = '11px serif';
+    ctx.fillText(`接唱 ${battle.poemHits || 0}/4`, 0, 76);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
   } else if (battle.phase === 'attack_resolve') {
@@ -321,10 +341,22 @@ export function drawBattle(ctx, battle, gameTime) {
       ctx.textAlign = 'left';
     }
   } else if (battle.phase === 'enemyTurn') {
-    ctx.fillStyle = 'rgba(255,100,100,0.8)';
+    ctx.fillStyle = 'rgba(255,100,100,0.85)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
-    ctx.fillText(CONTROL_HINTS.battleDodge, W / 2, H - 30);
+    const ammo = (battle.player && battle.player.collectedChars
+      ? battle.player.collectedChars.length
+      : 0);
+    const canF = !battle.dodgePurifyUsed && ammo > 0;
+    ctx.fillText(
+      canF
+        ? `${CONTROL_HINTS.battleDodge}  ·  F 清屏（字×${ammo}）`
+        : battle.dodgePurifyUsed
+          ? `${CONTROL_HINTS.battleDodge}  ·  本波已清屏`
+          : CONTROL_HINTS.battleDodge,
+      W / 2,
+      H - 30
+    );
     ctx.textAlign = 'left';
   } else if (battle.phase === 'attack_aim') {
     ctx.fillStyle = 'rgba(255,220,120,0.8)';

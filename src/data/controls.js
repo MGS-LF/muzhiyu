@@ -21,17 +21,19 @@ export const CONTROL_LABELS = {
   poemUltimate: 'K',
   knife: 'J',
   shoot: '鼠标左键',
+  utterance: 'F',
 };
 
 export const CONTROL_HINTS = {
   startMenu: [
     `移动：${CONTROL_LABELS.move}，交互：${CONTROL_LABELS.interact}，冲刺：${CONTROL_LABELS.dash}`,
-    `战斗：${CONTROL_LABELS.menuAdjust} 选择，${CONTROL_LABELS.confirm} 确认，${CONTROL_LABELS.poemUltimate} 释放诗词大招`,
+    `战斗：${CONTROL_LABELS.menuAdjust} 选择攻击/调查/净化/宽恕，${CONTROL_LABELS.confirm} 确认，${CONTROL_LABELS.poemUltimate} 诗词大招`,
     `菜单：${CONTROL_LABELS.quest} 任务，${CONTROL_LABELS.inventory} 背包，${CONTROL_LABELS.map} 地图，${CONTROL_LABELS.settings} 设置，${CONTROL_LABELS.system} 系统菜单，${CONTROL_LABELS.quickSave}/${CONTROL_LABELS.quickLoad} 快速存读档`,
   ],
   tutorialKeys: [
     { k: CONTROL_LABELS.moveWasd, d: `移动 · ${CONTROL_LABELS.run} 奔跑` },
     { k: CONTROL_LABELS.interact, d: '交互 / 拾取 / 开始对话' },
+    { k: CONTROL_LABELS.utterance, d: '补全诗句/成语（靠近招牌或失语者）' },
     { k: '方向键', d: '战斗中移动红心 / 选菜单' },
     { k: CONTROL_LABELS.quest, d: '任务面板' },
     { k: CONTROL_LABELS.dash, d: '对话确认 / 战斗确认 / 攻击瞄准确认 / 大地图冲刺' },
@@ -44,7 +46,8 @@ export const CONTROL_HINTS = {
     { k: `${CONTROL_LABELS.quickSave}/${CONTROL_LABELS.quickLoad}`, d: '快速存档 / 读档' },
     { k: CONTROL_LABELS.mute, d: '静音切换' },
   ],
-  worldFooter: `${CONTROL_LABELS.quest} 任务 · ${CONTROL_LABELS.map} 地图 · ${CONTROL_LABELS.inventory} 背包`,
+  worldFooter: `${CONTROL_LABELS.quest} 任务 · ${CONTROL_LABELS.map} 地图 · ${CONTROL_LABELS.inventory} 背包 · ${CONTROL_LABELS.utterance} 补诗`,
+  utteranceOpen: `${CONTROL_LABELS.utterance} · 补全诗句`,
   interactObject: `${CONTROL_LABELS.interact} · 交互`,
   interactElder: `${CONTROL_LABELS.interact} · 老人`,
   interactReturn: `${CONTROL_LABELS.interact} · 返回街道`,

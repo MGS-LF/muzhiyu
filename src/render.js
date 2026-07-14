@@ -22,6 +22,7 @@ import {
 import {
   drawItems,
   drawCureNPCs,
+  drawPurifyProps,
   drawInteractHints,
   drawAtmosphere,
   drawLighting,
@@ -32,6 +33,7 @@ import {
   drawParticles,
 } from './render/world.js';
 import { drawHUD, drawGates, drawObjectiveArrow, drawDamageOverlay } from './render/hud.js';
+import { drawUtterance } from './render/utterance.js';
 import {
   drawDialog,
   drawHints,
@@ -142,18 +144,16 @@ export function render(game, gameTime) {
   // 绔犺妭闂ㄧ鐨勫彲瑙嗗寲锛堝睆闅?鍏夋煴锛?
   drawGates(ctx, W2S, scene, game, gameTime);
 
+  // 净化物先画，靠近提示后画，避免 F·组句 与招牌字重叠
+  drawPurifyProps(ctx, W2S, scene, game, gameTime);
+
   drawInteractHints(ctx, W2S, scene, player, game.collected, gameTime, game);
 
-  // 鏁屼汉锛堝湪鐜╁涔嬩笅锛屽ぇ鍦板浘涓婃樉绀轰綅缃級
   if (scene.enemies) drawEnemies(ctx, W2S, scene.enemies, gameTime, game);
-
-  // 鎺夎惤鐗?
   drawItems(ctx, W2S, scene, gameTime, game.collected);
-
-  // 澶辫鑰呮敮绾?NPC
   drawCureNPCs(ctx, W2S, scene, game, gameTime);
 
-  // 瑕佺煶
+  // 要石
   drawKeystones(ctx, W2S, scene, game.activatedKeystones, gameTime);
 
   // 鐜╁锛堝彧鏈夌湡姝ｅ彈浼ゆ椂鎵嶉棯鐑侊級
@@ -178,7 +178,7 @@ export function render(game, gameTime) {
 
   drawHUD(ctx, player, game, objective);
 
-  // 鎭㈠闇囧姩鍋忕Щ鐨?save锛圚UD 涔嬪悗鐨勫唴瀹逛笉鍙楅渿鍔ㄥ奖鍝嶏級
+  // 恢复抖动偏移的 save（HUD 之后的内容不受抖动影响）
   ctx.restore();
 
   if (dialogState) drawDialog(ctx, dialogState, gameTime, game);
@@ -190,7 +190,12 @@ export function render(game, gameTime) {
   if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText, game);
   if (game._uiOverlay) drawThinking(ctx, gameTime, game._uiOverlay.text || game._uiOverlay.kind, game);
 
-  // 鍒诲瓧妯″紡
+  // 组句面板（探索 overlay，盖在 HUD 之上）
+  if (game.utteranceState) {
+    drawUtterance(ctx, game, gameTime);
+  }
+
+  // 刻字模式
   if (game.engraveState) {
     drawEngraving(ctx, game.engraveState, gameTime, game);
     ensureEngraveInput(game);
@@ -244,7 +249,8 @@ export function render(game, gameTime) {
     game.scene &&
     !game.dialogState &&
     !game.tutorial &&
-    !game.engraveState
+    !game.engraveState &&
+    !game.utteranceState
   ) {
     drawMinimap(ctx, game, gameTime);
   }

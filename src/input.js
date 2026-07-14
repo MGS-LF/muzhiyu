@@ -30,7 +30,7 @@ window.addEventListener('keydown', (e) => {
   if (!keys[k]) justPressed[k] = true;
   keys[k] = true;
   if (
-    ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab', 'f2', 'f4', 'f6', 'f9'].includes(k)
+    ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab', 'f', 'f2', 'f4', 'f6', 'f9'].includes(k)
   )
     e.preventDefault();
 });
