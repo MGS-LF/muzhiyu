@@ -11,9 +11,9 @@ import { directorEnabled } from './ai/director.js';
 
 // === 物理参数（按 60fps 设计，用 dt 归一）===
 const FRAME = 16.67;
-const GRAVITY = 0.52; // 每帧重力（再乘 dt/FRAME）
-const MOVE_SPD = 3.6; // 地面横移 px/帧
-const AIR_SPD = 3.9; // 空中横移（略快，前冲更明显）
+const GRAVITY = 0.55; // 每帧重力（再乘 dt/FRAME）
+const MOVE_SPD = 3.2; // 地面横移 px/帧
+const AIR_SPD = 3.4; // 空中横移（略快，前冲更明显）
 const CLIMB_SPD = 2.0;
 const GROUND_Y = 624;
 const LEVEL_W = 3400;
@@ -29,11 +29,11 @@ const COYOTE_TIME = 100;
 const JUMP_BUFFER = 120;
 
 // === 普通跳跃（无蓄力）===
-// 地面 624 → 前段台阶 520/440/500；-16.2 + g0.52 约可抬 250px，能连上第二层
-const JUMP_V = -16.2;
-const JUMP_MAX_VY = 18;
+// 逐级上台阶：地面624→530(差94)→460(差70)，约 -11.5 抬高 ~127px，够一级、不能越级
+const JUMP_V = -11.5;
+const JUMP_MAX_VY = 16;
 // 起跳瞬间额外水平冲量（按住 A/D 时）
-const JUMP_FORWARD = 1.35;
+const JUMP_FORWARD = 1.2;
 
 // 段落分界
 const SEG1_END = 1100; // 前段结束
