@@ -241,24 +241,37 @@ function ensureStyle() {
     }
     .start-menu__member {
       display: grid;
-      grid-template-columns: 72px 1fr;
-      gap: 10px 16px;
+      grid-template-columns: 56px 1fr;
+      gap: 4px 14px;
+      align-items: center;
       padding: 12px 14px;
       border: 1px solid rgba(212, 168, 90, 0.2);
       background: rgba(255, 255, 255, 0.03);
     }
+    .start-menu__avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(212, 168, 90, 0.45);
+      box-shadow: 0 0 12px rgba(212, 168, 90, 0.18);
+      grid-row: 1 / span 2;
+      background: rgba(0, 0, 0, 0.35);
+    }
+    .start-menu__member-body {
+      min-width: 0;
+    }
     .start-menu__member-role {
       color: rgba(212, 168, 90, 0.85);
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: 0.12em;
-      align-self: start;
-      padding-top: 2px;
     }
     .start-menu__member-name {
       color: #f0dfbd;
       font-size: 15px;
       font-weight: 700;
       letter-spacing: 0.08em;
+      margin-top: 2px;
     }
     .start-menu__member-desc {
       margin-top: 4px;
@@ -266,6 +279,7 @@ function ensureStyle() {
       font-size: 13px;
       line-height: 1.7;
       letter-spacing: 0.03em;
+      grid-column: 2;
     }
     .start-menu__team-note {
       margin-top: 16px !important;
@@ -379,32 +393,28 @@ export function mountStartMenu(game, { fromIntro } = {}) {
           <p>我们是一支围绕「语言与记忆」主题做叙事游戏的小团队。用文字、关卡与一点点 AI，在废墟里重温完整的句子。</p>
           <div class="start-menu__team" aria-label="团队成员">
             <div class="start-menu__member">
-              <div class="start-menu__member-role">主创 / 程序</div>
-              <div>
-                <div class="start-menu__member-name">taiyi747</div>
-                <div class="start-menu__member-desc">项目统筹、核心系统与玩法实现。</div>
+              <img class="start-menu__avatar" src="/assets/team/langfeng.jpg" alt="浪疯" width="56" height="56" loading="lazy" />
+              <div class="start-menu__member-body">
+                <div class="start-menu__member-role">游戏主要设计人</div>
+                <div class="start-menu__member-name">浪疯</div>
               </div>
+              <div class="start-menu__member-desc">主导游戏叙事架构与关卡设计。</div>
             </div>
             <div class="start-menu__member">
-              <div class="start-menu__member-role">程序 / 关卡</div>
-              <div>
-                <div class="start-menu__member-name">MGS_CRAZY</div>
-                <div class="start-menu__member-desc">战斗、场景与系统功能开发。</div>
+              <img class="start-menu__avatar" src="/assets/team/yunzhuyu.png" alt="云煮鱼" width="56" height="56" loading="lazy" />
+              <div class="start-menu__member-body">
+                <div class="start-menu__member-role">核心程序 / 技术架构</div>
+                <div class="start-menu__member-name">云煮鱼</div>
               </div>
+              <div class="start-menu__member-desc">负责核心程序开发与技术架构搭建。</div>
             </div>
             <div class="start-menu__member">
-              <div class="start-menu__member-role">叙事 / 内容</div>
-              <div>
-                <div class="start-menu__member-name">cnb.GG · xingyao</div>
-                <div class="start-menu__member-desc">剧情脚本、世界观与文本打磨。</div>
+              <img class="start-menu__avatar" src="/assets/team/xingyao.png" alt="星遥" width="56" height="56" loading="lazy" />
+              <div class="start-menu__member-body">
+                <div class="start-menu__member-role">美术风格</div>
+                <div class="start-menu__member-name">星遥</div>
               </div>
-            </div>
-            <div class="start-menu__member">
-              <div class="start-menu__member-role">协作</div>
-              <div>
-                <div class="start-menu__member-name">全体贡献者</div>
-                <div class="start-menu__member-desc">测试、工具链与持续迭代。感谢每一位推过代码的人。</div>
-              </div>
+              <div class="start-menu__member-desc">负责游戏美术风格设计。</div>
             </div>
           </div>
           <p class="start-menu__team-note">仓库：cnb.cool/TvTink/666 · 作品《墓之语》</p>
