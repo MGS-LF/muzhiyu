@@ -2,7 +2,7 @@ import { W, H } from '../config.js';
 import { HACK, STR } from './theme.js';
 import { LAYER_MAX } from './sim.js';
 
-/** 言锋飞行器：舱体 + 双翼 + 尾焰 */
+/** 字锋航行体：舱体 + 双翼 + 尾焰（诗句凝成的刃） */
 function drawShip(ctx, x, y, size, aim, invBlink, alpha = 1) {
   if (invBlink) return;
   const s = size;
@@ -97,10 +97,19 @@ function drawEnemy(ctx, e, frame) {
     ctx.arc(-s * 0.12, -s * 0.18, s * 0.06, 0, Math.PI * 2);
     ctx.arc(s * 0.12, -s * 0.18, s * 0.06, 0, Math.PI * 2);
     ctx.fill();
+    // 茧房核心：屏幕面 + 蓝核，不是绿梗鬼
+    ctx.fillStyle = 'rgba(40,90,180,0.55)';
+    ctx.fillRect(-s * 0.28, -s * 0.15, s * 0.56, s * 0.38);
+    ctx.strokeStyle = HACK.gold;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-s * 0.28, -s * 0.15, s * 0.56, s * 0.38);
     ctx.fillStyle = HACK.gold;
-    ctx.font = `12px ${HACK.font}`;
+    ctx.font = `11px ${HACK.font}`;
     ctx.textAlign = 'center';
-    ctx.fillText('复', 0, s * 0.22);
+    ctx.fillText('荐', 0, s * 0.12);
+    ctx.fillStyle = 'rgba(140,200,255,0.9)';
+    ctx.font = `10px ${HACK.font}`;
+    ctx.fillText('核', 0, s * 0.32);
   } else {
     ctx.rotate(e.rot);
     const s = e.s;

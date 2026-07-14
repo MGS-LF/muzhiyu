@@ -131,7 +131,7 @@ export function spawnLayer(state) {
     b.maxHp = b.hp;
     // 一阶段不召唤；过载后再增殖
     b.summonCd = 9999;
-    setBanner(state, state.bossLabel || '算法核心·复读巨像', 90);
+    setBanner(state, state.bossLabel || '算法茧房·推荐之核', 90);
     return;
   }
 
@@ -296,7 +296,7 @@ export function stepSim(state, inputSnap, heart) {
     state.clearWait++;
     if (state.clearWait === 1) {
       state.rings.push({ x: p.x, y: p.y, r: 16, life: 40 });
-      setBanner(state, state.layer < state.layerMax ? '协议层突破' : '核心崩解', 70);
+      setBanner(state, state.layer < state.layerMax ? '撕开一层推荐' : '茧壳裂开', 70);
     }
     if (state.clearWait > 55) {
       if (state.layer >= state.layerMax) {
@@ -304,7 +304,7 @@ export function stepSim(state, inputSnap, heart) {
       } else {
         state.layer++;
         spawnLayer(state);
-        setBanner(state, `协议层 ${String(state.layer).padStart(2, '0')}`, 60);
+        setBanner(state, `推荐层 ${String(state.layer).padStart(2, '0')}`, 60);
       }
     }
   }

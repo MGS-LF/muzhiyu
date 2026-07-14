@@ -36,18 +36,18 @@ function makeTrialEnemy(wave) {
       hpMul: scale,
       spdMul: 1 + Math.min(0.55, (wave - 1) * 0.06),
       dmgMul: 1 + Math.min(0.4, (wave - 1) * 0.05),
-      title: wave === 1 ? '言锋试炼——入门协议' : `言锋试炼·第 ${wave} 波`,
+      title: wave === 1 ? '茧心试炼——入门推送' : `茧心试炼·第 ${wave} 波`,
       subtitle:
         wave < 3
-          ? '驾驶言锋，击穿当前协议层'
-          : '终核苏醒——击破复读巨像的试炼投影',
-      bossName: wave >= 3 ? '试炼·复读巨像' : '协议节点',
-      bossCore: wave >= 3 ? '试炼核心·复读巨像' : '协议节点',
+          ? '用字锋撕开当前推荐层'
+          : '终核苏醒——击破推荐之核的试炼投影',
+      bossName: wave >= 3 ? '试炼·推荐之核' : '推送节点',
+      bossCore: wave >= 3 ? '试炼核心·推荐之核' : '推送节点',
     },
     acts: [
-      '试炼场里没有真实的茧房，只有被剥离出来的算法回声。',
-      '言锋的尾焰在虚空中划出一行未写完的诗。',
-      '每一波协议都比上一波更会模仿你想听的话。',
+      '试炼场里没有真实的茧房，只有被剥离出来的推荐回声。',
+      '字锋在虚空里划出一行未写完的诗。',
+      '每一波推送都比上一波更会模仿你想听的话。',
       '守住语言，也守住方向。',
     ],
   };
@@ -64,7 +64,7 @@ export class EndlessMode {
     this.summaryText = '';
     this.lastEnemy = null;
     this._exitQueued = false;
-    this.modeName = '言锋试炼';
+    this.modeName = '茧心试炼';
   }
 
   start() {
@@ -73,7 +73,7 @@ export class EndlessMode {
     this.score = 0;
     this.bestWave = 0;
     this.intermissionMs = 700;
-    this.summaryText = '言锋试炼已开启。';
+    this.summaryText = '茧心试炼已开启。';
     this.lastEnemy = null;
     this.game.hints = [];
     this.game.player.san = this.game.player.maxSan;
@@ -87,7 +87,7 @@ export class EndlessMode {
     this.game.uiPanel = null;
     this.game._saveMenu = null;
     this.game.battle = null;
-    this.game.showHint('言锋试炼：驾驶飞行器突破协议层，倒下即结束。');
+    this.game.showHint('茧心试炼：撕开推荐层，倒下即结束。');
     try {
       audio.playBGM('__boss__');
     } catch (_) {}
@@ -117,7 +117,7 @@ export class EndlessMode {
       this.state = 'gameover';
       this.bestWave = Math.max(this.bestWave, this.wave - (result === 'lose' ? 0 : 1));
       this.summaryText =
-        result === 'lose' ? '言锋失联——试炼结束。' : '本轮言锋试炼已中止。';
+        result === 'lose' ? '理性崩坏——试炼结束。' : '本轮茧心试炼已中止。';
       this.game.showHint(this.summaryText);
       return;
     }
@@ -180,12 +180,12 @@ export class EndlessMode {
 
     ctx.fillStyle = 'rgba(232,220,200,0.92)';
     ctx.font = '18px "SimSun","Songti SC",serif';
-    ctx.fillText(this.summaryText || '言锋整备中…', W / 2, y + 58);
+    ctx.fillText(this.summaryText || '字锋整备中…', W / 2, y + 58);
 
     ctx.font = '14px "SimSun","Songti SC",serif';
     ctx.fillStyle = 'rgba(178,169,152,0.85)';
-    ctx.fillText('驾驶诗句凝成的飞行器，击穿算法协议层。', W / 2, y + 100);
-    ctx.fillText('金色梗弹可击落 · 白色静默弹不可销毁 · Esc 系统菜单', W / 2, y + 128);
+    ctx.fillText('用还记得的字，剖开「为你推荐」叠成的茧。', W / 2, y + 100);
+    ctx.fillText('金色推荐词可击碎 · 灰白静默弹不可销毁 · Esc 系统菜单', W / 2, y + 128);
 
     if (this.state === 'gameover') {
       ctx.fillStyle = 'rgba(255,220,160,0.95)';
@@ -194,7 +194,7 @@ export class EndlessMode {
     } else {
       ctx.fillStyle = 'rgba(212,168,90,0.9)';
       ctx.font = 'bold 16px "SimSun","Songti SC",serif';
-      ctx.fillText('下一层协议正在展开…', W / 2, y + 170);
+      ctx.fillText('下一层推荐正在展开…', W / 2, y + 170);
     }
 
     ctx.textAlign = 'left';
@@ -206,7 +206,7 @@ export class EndlessMode {
     try {
       audio.stopBGM();
     } catch (e) {
-      console.warn('[言锋试炼] 退出时停止 BGM 失败', e);
+      console.warn('[茧心试炼] 退出时停止 BGM 失败', e);
     }
     try {
       sessionStorage.setItem('keheng_to_title', '1');

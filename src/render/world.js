@@ -688,6 +688,12 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     const stepBob = Math.abs(Math.sin(e.walkPhase)) * 2;
     const sy = s.y - stepBob; // 脚踏地，整体微抬模拟迈步
 
+    // 体育馆 Boss：算法茧房核心（屏幕塔），不是绿色梗鬼
+    if (e.boss || e.typeId === 'geng_boss' || e.combat === 'hack') {
+      drawCocoonBoss(ctx, s.x, sy, gameTime, e, game);
+      continue;
+    }
+
     // 提示标记：靠近会进入战斗 / 可踩踏
     const d = Math.hypot(e.x - (game ? game.player.x : 0), e.y - (game ? game.player.y : 0));
     const near = d < 80;
@@ -832,6 +838,87 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     ctx.fillText('梗', s.x - 4, sy + 31 + Math.sin(t * 2.5) * 1.5);
     ctx.textAlign = 'left';
   }
+}
+
+/** 算法茧房核心：蓝色屏幕巨塔 + 推荐弹幕，区别于绿色梗鬼 */
+function drawCocoonBoss(ctx, sx, sy, gameTime, e, game) {
+  const t = gameTime * 0.004;
+  const pulse = 0.5 + Math.sin(t * 2) * 0.5;
+  const d = game ? Math.hypot(e.x - game.player.x, e.y - game.player.y) : 999;
+  const near = d < 100;
+
+  // 脚下光环（算法污染）
+  ctx.fillStyle = `rgba(80,140,255,${0.12 + pulse * 0.08})`;
+  ctx.beginPath();
+  ctx.ellipse(sx, sy + 8, 48, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = `rgba(120,180,255,${0.35 + pulse * 0.2})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 屏幕塔身
+  const tw = 56;
+  const th = 88;
+  const top = sy - th;
+  ctx.fillStyle = 'rgba(12,18,32,0.95)';
+  ctx.fillRect(sx - tw / 2, top, tw, th);
+  ctx.strokeStyle = `rgba(100,160,255,${0.55 + pulse * 0.25})`;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(sx - tw / 2, top, tw, th);
+
+  // 多层屏幕
+  const rows = 4;
+  for (let i = 0; i < rows; i++) {
+    const ry = top + 8 + i * 18;
+    const glow = 0.35 + Math.sin(t * 3 + i) * 0.25;
+    ctx.fillStyle = `rgba(40,90,180,${0.25 + glow * 0.35})`;
+    ctx.fillRect(sx - tw / 2 + 5, ry, tw - 10, 14);
+    ctx.strokeStyle = `rgba(140,200,255,${0.4 + glow * 0.3})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - tw / 2 + 5, ry, tw - 10, 14);
+    // 滚动推荐词
+    const words = ['为你推荐', '你可能还想看', '绝绝子', 'YYDS', '下一首'];
+    const wi = (Math.floor(gameTime / 800) + i) % words.length;
+    ctx.fillStyle = `rgba(180,220,255,${0.55 + glow * 0.3})`;
+    ctx.font = 'bold 8px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(words[wi], sx, ry + 10);
+  }
+
+  // 塔顶蓝核（呼应 Sydney 蓝影）
+  ctx.shadowColor = 'rgba(100,180,255,0.9)';
+  ctx.shadowBlur = 16 + pulse * 10;
+  ctx.fillStyle = `rgba(120,190,255,${0.7 + pulse * 0.25})`;
+  ctx.beginPath();
+  ctx.arc(sx, top - 6, 10 + pulse * 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(200,230,255,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(sx, top - 6, 10 + pulse * 2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 飘散的推荐弹幕碎片
+  ctx.font = '9px serif';
+  ctx.fillStyle = `rgba(140,200,255,${0.35 + pulse * 0.2})`;
+  ctx.textAlign = 'center';
+  ctx.fillText('推荐', sx - 38, top + 20 + Math.sin(t * 2) * 3);
+  ctx.fillText('复读', sx + 40, top + 40 + Math.cos(t * 2.2) * 3);
+  ctx.fillText('茧', sx, top - 22);
+
+  // 名牌
+  ctx.fillStyle = 'rgba(180,210,255,0.92)';
+  ctx.font = 'bold 11px serif';
+  ctx.fillText(e.name || '算法核心·茧房', sx, top - 36);
+
+  if (near) {
+    const p2 = 0.5 + Math.sin(gameTime * 0.008) * 0.4;
+    ctx.fillStyle = `rgba(120,180,255,${p2})`;
+    ctx.font = 'bold 11px serif';
+    ctx.fillText('! 侵入茧房核心', sx, top - 52);
+  }
+  ctx.textAlign = 'left';
 }
 
 // ============================================================

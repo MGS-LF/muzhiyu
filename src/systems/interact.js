@@ -95,11 +95,11 @@ export const methods = {
             const boss = this.scene.enemies.find((e) => e.boss && !this.defeatedEnemies.has(e.id));
             if (boss) {
               boss.hp = Math.floor(boss.hp / 2);
-              this.showHint('浩然之气贯穿茧房！复读巨像的防御被削弱一半！');
+              this.showHint('浩然之气贯穿茧房！推荐之核的屏障裂开了一半！');
             } else {
               this.showHint('诗屏亮起金光，浩然之气萦绕不散。');
             }
-            this.objective = { text: '茧房已被削弱，前往上层挑战复读巨像', done: false };
+            this.objective = { text: '茧房已被削弱，前往上层侵入推荐之核', done: false };
           }
           // 第五章谜题完成标记
           if (best.puzzleId === 'jiangjinjiu') this.flags.puzzle_jiangjinjiu_solved = true;
@@ -225,7 +225,7 @@ export const methods = {
           this.showHint('听见旧广播，SAN +10');
         }
         if (key === 'shuyuan_farewell') {
-          this.objective = { text: '潜行穿越迷宫 → 点亮诗屏削弱茧房 → 挑战复读巨像', done: false };
+          this.objective = { text: '潜行穿越迷宫 → 点亮诗屏削弱茧房 → 侵入推荐之核', done: false };
         }
         if (key === 'cocoon_victim') {
           this.flags.seen_cocoon_victim = true;

@@ -636,10 +636,10 @@ export class Game {
         text = '在茧房迷宫收集「眠」「处」「风」「少」';
         target = point(nearestChar(need)) || point(it('keystone_stadium'));
       } else if (!this.solvedPuzzles.has('zhengqi')) {
-        text = '点亮熄灭的诗屏，削弱复读巨像';
+        text = '点亮熄灭的诗屏，削弱茧房推荐屏障'
         target = point(it('light_screen'));
       } else if (!this.defeatedEnemies.has('stadium_geng_1')) {
-        text = '挑战算法核心·复读巨像';
+        text = '侵入算法茧房·推荐之核';
         target = point((this.scene.enemies || []).find((e) => e.id === 'stadium_geng_1'));
       } else {
         text = '通往废墟深处的大门已打开';
@@ -2207,7 +2207,7 @@ export class Game {
     if (f.portal3d_done) quests.push({ cat: '主线', text: '穿过维度裂隙', done: true });
     if (f.stadium_puzzle_solved) quests.push({ cat: '主线', text: '点亮体育馆诗屏', done: true });
     if (f.stadium_geng_1_defeated || this.defeatedEnemies.has('stadium_geng_1')) {
-      quests.push({ cat: '主线', text: '处理算法核心·复读巨像', done: true });
+      quests.push({ cat: '主线', text: '侵入算法茧房·推荐之核', done: true });
     }
     // 可选目标
     quests.push({
