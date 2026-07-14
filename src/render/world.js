@@ -233,7 +233,7 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
         : `rgba(130,235,150,${0.88 + pulse * 0.12})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(text, s.x, boardCy);
+      ctx.fillText(text, s.x, boardCy + 2); // 文本垂直视觉居中微调
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
     } else {
@@ -294,7 +294,7 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
         : `rgba(155,240,165,${0.9 + pulse * 0.1})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(bubbleText, s.x, by + bh / 2);
+      ctx.fillText(bubbleText, s.x, by + bh / 2 + 1); // 文本垂直视觉居中微调
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
     }
