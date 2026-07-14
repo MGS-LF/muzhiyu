@@ -42,4 +42,8 @@ $:
     - stages:
         - name: install dependencies
           script: npm install
+          
+        - name: start server
+          script: npm run dev
+          port: 8080
 
