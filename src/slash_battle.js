@@ -189,23 +189,35 @@ export class SlashBattle {
   _tickFx(dt) {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      p.x += p.vx * (dt / 16);
-      p.y += p.vy * (dt / 16);
-      p.vx *= 0.96;
-      p.vy *= 0.96;
+      if (!p) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      p.x += (p.vx || 0) * (dt / 16);
+      p.y += (p.vy || 0) * (dt / 16);
+      p.vx = (p.vx || 0) * 0.96;
+      p.vy = (p.vy || 0) * 0.96;
       p.life -= dt;
       if (p.life <= 0) this.particles.splice(i, 1);
     }
     for (let i = this.shards.length - 1; i >= 0; i--) {
       const s = this.shards[i];
-      s.x += s.vx * (dt / 16);
-      s.y += s.vy * (dt / 16);
-      s.rot += s.vr * (dt / 16);
-      s.vy += 0.12 * (dt / 16);
+      if (!s) {
+        this.shards.splice(i, 1);
+        continue;
+      }
+      s.x += (s.vx || 0) * (dt / 16);
+      s.y += (s.vy || 0) * (dt / 16);
+      s.rot = (s.rot || 0) + (s.vr || 0) * (dt / 16);
+      s.vy = (s.vy || 0) + 0.12 * (dt / 16);
       s.life -= dt;
       if (s.life <= 0) this.shards.splice(i, 1);
     }
     for (let i = this.floats.length - 1; i >= 0; i--) {
+      if (!this.floats[i]) {
+        this.floats.splice(i, 1);
+        continue;
+      }
       this.floats[i].y -= 0.4 * (dt / 16);
       this.floats[i].life -= dt;
       if (this.floats[i].life <= 0) this.floats.splice(i, 1);
@@ -354,18 +366,23 @@ export class SlashBattle {
       }
     }
 
-    // 更新字弹
+    // 更新字弹（win/lose 可能中途清空 shots，必须做空项守卫并提前退出）
     for (let i = this.shots.length - 1; i >= 0; i--) {
+      if (this.result) break;
       const s = this.shots[i];
-      s.x += s.vx * (dt / 16);
-      s.y += s.vy * (dt / 16);
+      if (!s || !Number.isFinite(s.x) || !Number.isFinite(s.y)) {
+        this.shots.splice(i, 1);
+        continue;
+      }
+      s.x += (s.vx || 0) * (dt / 16);
+      s.y += (s.vy || 0) * (dt / 16);
       s.life -= dt;
       if (Math.random() < 0.4) {
         this.particles.push({
           x: s.x,
           y: s.y,
-          vx: -s.vx * 0.08,
-          vy: -s.vy * 0.08,
+          vx: -(s.vx || 0) * 0.08,
+          vy: -(s.vy || 0) * 0.08,
           life: 180,
           maxLife: 180,
           color: '255,220,120',
@@ -377,15 +394,17 @@ export class SlashBattle {
       // 撞烂梗：对消
       for (let j = this.words.length - 1; j >= 0; j--) {
         const w = this.words[j];
-        if (!w) continue;
+        if (!w || !Number.isFinite(w.x)) continue;
         if (Math.hypot(w.x - s.x, w.y - s.y) < (w.r || 16) * 0.7 + 14) {
           this.breakWord(w, j, s);
           dead = true;
           break;
         }
       }
+      if (this.result) break;
       if (dead) {
-        this.shots.splice(i, 1);
+        // win() 可能已 this.shots = []，避免对空数组 splice 出空洞
+        if (this.shots[i] === s) this.shots.splice(i, 1);
         continue;
       }
 
@@ -395,12 +414,13 @@ export class SlashBattle {
       if (Math.hypot(s.x - ex, s.y - ey) < 48) {
         const dmg = (s.empowered ? 7 : 4) + Math.floor(Math.min(this.combo, 6) * 0.6);
         this.damageEnemy(dmg, ex, ey + 36, s.char);
-        this.shots.splice(i, 1);
+        if (this.result) break;
+        if (this.shots[i] === s) this.shots.splice(i, 1);
         continue;
       }
 
       if (s.life <= 0 || s.x < -50 || s.x > W + 50 || s.y < -50 || s.y > H + 50) {
-        this.shots.splice(i, 1);
+        if (this.shots[i] === s) this.shots.splice(i, 1);
       }
     }
 
@@ -504,17 +524,19 @@ export class SlashBattle {
 
   breakWord(w, index, shot) {
     if (!w || this.result) return;
+    const byChar = shot && shot.char ? shot.char : '言';
+    const empowered = !!(shot && shot.empowered);
     let idx = this.words.indexOf(w);
     if (idx < 0) idx = index;
     if (idx < 0) return;
 
-    if (w.hp > 1 && !shot.empowered) {
+    if (w.hp > 1 && !empowered) {
       w.hp -= 1;
       w.hitFlash = 200;
       w.vx *= 0.35;
       w.vy *= 0.35;
       this.floats.push({ x: w.x, y: w.y - 10, text: '裂！', life: 380, color: '180,255,160' });
-      this.damageEnemy(2, w.x, w.y, shot.char, true);
+      this.damageEnemy(2, w.x, w.y, byChar, true);
       return;
     }
 
@@ -552,9 +574,9 @@ export class SlashBattle {
       });
     }
 
-    let dmg = 3 + Math.min(this.combo, 8) * 0.7 + (w.tough ? 1.5 : 0) + (shot.empowered ? 2 : 0);
+    let dmg = 3 + Math.min(this.combo, 8) * 0.7 + (w.tough ? 1.5 : 0) + (empowered ? 2 : 0);
     dmg = Math.floor(dmg);
-    this.damageEnemy(dmg, w.x, w.y - 12, shot.char, true);
+    this.damageEnemy(dmg, w.x, w.y - 12, byChar, true);
     audio.playSfx('hit');
 
     if (this.combo > 0 && this.combo % 4 === 0) {

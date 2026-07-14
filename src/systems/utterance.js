@@ -63,7 +63,6 @@ export const methods = {
       this.showHint(
         `还缺字：${missingOwned.map((c) => '「' + c + '」').join('')}——先在附近捡齐再补全`
       );
-      // 仍允许打开，便于看题；释放时会再拦
     }
 
     const cloze = parseClozePrompt(target.prompt || target.cloze || '', blanks);
@@ -78,12 +77,40 @@ export const methods = {
       cloze,
       title: target.poemTitle || target.idiomTitle || '补全',
       message: null,
+      _chipHits: [],
+      _blankHits: [],
     };
     audio.playSfx('ui');
   },
 
   closeUtterance() {
     this.utteranceState = null;
+  },
+
+  /** 把候选字填入空位；填满后自动校验并提交 */
+  fillUtteranceChar(ch) {
+    const u = this.utteranceState;
+    if (!u || !ch) return;
+    let idx = u.slots.findIndex((s) => !s);
+    if (u.slots[u.blankSel] == null) idx = u.blankSel | 0;
+    if (idx < 0) {
+      // 已满：覆盖当前空位
+      idx = u.blankSel | 0;
+    }
+    u.slots[idx] = ch;
+    u.blankSel = Math.min(idx + 1, Math.max(0, u.slots.length - 1));
+    u.message = null;
+    audio.playSfx('ui');
+    this.tryAutoReleaseUtterance();
+  },
+
+  /** 全部填完时自动提交；对则成功，错则提示 */
+  tryAutoReleaseUtterance() {
+    const u = this.utteranceState;
+    if (!u) return;
+    const filled = u.slots || [];
+    if (!filled.length || filled.some((c) => !c)) return;
+    this.tryReleaseUtterance();
   },
 
   updateUtterance(dt) {
@@ -95,14 +122,43 @@ export const methods = {
       return;
     }
 
-    // 空格位选择：Q/E 不占用；用 [ ] 或 1-9；简化：Tab 切换空位
+    // 鼠标点空位 / 候选字
+    if (input.mousePressed()) {
+      const m = input.mouseCanvas();
+      const mx = m.x;
+      const my = m.y;
+      let hit = false;
+      for (const b of u._blankHits || []) {
+        if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+          u.blankSel = b.i;
+          audio.playSfx('ui');
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) {
+        for (const c of u._chipHits || []) {
+          if (mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h) {
+            u.sel = c.i;
+            this.fillUtteranceChar(u.pool[c.i]);
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (hit) {
+        this.updateParticles(dt);
+        return;
+      }
+    }
+
     if (input.wasPressed('tab')) {
       const n = u.slots.length || 1;
       u.blankSel = ((u.blankSel || 0) + 1) % n;
       audio.playSfx('ui');
     }
 
-    const nOpts = u.pool.length + 1;
+    const nOpts = Math.max(1, u.pool.length);
     if (
       input.wasPressed('arrowleft') ||
       input.wasPressed('a') ||
@@ -123,7 +179,6 @@ export const methods = {
     }
 
     if (input.wasPressed('backspace')) {
-      // 删当前空位，或从右往左删
       let i = u.blankSel | 0;
       if (u.slots[i]) {
         u.slots[i] = null;
@@ -141,22 +196,9 @@ export const methods = {
     }
 
     if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
-      if (u.sel >= u.pool.length) {
-        this.tryReleaseUtterance();
-      } else {
-        const ch = u.pool[u.sel];
-        // 填入第一个空位，或 blankSel 指向的空位
-        let idx = u.slots.findIndex((s) => !s);
-        if (u.slots[u.blankSel] == null) idx = u.blankSel | 0;
-        if (idx < 0) {
-          this.showHint('空位已满，可 Backspace 修改，或选「确认」');
-        } else {
-          u.slots[idx] = ch;
-          u.blankSel = Math.min(idx + 1, u.slots.length - 1);
-          u.message = null;
-          audio.playSfx('ui');
-        }
-      }
+      if (!u.pool.length) return;
+      const ch = u.pool[u.sel % u.pool.length];
+      this.fillUtteranceChar(ch);
     }
 
     this.updateParticles(dt);
@@ -194,6 +236,15 @@ export const methods = {
           : '字句不对，再想想这句诗/成语。');
       this.showHint(fail);
       u.message = fail;
+      // 清空错字，方便重填
+      for (const w of wrong || []) {
+        if (w && typeof w.i === 'number') u.slots[w.i] = null;
+      }
+      if (!wrong || !wrong.length) {
+        for (let i = 0; i < u.slots.length; i++) u.slots[i] = null;
+      }
+      u.blankSel = u.slots.findIndex((s) => !s);
+      if (u.blankSel < 0) u.blankSel = 0;
       audio.playSfx('uiCancel');
       fx.shake(3, 180);
       return;
