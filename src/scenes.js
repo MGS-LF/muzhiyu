@@ -392,7 +392,7 @@ export const scenes = {
       motes: { n: 40, color: '255,210,150', speed: 0.3, size: 1.8 },
       fog: 0.6,
     },
-    mode: 'sidescroll', // 2D 横版关卡（魂斗罗式）
+    // 俯视角江堤（主线）；sidescrollLong 开启时由 loadScene 再启横版
 
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
@@ -411,13 +411,34 @@ export const scenes = {
       { x: 1620, y: 120, w: 110, h: 200, name: '对岸高楼', collidable: true },
     ],
 
+    enemies: [
+      {
+        id: 'river_geng_1',
+        typeId: 'geng_weak',
+        x: 900,
+        y: 980,
+        hp: 30,
+        maxHp: 30,
+        name: '游荡梗鬼',
+      },
+      {
+        id: 'river_geng_2',
+        typeId: 'geng_weak',
+        x: 1400,
+        y: 1000,
+        hp: 30,
+        maxHp: 30,
+        name: '游荡梗鬼',
+      },
+    ],
+
     interactables: [
       { id: 'shuyuan', x: 400, y: 900, label: '老人', type: 'dialog', dialogKey: 'meet_shuyuan' },
       { id: 'keystone_riverside', x: 700, y: 880, label: '要石', type: 'keystone', text: '记得' },
       {
         id: 'back_street',
-        x: 900,
-        y: 1080,
+        x: 200,
+        y: 1100,
         label: '返回废弃街道',
         type: 'scene_change',
         target: 'street_01',
@@ -438,7 +459,10 @@ export const scenes = {
       },
     ],
 
-    items: [{ id: 'page_river_1', x: 1100, y: 950, type: 'page', name: '旧书页' }],
+    items: [
+      { id: 'page_river_1', x: 1100, y: 950, type: 'page', name: '旧书页' },
+      { id: 'char_river_zhou', x: 600, y: 960, type: 'char_fragment', char: '洲' },
+    ],
 
     spawn: { x: 200, y: 1000 },
   },
@@ -823,6 +847,42 @@ export const scenes = {
         type: 'dialog',
         dialogKey: 'alley_shrine',
       },
+      {
+        id: 'meme_wall_alley',
+        x: 1550,
+        y: 950,
+        label: '被梗糊住的巷口牌',
+        type: 'purify',
+        purifyKind: 'meme_wall',
+        poemTitle: '成语补字',
+        prompt: '落霞与孤□齐飞',
+        blanks: ['鹜'],
+        required: ['鹜'],
+        doneFlag: 'utter_meme_wall_alley',
+        pollutedLabel: '绝绝子巷',
+        cleansedLabel: '落霞巷',
+        successHint: '「鹜」字嵌回——巷口牌上的热梗碎裂，露出「落霞巷」。',
+        failHint: '不是这个字。墙上的「YYDS」跳得更响了。',
+        dialogKey: 'utter_meme_wall_alley_done',
+      },
+      {
+        id: 'aphasic_alley_01',
+        x: 1000,
+        y: 1000,
+        label: '蹲在墙根的失语者',
+        type: 'purify',
+        purifyKind: 'aphasic',
+        poemTitle: '一字唤醒',
+        prompt: '秋水共长□一色',
+        blanks: ['天'],
+        required: ['天'],
+        doneFlag: 'utter_aphasic_alley_01',
+        successHint: '她抬起头，第一次把「天」说完整。',
+        failHint: '……啊对对对……',
+        dialogKey: 'utter_aphasic_alley_done',
+        pollutedSpeech: '绝绝子……啊对对对……',
+        cleansedSpeech: null,
+      },
       // 要石
       { id: 'keystone_alley', x: 200, y: 1600, label: '要石', type: 'keystone', text: '正气' },
       // 前往体育馆
@@ -1052,7 +1112,7 @@ export const scenes = {
         maxHp: 140,
         name: '算法茧房·推荐之核',
         boss: true,
-        combat: 'hack',
+        combat: 'ut',
         acts: [
           '屏幕叠成巨脸。四周只有还在推送的句子在转。',
           '你把记得的字拢成刃，一寸寸剖开「为你推荐」。',
@@ -1115,19 +1175,31 @@ export const scenes = {
         dialogKey: 'cocoon_screen',
       },
       {
+        id: 'to_data_center',
+        x: 1000,
+        y: 220,
+        label: '通往数据中心',
+        type: 'scene_change',
+        target: 'data_center',
+        spawn: { x: 700, y: 1200 },
+        gate: {
+          chars: ['眠', '处', '风', '少'],
+          flag: 'stadium_puzzle_solved',
+          defeatedEnemy: 'stadium_geng_1',
+          msg: '数据中心的门仍封着。\n先集齐「眠」「处」「风」「少」，点亮诗屏，并净化推荐之核。',
+        },
+      },
+      {
         id: 'to_ruined_library',
-        x: 1100,
+        x: 1280,
         y: 200,
-        label: '通往废墟深处',
+        label: '通往废墟深处（余烬）',
         type: 'scene_change',
         target: 'ruined_library',
         spawn: { x: 100, y: 300 },
         gate: {
-          chars: ['眠', '处', '风', '少'],
-          flag: 'stadium_puzzle_solved',
-          puzzle: 'voidverse',
-          defeatedEnemy: 'stadium_geng_1',
-          msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「眠」「处」「风」「少」，点亮诗屏，并侵入推荐之核——只有完整的诗，能在虚无里点出一条路。',
+          flag: 'game_complete',
+          msg: '余烬之门在通关后才会开启。先去数据中心，面对蓝色光影。',
         },
       },
     ],
@@ -1178,6 +1250,15 @@ export const scenes = {
 
     interactables: [
       {
+        id: 'back_stadium',
+        x: 700,
+        y: 1280,
+        label: '返回体育馆',
+        type: 'scene_change',
+        target: 'stadium',
+        spawn: { x: 1000, y: 300 },
+      },
+      {
         id: 'back_abyss',
         x: 700,
         y: 40,
@@ -1192,7 +1273,7 @@ export const scenes = {
 
     items: [],
 
-    spawn: { x: 700, y: 100 },
+    spawn: { x: 700, y: 1200 },
   },
 
   // ==========================================

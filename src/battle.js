@@ -51,8 +51,10 @@ export class Battle {
 
     // 清醒值（调查累积；满了才能宽恕）—— 受难度影响
     this.isBoss = !!enemy.boss;
+    // 杂兵只需 1~2 次调查即可宽恕；Boss 仍需多次
+    const isWeak = !this.isBoss && (this.enemy.maxHp || 30) <= 40;
     this.clarity = 0;
-    this.clarityMax = Math.max(1, (this.isBoss ? 4 : 3) + mul.clarityMax);
+    this.clarityMax = isWeak ? 1 : Math.max(1, (this.isBoss ? 4 : 2) + mul.clarityMax);
     this.attacked = false;
     this.acts = enemy.acts || [
       '你凑近看它。绿光里浮着半张人脸，像谁褪色的旧照片。',
@@ -309,9 +311,11 @@ export class Battle {
   }
 
   resolveAttack() {
-    // 攻击=主输出：准度 10~34，打怪的核心手感
+    // 杂兵攻击伤害更高（1~2 刀解决），Boss 保留原手感
     const accuracy = 1 - Math.abs(this.attackBar.pos - 0.5) * 2;
-    const damage = Math.floor(10 + accuracy * 24);
+    const baseDmg = this.isBoss ? 10 : 16;
+    const scaleDmg = this.isBoss ? 24 : 18;
+    const damage = Math.floor(baseDmg + accuracy * scaleDmg);
     this.enemy.hp -= damage;
     this.attacked = true;
     this.attackBar.hit = true;

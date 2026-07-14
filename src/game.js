@@ -416,14 +416,15 @@ export class Game {
       this._lastAutoSave = performance.now();
       autoSave(this);
     }
-    // 江堤横版模式：进入 riverside 时启动
-    if (this.scene.mode === 'sidescroll') {
+    // 江堤长横版：仅 FEATURES.sidescrollLong 时启动
+    if (this.scene.mode === 'sidescroll' && FEATURES.sidescrollLong) {
       this.sidescroll = new SideScrollLevel(this);
       if (this._pendingSideScroll && typeof this.sidescroll.restoreFromResumeSnapshot === 'function') {
         this.sidescroll.restoreFromResumeSnapshot(this._pendingSideScroll);
         this._pendingSideScroll = null;
       }
     } else {
+      this.sidescroll = null;
       this._pendingSideScroll = null;
     }
   }
@@ -440,11 +441,11 @@ export class Game {
       alley_district: ['riverside', 'stadium', 'house_a', 'house_b'],
       house_a: ['alley_district'],
       house_b: ['alley_district'],
-      stadium: ['alley_district', 'ruined_library'],
+      stadium: ['alley_district', 'data_center', 'ruined_library'],
       ruined_library: ['stadium', 'network_nexus', 'lost_village'],
       network_nexus: ['ruined_library', 'memory_abyss'],
       memory_abyss: ['network_nexus', 'data_center'],
-      data_center: ['memory_abyss'],
+      data_center: ['stadium', 'memory_abyss'],
       lost_village: ['ruined_library'],
     };
     const targets = adjacency[sceneId] || [];
@@ -483,6 +484,10 @@ export class Game {
   }
 
   enterLevel3D() {
+    if (!FEATURES.level3d) {
+      this.showHint('维度裂隙已封——主线不经此路。继续在废墟中寻找完整的句子。');
+      return;
+    }
     if (this.flags.portal3d_done) {
       this.showHint('维度裂隙已经稳定，不再需要进入。');
       return;
@@ -642,12 +647,20 @@ export class Game {
     } else if (sid === 'alley_district') {
       const need = ['鹜', '天', '气', '形'];
       progress = { title: '滕王阁序·正气歌', chars: charProgress(need) };
+      const wallAlley = !!this.flags.utter_meme_wall_alley;
+      const aphAlley = !!this.flags.utter_aphasic_alley_01;
       if (!this.flags.alley_briefed) {
         text = '在居民区入口找到守砚，听他讲解';
         target = point(it('shuyuan_alley'));
       } else if (!need.every(has)) {
         text = '在居民区收集「鹜」「天」「气」「形」四个碎片';
         target = point(nearestChar(need)) || point(it('keystone_alley'));
+      } else if (!wallAlley) {
+        text = '靠近巷口牌，按 F 补字净化「绝绝子巷」';
+        target = point(it('meme_wall_alley'));
+      } else if (!aphAlley) {
+        text = '靠近失语者，按 F 补字唤醒她';
+        target = point(it('aphasic_alley_01'));
       } else {
         text = '南行前往体育馆·算法茧房';
         target = point(it('to_stadium'));
@@ -668,8 +681,8 @@ export class Game {
         text = '侵入算法茧房·推荐之核';
         target = point((this.scene.enemies || []).find((e) => e.id === 'stadium_geng_1'));
       } else {
-        text = '通往废墟深处的大门已打开';
-        target = point(it('to_ruined_library'));
+        text = '北行进入数据中心，面对蓝色光影';
+        target = point(it('to_data_center')) || point(it('to_ruined_library'));
       }
     } else if (sid === 'ruined_library') {
       const need5a = ['河', '海'];
@@ -1345,19 +1358,8 @@ export class Game {
   }
 
   startBattle(enemy) {
-    // 主线巨像 / 显式 combat:'hack' / 言锋试炼 走骇入战
-    const useHack =
-      enemy &&
-      (enemy.combat === 'hack' ||
-        enemy.hackTrial ||
-        (enemy.boss && enemy.typeId === 'geng_boss' && !this.endless));
-    // 方案1：普通梗鬼默认划墨切梗；骇入与显式 ut 保留旧战
-    const useSlash =
-      FEATURES.slashBattle &&
-      !useHack &&
-      !(enemy && enemy.combat === 'ut') &&
-      !this.endless;
-    const Ctor = useHack ? HackingBattle : useSlash ? SlashBattle : Battle;
+    // 统一走 UT 弹幕菜单战（传说之下式）
+    const Ctor = Battle;
     this.battle = new Ctor(
       enemy,
       this.player,
@@ -2089,7 +2091,7 @@ export class Game {
       kind,
       text:
         text ||
-        (kind === 'loading' ? '展开维度裂隙' : kind === 'thinking' ? '正在思考' : ''),
+        (kind === 'loading' ? '加载中…' : kind === 'thinking' ? '正在思考' : ''),
     };
   }
 

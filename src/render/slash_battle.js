@@ -146,6 +146,47 @@ export function drawSlashBattle(ctx, battle, gameTime) {
 
   drawPlayerCore(ctx, px, py, gameTime, battle.invuln || 0);
 
+  // 瞄准线（言锋）
+  if (battle.mode === 'word' && battle.phase === 'fight' && !battle.result) {
+    const ax = battle.aimX ?? W / 2;
+    const ay = battle.aimY ?? 160;
+    ctx.strokeStyle = 'rgba(255,220,140,0.22)';
+    ctx.setLineDash([6, 8]);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,230,150,0.45)';
+    ctx.beginPath();
+    ctx.arc(ax, ay, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 玩家字弹
+  for (const s of battle.shots || []) {
+    if (!s) continue;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.shadowColor = 'rgba(255,220,100,0.95)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = 'rgba(50,40,18,0.95)';
+    roundRect(ctx, -13, -13, 26, 26, 5);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,230,150,0.95)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, -13, -13, 26, 26, 5);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = UI.goldBright;
+    ctx.font = 'bold 15px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.char || '言', 0, 0);
+    ctx.restore();
+  }
+
   // 字盾 orbit + fly
   for (const o of battle.orbit || []) {
     if (!o) continue;
@@ -379,21 +420,37 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     ctx.fillStyle = `rgba(255,220,120,${0.8 + pulse * 0.2})`;
     ctx.font = 'bold 26px serif';
     ctx.textAlign = 'right';
-    ctx.fillText(`${battle.combo} 连切`, W - 28, 52);
-    if (battle.combo >= 5) {
+    ctx.fillText(`${battle.combo} 连对`, W - 28, 52);
+    if (battle.combo >= 4) {
       ctx.font = '11px serif';
       ctx.fillStyle = 'rgba(255,240,180,0.85)';
-      ctx.fillText('每 5 连切：顿帧清场！', W - 28, 72);
+      ctx.fillText('连对清近弹', W - 28, 72);
     }
+  }
+
+  // 净化条
+  if (battle.clarityMax) {
+    const c = battle.clarity || 0;
+    const cm = battle.clarityMax;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,220,140,0.85)';
+    ctx.font = 'bold 11px serif';
+    ctx.fillText('净化', 24, H - 36);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(60, H - 44, 100, 8);
+    ctx.fillStyle = c >= cm ? 'rgba(255,220,120,0.95)' : 'rgba(180,200,140,0.85)';
+    ctx.fillRect(60, H - 44, 100 * (c / cm), 8);
+    ctx.strokeStyle = 'rgba(255,220,140,0.4)';
+    ctx.strokeRect(60, H - 44, 100, 8);
   }
 
   ctx.textAlign = 'center';
   if (battle.phase === 'intro') {
     ctx.fillStyle = 'rgba(255,230,160,0.98)';
     ctx.font = 'bold 22px serif';
-    ctx.fillText('刻 刀 · 字 盾', W / 2, H * 0.4);
+    ctx.fillText('言 锋 · 对 决', W / 2, H * 0.4);
     ctx.font = '13px serif';
-    ctx.fillText('上：梗鬼吐字  ·  下：你移动、切开、发射', W / 2, H * 0.4 + 30);
+    ctx.fillText('WASD 躲 · 空格/左键 用汉字顶烂梗 · E 净化', W / 2, H * 0.4 + 30);
   } else if (battle.phase === 'fight') {
     ctx.fillStyle = 'rgba(220,210,180,0.82)';
     ctx.font = '12px serif';
@@ -401,8 +458,7 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,220,140,0.8)';
     const ammo = (battle.player.collectedChars || []).length;
-    const shieldN = (battle.orbit || []).filter((o) => o.state === 'orbit').length;
-    ctx.fillText(`盾字 ${shieldN}  ·  弹药 ×${ammo}  ·  K 大招`, W - 20, H - 22);
+    ctx.fillText(`汉字弹药 ×${ammo}  ·  K 大招`, W - 20, H - 22);
   }
 
   if (battle.enemyText && battle.enemyTextTimer > 0) {

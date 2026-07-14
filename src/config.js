@@ -19,10 +19,10 @@ export const H = 760;
 
 export const FEATURES = {
   utterance: true,
-  slashBattle: true, // 方案1：划墨切梗（非骇入战默认）
-  level3d: true, // leave true for now, P3 will disable
-  hacking: true,
-  sidescrollLong: true,
+  slashBattle: false, // 已废弃：全部走 UT 弹幕菜单战
+  level3d: false, // 主线关闭；调试可改 true
+  hacking: false, // 主线关闭；Boss 走 UT 弹幕
+  sidescrollLong: false, // 江堤改俯视角
   aiDirector: true,
 };
 

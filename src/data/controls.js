@@ -27,7 +27,7 @@ export const CONTROL_LABELS = {
 export const CONTROL_HINTS = {
   startMenu: [
     `移动：${CONTROL_LABELS.move}，交互：${CONTROL_LABELS.interact}，冲刺：${CONTROL_LABELS.dash}`,
-    `战斗：${CONTROL_LABELS.menuAdjust} 选择攻击/调查/净化/宽恕，${CONTROL_LABELS.confirm} 确认，${CONTROL_LABELS.poemUltimate} 诗词大招`,
+    `战斗：${CONTROL_LABELS.menuAdjust} 选择攻击/调查/净化/宽恕，${CONTROL_LABELS.confirm} 确认，WASD 躲弹幕，${CONTROL_LABELS.poemUltimate} 诗词大招`,
     `菜单：${CONTROL_LABELS.quest} 任务，${CONTROL_LABELS.inventory} 背包，${CONTROL_LABELS.map} 地图，${CONTROL_LABELS.settings} 设置，${CONTROL_LABELS.system} 系统菜单，${CONTROL_LABELS.quickSave}/${CONTROL_LABELS.quickLoad} 快速存读档`,
   ],
   tutorialKeys: [
@@ -58,10 +58,10 @@ export const CONTROL_HINTS = {
   battleAim: `按 ${CONTROL_LABELS.confirm} 在中心位置停下，造成最大伤害`,
   battleConfirm: `${CONTROL_LABELS.menuAdjust} 选择 · ${CONTROL_LABELS.confirm} 确认`,
   battleUltimate: `${CONTROL_LABELS.poemUltimate} 诗词大招`,
-  riversideIntro: `从上方落下可踩死梗鬼；按 ${CONTROL_LABELS.knife} 挥刀近战`,
-  riversideReturn: `空格跳跃踩踏梗鬼 · ${CONTROL_LABELS.knife} 挥刀 · 老人旁光圈按 ${CONTROL_LABELS.interact} 返回街道 · 中段有要石`,
-  level3dIntro: `维度裂隙：${CONTROL_LABELS.moveWasd} 移动 · 鼠标视角 · ${CONTROL_LABELS.shoot} 射击 · 找到出口回到地铁站`,
-  level3dGun: `捡到「刻字枪」！${CONTROL_LABELS.shoot} 射击`,
+  riversideIntro: `${CONTROL_LABELS.move} 移动 · ${CONTROL_LABELS.interact} 与守砚对话 · 东行前往居民区`,
+  riversideReturn: `${CONTROL_LABELS.interact} 对话/要石 · 西侧返回街道 · 东侧前往居民区`,
+  level3dIntro: `（调试）维度裂隙：${CONTROL_LABELS.moveWasd} 移动 · 鼠标视角 · ${CONTROL_LABELS.shoot} 射击`,
+  level3dGun: `（调试）捡到「刻字枪」！${CONTROL_LABELS.shoot} 射击`,
   saveMenuSave: `${CONTROL_LABELS.menuSelect} 选择槽位   ${CONTROL_LABELS.menuAdjust} 切换保存/读取   ${CONTROL_LABELS.interact} 保存或覆盖   Delete 删除   ${CONTROL_LABELS.saveMenu}/${CONTROL_LABELS.system} 关闭`,
   saveMenuLoad: `${CONTROL_LABELS.menuSelect} 选择槽位   ${CONTROL_LABELS.menuAdjust} 切换保存/读取   ${CONTROL_LABELS.interact} 读取   Delete 删除手动槽   ${CONTROL_LABELS.saveMenu}/${CONTROL_LABELS.system} 关闭`,
 };

@@ -81,7 +81,8 @@ export const methods = {
         return;
       }
       if (best.type === 'portal3d') {
-        this.enterLevel3D();
+        if (typeof this.enterLevel3D === 'function') this.enterLevel3D();
+        else this.showHint('裂隙已封。');
         return;
       }
       if (best.type === 'puzzle') {
@@ -242,10 +243,12 @@ export const methods = {
         }
         if ((key === 'meet_shuyuan' || key === 'meet_shuyuan_ngplus') && !this.flags.met_shuyuan) {
           this.flags.met_shuyuan = true;
+          this.flags.sidescroll_knife = true;
+          this.flags.sidescroll_lantern = true;
           this.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
           this.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
           this.showHint('获得：刻刀、诗词纸片《关雎》');
-          this.objective = { text: '前往废墟居民区，跟随守砚', done: false };
+          this.objective = { text: '沿江堤东行，前往废墟居民区', done: false };
           // karma 口风：暴力多 vs 净化/宽恕多
           const k = this.karma || {};
           if ((k.violence || 0) > (k.mercy || 0) + 1) {

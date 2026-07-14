@@ -127,7 +127,7 @@ export function drawOverlayState(ctx, gameTime, overlay) {
   const dots = reduced ? '' : '.'.repeat(1 + (Math.floor(gameTime / 350) % 3));
   const label =
     overlay.text ||
-    (overlay.kind === 'loading' ? '展开维度裂隙' : '正在思考');
+    (overlay.kind === 'loading' ? '加载中…' : '正在思考');
   ctx.fillStyle = UI.ink;
   ctx.font = font(15);
   ctx.textAlign = 'center';
