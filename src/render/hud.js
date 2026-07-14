@@ -1,7 +1,10 @@
 import { roundRect } from './util.js';
 import { CONTROL_HINTS } from '../data/controls.js';
 import { W, H } from '../config.js';
+import * as cfg from '../config.js';
 import { UI, font, fontMono, isPortrait } from '../ui/tokens.js';
+
+const FEATURES = cfg.FEATURES || {};
 
 // ============================================================
 // HUD
@@ -121,14 +124,63 @@ export function drawHUD(ctx, player, game, objective) {
   }
   ctx.textBaseline = 'alphabetic';
 
-  // 任务目标（顶部中央）
+  // 词袋：你「记得」的字（补诗用）
+  if (FEATURES.utterance) {
+    const bagMax = (cfg.UTTERANCE && cfg.UTTERANCE.beltMax) || 6;
+    const bag = [...new Set(player.collectedCharsAll || [])].slice(0, bagMax);
+    const bagY = poemY + (prog ? 48 : 30);
+    const bagW = 250;
+    const bagH = 28;
+    ctx.fillStyle = 'rgba(22,17,10,0.78)';
+    roundRect(ctx, sx, bagY, bagW, bagH, 4);
+    ctx.fill();
+    ctx.strokeStyle = UI.goldLine;
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx, bagY, bagW, bagH, 4);
+    ctx.stroke();
+    ctx.fillStyle = UI.gold;
+    ctx.font = font(10, true);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('词袋', sx + 8, bagY + bagH / 2);
+    let bx = sx + 38;
+    for (let i = 0; i < bagMax; i++) {
+      const ch = bag[i];
+      ctx.fillStyle = ch ? 'rgba(60,48,22,0.95)' : 'rgba(28,26,22,0.85)';
+      roundRect(ctx, bx, bagY + 5, 18, 18, 3);
+      ctx.fill();
+      ctx.strokeStyle = ch ? UI.goldBright : 'rgba(90,85,75,0.5)';
+      ctx.lineWidth = 1;
+      if (!ch) ctx.setLineDash([2, 2]);
+      roundRect(ctx, bx, bagY + 5, 18, 18, 3);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (ch) {
+        ctx.fillStyle = 'rgba(255,232,150,1)';
+        ctx.font = font(12, true);
+        ctx.textAlign = 'center';
+        ctx.fillText(ch, bx + 9, bagY + bagH / 2);
+      }
+      bx += 22;
+    }
+    ctx.fillStyle = UI.inkFaint;
+    ctx.font = font(9);
+    ctx.textAlign = 'right';
+    ctx.fillText('F 补诗', sx + bagW - 8, bagY + bagH / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // 任务目标（顶部中央）— 文案随 refreshObjective 更新
   if (objective && !objective.done) {
     const ox = W / 2,
       oy = 14;
-    const ow = Math.min(360, W - 40),
-      oh = 30;
+    const text = objective.text || '';
+    ctx.font = font(12);
+    const textW = Math.min(ctx.measureText(text).width + 100, W - 48);
+    const ow = Math.max(280, Math.min(420, textW));
+    const oh = 32;
 
-    // 使用“玄石黑”与双层框设计统一 UI
     ctx.fillStyle = UI.panelBg;
     roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
     ctx.fill();
@@ -137,20 +189,28 @@ export function drawHUD(ctx, player, game, objective) {
     roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
     ctx.stroke();
 
-    // 绘制水墨画的“卷轴花纹”装饰感左右小竖金条
     ctx.fillStyle = UI.gold;
-    ctx.fillRect(ox - ow / 2 + 6, oy + 4, 3, oh - 8);
-    ctx.fillRect(ox + ow / 2 - 9, oy + 4, 3, oh - 8);
+    ctx.fillRect(ox - ow / 2 + 6, oy + 5, 3, oh - 10);
+    ctx.fillRect(ox + ow / 2 - 9, oy + 5, 3, oh - 10);
 
     ctx.fillStyle = UI.goldBright;
     ctx.font = font(11, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('目  标', ox - ow / 2 + 42, oy + oh / 2);
+    ctx.fillText('目标', ox - ow / 2 + 36, oy + oh / 2);
     ctx.fillStyle = UI.ink;
     ctx.font = font(12);
     ctx.textAlign = 'left';
-    ctx.fillText(objective.text, ox - ow / 2 + 82, oy + oh / 2);
+    // 过长截断
+    let drawText = text;
+    const maxTw = ow - 88;
+    if (ctx.measureText(drawText).width > maxTw) {
+      while (drawText.length > 4 && ctx.measureText(drawText + '…').width > maxTw) {
+        drawText = drawText.slice(0, -1);
+      }
+      drawText += '…';
+    }
+    ctx.fillText(drawText, ox - ow / 2 + 58, oy + oh / 2);
     ctx.textBaseline = 'alphabetic';
   }
 

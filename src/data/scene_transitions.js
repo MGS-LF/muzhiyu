@@ -5,7 +5,7 @@
 // objective: 切换后的目标文案
 export const SCENE_TRANSITIONS = {
   riverside: { objective: '前往江堤，与守砚对话', dialog: 'street_to_riverside' },
-  street_01: { objective: '继续探索街道，收集「关雎」碎片' },
+  street_01: { objective: '捡汉字 → 按 F 补诗净化招牌与失语者' },
   freeze_center: { objective: '返回冷冻中心' },
   subway: {
     objective: '探索地铁站，小心梗鬼',

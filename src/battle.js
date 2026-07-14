@@ -42,9 +42,12 @@ export class Battle {
     this.timer = 0;
     this.fadeAlpha = 1;
 
-    // 菜单
-    this.menuIndex = 0; // 0=战斗 1=调查 2=诗词 3=宽恕
-    this.menuItems = ['战 斗', '调 查', '诗 词', '宽 恕'];
+    // 菜单：攻击 | 调查 | 净化 | 宽恕
+    // 攻击=主输出；净化=战术技（中伤+软化弹幕）；弹幕中可按 F 清屏
+    this.menuIndex = 0;
+    this.menuItems = ['攻 击', '调 查', '净 化', '宽 恕'];
+    this.nextWaveSoft = 0;
+    this.dodgePurifyUsed = false; // 本场敌人回合是否已用过 F 清弹
 
     // 清醒值（调查累积；满了才能宽恕）—— 受难度影响
     this.isBoss = !!enemy.boss;
@@ -151,7 +154,7 @@ export class Battle {
       return;
     }
 
-    if (this.phase === 'poem') {
+    if (this.phase === 'poem' || this.phase === 'purify_cast') {
       this.updatePoem(dt);
       return;
     }
@@ -186,9 +189,9 @@ export class Battle {
     if (input.wasPressed('e') || input.wasPressed('enter') || input.wasPressed(' ')) {
       input.wasPressed(' '); // 消费
       const label = this.menuItems[this.menuIndex];
-      if (label === '战 斗') this.startAttack();
+      if (label === '攻 击' || label === '战 斗') this.startAttack();
       else if (label === '调 查') this.startAct();
-      else if (label === '诗 词') this.startPoem();
+      else if (label === '净 化' || label === '诗 词') this.startPoem();
       else if (label === '宽 恕') this.trySpare();
     }
   }
@@ -306,27 +309,26 @@ export class Battle {
   }
 
   resolveAttack() {
-    // 越接近中心伤害越高（0.5 是中心）
-    const accuracy = 1 - Math.abs(this.attackBar.pos - 0.5) * 2; // 0~1
-    const damage = Math.floor(8 + accuracy * 22); // 8~30
+    // 攻击=主输出：准度 10~34，打怪的核心手感
+    const accuracy = 1 - Math.abs(this.attackBar.pos - 0.5) * 2;
+    const damage = Math.floor(10 + accuracy * 24);
     this.enemy.hp -= damage;
-    this.attacked = true; // 动用了武力
+    this.attacked = true;
     this.attackBar.hit = true;
     this.lastDamage = damage;
     audio.playSfx('hit');
-    fx.shake(4, 150);
-    // 粒子
-    for (let i = 0; i < 12; i++) {
+    fx.shake(5 + accuracy * 6, 160);
+    for (let i = 0; i < 10 + Math.floor(accuracy * 14); i++) {
       const a = Math.random() * Math.PI * 2;
       this.particles.push({
         x: 0,
         y: -40,
-        vx: Math.cos(a) * 3,
-        vy: Math.sin(a) * 3,
+        vx: Math.cos(a) * (2 + accuracy * 3),
+        vy: Math.sin(a) * (2 + accuracy * 3),
         life: 500,
         maxLife: 500,
-        color: '255,220,120',
-        size: 3,
+        color: '255,200,100',
+        size: 2 + accuracy * 3,
       });
     }
     this.phase = 'attack_resolve';
@@ -337,60 +339,150 @@ export class Battle {
       audio.playSfx('victory');
       this.setEnemyText('不……不可能……');
     } else {
-      this.setEnemyText(`啊！(${damage} 伤害)`);
+      this.setEnemyText(accuracy > 0.85 ? `暴击！(${damage})` : `砍中了！(${damage})`);
     }
   }
 
-  // 诗词攻击（消耗汉字）
+  // 净化 = 念诗：四句轮流点亮，在亮起时按 E 接唱（轻节奏，区别于攻击准星）
   startPoem() {
     if (this.player.collectedChars.length === 0) {
-      this.setEnemyText('没有诗词碎片可用！');
+      this.setEnemyText('没有可念的字！先去捡汉字碎片。');
       this.phase = 'attack_resolve';
       this.timer = 0;
       return;
     }
+    this.player.collectedChars.pop();
     this.phase = 'poem';
     this.timer = 0;
-    this.poemChars = [...this.player.collectedChars];
-    this.poemIndex = 0;
-    this.setEnemyText('顾言念出诗句……');
+    this.poemLines = ['关关雎鸠', '在河之洲', '窈窕淑女', '君子好逑'];
+    this.poemIndex = 0; // 当前应念的句
+    this.poemHits = 0; // 接唱成功次数 0~4
+    this.poemBeat = 0; // 当前句内计时
+    this.poemBeatLen = 720; // 每句窗口 ms
+    this.poemResolved = false;
+    this.setEnemyText('跟着金光念——句亮起时按 E！');
+    audio.playSfx('ui');
   }
 
   updatePoem(dt) {
-    // Short cast keeps poem attacks from stalling the turn loop.
-    if (this.timer > PACE.battle.poemCastMs) {
-      const damage = 35;
-      this.enemy.hp -= damage;
-      this.lastDamage = damage;
-      audio.playSfx('purifyWave');
-      fx.flash('#ffd866', 0.5, 500);
-      // 消耗一个汉字
-      if (this.player.collectedChars.length > 0) {
-        this.player.collectedChars.pop();
-      }
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2;
-        this.particles.push({
-          x: 0,
-          y: -40,
-          vx: Math.cos(a) * 4,
-          vy: Math.sin(a) * 4,
-          life: 700,
-          maxLife: 700,
-          color: '255,220,120',
-          size: 4,
-        });
-      }
-      if (this.enemy.hp <= 0) {
-        this.enemy.hp = 0;
-        this.result = 'win';
-        audio.playSfx('victory');
-        this.setEnemyText('那些字……好烫……');
+    if (this.poemResolved) return;
+    this.poemBeat += dt;
+
+    // 在窗口中段最亮时按 E 算命中（约 25%~85%）
+    const t = this.poemBeat / this.poemBeatLen;
+    const canHit = t >= 0.22 && t <= 0.88;
+    if (input.wasPressed('e') || input.wasPressed(' ') || input.wasPressed('enter')) {
+      input.wasPressed(' ');
+      if (canHit) {
+        this.poemHits += 1;
+        audio.playSfx('purifyWave');
+        this._burstPurifyParticles(8);
+        fx.flash('#ffd866', 0.2, 120);
       } else {
-        this.setEnemyText(`浩然正气！(${damage} 伤害)`);
+        audio.playSfx('uiCancel');
       }
-      this.phase = 'attack_resolve';
+      // 无论命中与否，进下一句
+      this.poemIndex += 1;
+      this.poemBeat = 0;
+      if (this.poemIndex >= this.poemLines.length) {
+        this.finishPoemChant();
+      }
+      return;
+    }
+
+    // 超时自动跳过本句（算漏念）
+    if (this.poemBeat >= this.poemBeatLen) {
+      this.poemIndex += 1;
+      this.poemBeat = 0;
+      if (this.poemIndex >= this.poemLines.length) {
+        this.finishPoemChant();
+      }
+    }
+  }
+
+  finishPoemChant() {
+    this.poemResolved = true;
+    const hits = this.poemHits || 0;
+    const bossMul = this.isBoss ? 0.78 : 1;
+    // 0句：几乎白念；4句：强净化
+    // 伤害约 6 / 14 / 22 / 30 / 38
+    const damage = Math.floor((6 + hits * 8) * bossMul);
+    this.enemy.hp -= damage;
+    this.lastDamage = damage;
+    if (hits >= 2) this.nextWaveSoft = Math.min(3, (this.nextWaveSoft || 0) + (hits >= 4 ? 2 : 1));
+    if (hits >= 3) this.clarity = Math.min(this.clarityMax, this.clarity + 1);
+
+    audio.playSfx(hits >= 3 ? 'purifyWave' : 'ui');
+    if (hits >= 2) {
+      fx.flash('#ffd866', 0.4, 400);
+      fx.shake(4 + hits, 180);
+      this._burstPurifyParticles(10 + hits * 6);
+    }
+
+    this.phase = 'attack_resolve';
+    this.timer = 0;
+    if (this.enemy.hp <= 0) {
+      this.enemy.hp = 0;
+      this.result = 'purify';
+      audio.playSfx('victory');
+      this.setEnemyText(hits >= 3 ? '诗句钉进它身体……绿光散成汉字。' : '它在半句诗里散了。');
+    } else if (hits <= 0) {
+      this.setEnemyText(`一个字都没接上……梗鬼大笑。(${damage})`);
+    } else if (hits <= 2) {
+      this.setEnemyText(`念出 ${hits}/4 句。(${damage}) 略压住了弹幕。`);
+    } else {
+      this.setEnemyText(`浩然正气！${hits}/4 句。(${damage}) 下一波变慢了。`);
+    }
+  }
+
+  _burstPurifyParticles(n) {
+    const sweep = ['浩', '然', '正', '气', '关', '雎'];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.2;
+      this.particles.push({
+        x: (Math.random() - 0.5) * 20,
+        y: -30 + (Math.random() - 0.5) * 20,
+        vx: Math.cos(a) * (3 + Math.random() * 3),
+        vy: Math.sin(a) * (3 + Math.random() * 3),
+        life: 650,
+        maxLife: 650,
+        color: '255,220,120',
+        size: 3 + Math.random() * 3,
+        glyph: sweep[i % sweep.length],
+      });
+    }
+  }
+
+  /** 弹幕中 F：紧急清屏（每波一次），保留为保命，不抢念诗主戏 */
+  tryDodgePurify() {
+    if (this.dodgePurifyUsed) {
+      this.setEnemyText('这波已经念过了！');
+      return;
+    }
+    if (!this.player.collectedChars.length) {
+      this.setEnemyText('没有字可以念！');
+      return;
+    }
+    this.player.collectedChars.pop();
+    this.dodgePurifyUsed = true;
+    const n = this.bullets.length;
+    this.bullets = [];
+    const chip = this.isBoss ? 3 : 6;
+    this.enemy.hp -= chip;
+    this.lastDamage = chip;
+    audio.playSfx('purifyWave');
+    fx.flash('#88ffaa', 0.35, 200);
+    this._burstPurifyParticles(14);
+    this.heartInvulnerable = Math.max(this.heartInvulnerable, 380);
+    if (this.enemy.hp <= 0) {
+      this.enemy.hp = 0;
+      this.result = 'purify';
+      this.phase = 'result';
       this.timer = 0;
+      this.setEnemyText('危急中的一字……梗鬼消散了。');
+      audio.playSfx('victory');
+    } else {
+      this.setEnemyText(n ? `危急清屏！(${chip})` : `念出一字。(${chip})`);
     }
   }
 
@@ -413,7 +505,7 @@ export class Battle {
     }
   }
 
-  // 敌人回合：弹幕躲避
+  // 敌人回合：弹幕躲避（净化会软化下一波）
   startEnemyTurn() {
     if (this.result) {
       this.phase = 'result';
@@ -427,15 +519,27 @@ export class Battle {
     this.heartInvulnerable = 0;
     this.heart.x = 0;
     this.heart.y = 0;
-    this.setEnemyText('绝绝子！YYDS！泰裤辣！');
+    this.dodgePurifyUsed = false;
+    this._waveSoftActive = this.nextWaveSoft > 0;
+    if (this._waveSoftActive) {
+      this.nextWaveSoft -= 1;
+      this.setEnemyText('……字……好重……（弹幕变慢 · 危急可按 F 清屏）');
+    } else {
+      this.setEnemyText('绝绝子！YYDS！（躲避 · 有字可按 F 清屏）');
+    }
   }
 
   updateEnemyTurn(dt) {
     if (this.heartInvulnerable > 0) {
       this.heartInvulnerable = Math.max(0, this.heartInvulnerable - dt);
     }
+    // 弹幕中 F：耗字清屏（打怪时的应急操作）
+    if (input.wasPressed('f') || input.wasPressed('p')) {
+      this.tryDodgePurify();
+      if (this.result) return;
+    }
     // 红心移动
-    const speed = 0.18 * dt;
+    const speed = 0.2 * dt;
     let hx = 0,
       hy = 0;
     if (input.isDown('arrowleft') || input.isDown('a')) hx -= 1;
@@ -455,14 +559,20 @@ export class Battle {
       Math.min(BOX_H / 2 - this.heart.r, this.heart.y)
     );
 
-    // 生成弹幕
+    // 生成弹幕（净化软化：生成间隔更长）
     this.bulletTimer += dt;
-    if (this.bulletTimer > (this.isBoss ? 300 : 420)) {
+    const spawnEvery = (this.isBoss ? 300 : 420) * (this._waveSoftActive ? 1.45 : 1);
+    if (this.bulletTimer > spawnEvery) {
       this.bulletTimer = 0;
       const start = this.bullets.length;
       this.spawnBulletWave();
+      const soft = this._waveSoftActive ? 0.62 : 1;
       for (let i = start; i < this.bullets.length; i++) {
         if (this.bullets[i].warn === undefined) this.bullets[i].warn = BULLET_WARN_MS;
+        if (soft < 1) {
+          this.bullets[i].vx *= soft;
+          this.bullets[i].vy *= soft;
+        }
       }
     }
 
@@ -545,12 +655,14 @@ export class Battle {
       }
     }
 
-    // 敌人回合结束
-    if (this.timer > this.enemyTurnDuration) {
+    // 敌人回合结束（软化波更短）
+    const turnLen = this.enemyTurnDuration * (this._waveSoftActive ? 0.85 : 1);
+    if (this.timer > turnLen) {
       this.bullets = [];
+      this._waveSoftActive = false;
       this.phase = 'menu';
       this.timer = 0;
-      this.setEnemyText('蚌埠住了？再来！');
+      this.setEnemyText(this.nextWaveSoft > 0 ? '……还在抖……' : '蚌埠住了？再来！');
     }
   }
 

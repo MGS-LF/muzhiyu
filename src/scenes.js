@@ -325,6 +325,42 @@ export const scenes = {
           msg: '一团浓得化不开的绿雾堵住了南面的路口。耳边全是「YYDS」的嗡鸣——\n先在街道上找齐《关雎》的碎片「洲」「逑」，让诗句驱散它。',
         },
       },
+      {
+        id: 'meme_wall_01',
+        x: 1100,
+        y: 1000,
+        label: '被梗淹没的招牌',
+        type: 'purify',
+        purifyKind: 'meme_wall',
+        poemTitle: '《关雎》补字',
+        prompt: '关关雎鸠，在河之□。窈窕淑女，君子好□。',
+        blanks: ['洲', '逑'],
+        required: ['洲', '逑'],
+        doneFlag: 'utter_meme_wall_01',
+        pollutedLabel: 'YYDS大道',
+        cleansedLabel: '关雎路',
+        successHint: '诗句补全——招牌上的烂梗碎裂，露出「关雎路」。',
+        failHint: '不是这句《关雎》。墙上的「绝绝子」跳得更响了。',
+        dialogKey: 'utter_meme_wall_done',
+      },
+      {
+        id: 'aphasic_utter_01',
+        x: 600,
+        y: 950,
+        label: '只会复读的失语者',
+        type: 'purify',
+        purifyKind: 'aphasic',
+        poemTitle: '《关雎》补字',
+        prompt: '关关雎鸠，在河之□。',
+        blanks: ['洲'],
+        required: ['洲'],
+        doneFlag: 'utter_aphasic_01',
+        successHint: '他接上了那一个字，眼里重新有了光。',
+        failHint: '……绝绝子。绝绝子。',
+        dialogKey: 'utter_aphasic_done',
+        pollutedSpeech: 'YYDS……绝绝子……',
+        cleansedSpeech: null,
+      },
     ],
 
     items: [
@@ -332,6 +368,8 @@ export const scenes = {
       { id: 'char_zhou_2', x: 1600, y: 600, type: 'char_fragment', char: '洲' },
       { id: 'char_qiu_1', x: 1300, y: 800, type: 'char_fragment', char: '逑' },
       { id: 'char_qiu_2', x: 900, y: 1200, type: 'char_fragment', char: '逑' },
+      { id: 'char_utter_zhou', x: 1050, y: 980, type: 'char_fragment', char: '洲' },
+      { id: 'char_utter_qiu', x: 1150, y: 1020, type: 'char_fragment', char: '逑' },
       { id: 'page_street_1', x: 350, y: 700, type: 'page', name: '旧书页' },
       { id: 'page_street_2', x: 2100, y: 1000, type: 'page', name: '旧书页' },
       { id: 'hidden_page_street', x: 140, y: 1650, type: 'page', name: '藏在碎石后的旧书页' },
@@ -968,7 +1006,7 @@ export const scenes = {
   // ==========================================
   // 体育馆茧房（第三章）
   // 布局：底部入口区（出生点/守砚/返回点）→ 中部潜行迷宫（要石/精英/诗屏）→ 上部 BOSS 区（茧房核心/数据中心入口）
-  // 三阶段目标：①潜行穿越屏幕迷宫 ②点亮诗屏削弱茧房 ③挑战复读巨像
+  // 三阶段目标：①潜行穿越屏幕迷宫 ②点亮诗屏削弱茧房 ③侵入推荐之核
   // ==========================================
   stadium: {
     id: 'stadium',
@@ -1012,14 +1050,14 @@ export const scenes = {
         y: 400,
         hp: 140,
         maxHp: 140,
-        name: '算法核心·复读巨像',
+        name: '算法茧房·推荐之核',
         boss: true,
         combat: 'hack',
         acts: [
-          '言锋切入逻辑空间。弹幕在四周游动，像活着的推荐词。',
-          '你驾驶诗句凝成的飞行器，一寸寸撕开协议层。',
-          '复读巨像开始增殖节点——它在复制「你可能还想看」的回声。',
-          '机首灯亮着。你还记得守砚的话：不要相信任何推荐。',
+          '屏幕叠成巨脸。四周只有还在推送的句子在转。',
+          '你把记得的字拢成刃，一寸寸剖开「为你推荐」。',
+          '核心开始增生节点——它在复制「你可能还想看」。',
+          '守砚的话还在耳边：不要相信任何推荐。',
         ],
       },
       // 梗鬼精英：带视野巡逻，可利用屏幕墙遮挡潜行绕过
@@ -1089,7 +1127,7 @@ export const scenes = {
           flag: 'stadium_puzzle_solved',
           puzzle: 'voidverse',
           defeatedEnemy: 'stadium_geng_1',
-          msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「眠」「处」「风」「少」，点亮诗屏，并处理复读巨像——只有完整的诗，能在虚无里点出一条路。',
+          msg: '通往废墟深处的门一片漆黑，吞掉一切声音。\n先集齐「眠」「处」「风」「少」，点亮诗屏，并侵入推荐之核——只有完整的诗，能在虚无里点出一条路。',
         },
       },
     ],

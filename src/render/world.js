@@ -115,29 +115,204 @@ export function drawInteractHints(ctx, W2S, scene, player, collected, gameTime, 
     if (d > 60) continue;
     const s = W2S(it.x, it.y);
     const pulse = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
+    const isPurify = it.type === 'purify';
+    const isWall =
+      isPurify &&
+      (it.purifyKind === 'meme_wall' ||
+        /墙|招牌|路牌|梗/.test((it.purifyKind || '') + (it.label || '') + (it.pollutedLabel || '')));
+
+    // 环：净化物抬高，避免盖住招牌/气泡
+    const ringY = isWall ? s.y - 8 : s.y;
     ctx.strokeStyle = `rgba(255,220,140,${pulse})`;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
-    ctx.arc(s.x, s.y, 22, 0, Math.PI * 2);
+    ctx.arc(s.x, ringY, isWall ? 18 : 22, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const label = it.label || '';
+    let text;
+    // 提示条高度：招牌把「F」放在牌顶上方；普通交互仍在脚边上方
+    let tipY = s.y - 38;
+    if (isPurify) {
+      const done = !!(it.doneFlag && game && game.flags && game.flags[it.doneFlag]);
+      if (done) {
+        text = isWall
+          ? '按 E 查看「' + (it.cleansedLabel || it.label || '路名') + '」'
+          : '已唤醒 · 按 E 交谈';
+        tipY = isWall ? s.y - 78 : s.y - 52;
+      } else {
+        const name = it.label || it.pollutedLabel || (isWall ? '招牌' : '失语者');
+        text = isWall ? '按 F 补诗净化' + name : '按 F 补诗唤醒' + name;
+        tipY = isWall ? s.y - 78 : s.y - 54;
+      }
+    } else {
+      text = 'E · ' + (it.label || '');
+    }
     ctx.font = 'bold 11px serif';
-    const text = 'E · ' + label;
     const w = ctx.measureText(text).width + 16;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(s.x - w / 2, s.y - 38, w, 18);
-    ctx.strokeStyle = 'rgba(255,220,140,0.7)';
+    const boxH = 18;
+    const boxY = tipY - boxH / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx.fillRect(s.x - w / 2, boxY, w, boxH);
+    ctx.strokeStyle = 'rgba(255,220,140,0.75)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(s.x - w / 2, s.y - 38, w, 18);
+    ctx.strokeRect(s.x - w / 2, boxY, w, boxH);
     ctx.fillStyle = `rgba(255,220,140,${0.9 + pulse * 0.1})`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, s.x, s.y - 29);
+    ctx.fillText(text, s.x, tipY);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
+  }
+}
+
+// ============================================================
+// 组句净化物：梗墙 / 失语者
+// ============================================================
+export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
+  if (!scene || !scene.interactables) return;
+  for (const it of scene.interactables) {
+    if (!isInteractableVisible(it, game)) continue;
+    if (it.type !== 'purify') continue;
+    const s = W2S(it.x, it.y);
+    if (s.x < -80 || s.x > W + 80 || s.y < -100 || s.y > H + 80) continue;
+    const done = !!(it.doneFlag && game && game.flags && game.flags[it.doneFlag]);
+    const pulse = 0.5 + Math.sin(gameTime * 0.004 + it.x * 0.01) * 0.3;
+    const kind = it.purifyKind || '';
+    // 语言即维度：未净化「塌平」；净化后「立起」
+    const scaleY = done ? 1 : 0.55;
+    const scaleX = done ? 1 : 1.12;
+
+    if (kind === 'meme_wall' || /墙|招牌|路牌|梗/.test(kind + (it.label || '') + (it.pollutedLabel || ''))) {
+      const text = done
+        ? it.cleansedLabel || it.label || '正名'
+        : it.pollutedLabel || it.label || '梗';
+      ctx.font = 'bold 12px serif';
+      const tw = ctx.measureText(text).width;
+      const w = Math.max(72, tw + 20);
+      const h = 40;
+      const boardTop = s.y - h - 14;
+      const boardCy = boardTop + h / 2;
+
+      // 地面塌陷/立起圈
+      ctx.strokeStyle = done
+        ? `rgba(224,178,98,${0.25 + pulse * 0.2})`
+        : `rgba(80,160,100,${0.2 + pulse * 0.15})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 6, done ? 28 : 34, done ? 7 : 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.scale(scaleX, scaleY);
+      ctx.translate(-s.x, -s.y);
+
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 4, 22, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = done ? '#3a3228' : '#1a1814';
+      ctx.fillRect(s.x - 2, boardTop + h - 4, 4, s.y - (boardTop + h) + 6);
+      ctx.fillStyle = done ? 'rgba(48,38,20,0.98)' : 'rgba(18,28,20,0.92)';
+      ctx.fillRect(s.x - w / 2, boardTop, w, h);
+      ctx.strokeStyle = done ? 'rgba(224,178,98,0.85)' : `rgba(80,200,100,${0.45 + pulse * 0.35})`;
+      ctx.lineWidth = done ? 2 : 1.5;
+      ctx.strokeRect(s.x - w / 2, boardTop, w, h);
+      if (!done) {
+        // 噪点感：细碎扫描线
+        ctx.strokeStyle = `rgba(100,220,120,${0.12 + pulse * 0.1})`;
+        ctx.lineWidth = 1;
+        for (let ly = 0; ly < 3; ly++) {
+          const yy = boardTop + 8 + ly * 10 + Math.sin(gameTime * 0.008 + ly) * 1.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x - w / 2 + 4, yy);
+          ctx.lineTo(s.x + w / 2 - 4, yy);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = done
+        ? `rgba(255,220,140,${0.92 + pulse * 0.08})`
+        : `rgba(120,230,140,${0.75 + pulse * 0.2})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, s.x, boardCy);
+      ctx.restore();
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    } else {
+      const bob = Math.sin(gameTime * 0.002 + it.x) * 1.2;
+      ctx.strokeStyle = done
+        ? `rgba(224,178,98,${0.22 + pulse * 0.15})`
+        : `rgba(80,160,100,${0.18 + pulse * 0.12})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 8, done ? 16 : 20, done ? 5 : 3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.scale(scaleX, scaleY);
+      ctx.translate(-s.x, -s.y);
+
+      if (done) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y + 6, 8, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(205,178,138,0.95)';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y - 2 + bob * 0.3, 6, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(232,205,165,1)';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y - 12 + bob * 0.3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        const bubble = it.cleansedLabel || '…';
+        ctx.font = '10px serif';
+        const bw = ctx.measureText(bubble).width + 12;
+        const bx = s.x - bw / 2;
+        const by = s.y - 36;
+        ctx.fillStyle = 'rgba(20,16,10,0.8)';
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(224,178,98,0.55)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255,220,140,${0.75 + pulse * 0.2})`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(bubble, s.x, by + 8);
+      } else {
+        drawLostPerson(ctx, s.x, s.y + bob, 0);
+        // 塌平噪点罩
+        ctx.fillStyle = `rgba(40,60,45,${0.12 + pulse * 0.08})`;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y - 4, 14, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const speech = it.pollutedSpeech || it.pollutedLabel || '…';
+        ctx.font = '10px serif';
+        const bw = Math.min(90, ctx.measureText(speech).width + 12);
+        const bx = s.x - bw / 2;
+        const by = s.y - 38;
+        ctx.fillStyle = 'rgba(12,20,14,0.85)';
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(80,200,100,${0.4 + pulse * 0.3})`;
+        ctx.lineWidth = 1;
+        roundRect(ctx, bx, by, bw, 16, 4);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(140,230,150,${0.75 + pulse * 0.2})`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(speech, s.x, by + 8);
+      }
+      ctx.restore();
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    }
   }
 }
 
@@ -289,6 +464,7 @@ export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
     // 已有独立渲染的类型跳过
     if (it.type === 'keystone') continue; // drawKeystones
     if (it.type === 'cure') continue; // drawCureNPCs
+    if (it.type === 'purify') continue; // drawPurifyProps
     if (it.type === 'scene_change' && it.gate) continue; // drawGates
     // 已在场景函数中专门绘制的交互点跳过
     if (INTERACTABLES_WITH_VISUAL.has(it.id)) continue;
@@ -513,6 +689,12 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     const stepBob = Math.abs(Math.sin(e.walkPhase)) * 2;
     const sy = s.y - stepBob; // 脚踏地，整体微抬模拟迈步
 
+    // 体育馆 Boss：算法茧房核心（屏幕塔），不是绿色梗鬼
+    if (e.boss || e.typeId === 'geng_boss' || e.combat === 'hack') {
+      drawCocoonBoss(ctx, s.x, sy, gameTime, e, game);
+      continue;
+    }
+
     // 提示标记：靠近会进入战斗 / 可踩踏
     const d = Math.hypot(e.x - (game ? game.player.x : 0), e.y - (game ? game.player.y : 0));
     const near = d < 80;
@@ -657,6 +839,230 @@ export function drawEnemies(ctx, W2S, enemies, gameTime, game) {
     ctx.fillText('梗', s.x - 4, sy + 31 + Math.sin(t * 2.5) * 1.5);
     ctx.textAlign = 'left';
   }
+}
+
+/** 算法茧房核心：推荐之神巨像（屏幕王冠 + 数据环 + 蓝核面） */
+function drawCocoonBoss(ctx, sx, sy, gameTime, e, game) {
+  const t = gameTime * 0.004;
+  const pulse = 0.5 + Math.sin(t * 2.2) * 0.5;
+  const d = game ? Math.hypot(e.x - game.player.x, e.y - game.player.y) : 999;
+  const near = d < 120;
+  const reduced = game && game.settings && game.settings.reducedFx;
+  const bob = Math.sin(t * 1.6) * 2.5;
+  const by = sy + bob;
+
+  // 宽阔底座阴影 + 污染光池
+  const ground = ctx.createRadialGradient(sx, sy + 10, 4, sx, sy + 10, 70);
+  ground.addColorStop(0, `rgba(60,140,255,${0.28 + pulse * 0.12})`);
+  ground.addColorStop(0.45, 'rgba(40,80,180,0.12)');
+  ground.addColorStop(1, 'rgba(20,40,80,0)');
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.ellipse(sx, sy + 12, 62, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 外圈数据环（旋转）
+  if (!reduced) {
+    ctx.save();
+    ctx.translate(sx, by - 48);
+    ctx.rotate(t * 0.7);
+    ctx.strokeStyle = `rgba(100,190,255,${0.22 + pulse * 0.15})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 8]);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 52, 22, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.rotate(-t * 1.4);
+    ctx.strokeStyle = `rgba(180,120,255,${0.18 + pulse * 0.1})`;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 40, 16, 0.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 肩部侧翼屏幕（左右悬浮）
+  for (const side of [-1, 1]) {
+    const wx = sx + side * (38 + Math.sin(t * 2 + side) * 3);
+    const wy = by - 52 + Math.cos(t * 1.8 + side) * 4;
+    ctx.save();
+    ctx.translate(wx, wy);
+    ctx.rotate(side * 0.18 + Math.sin(t) * 0.05);
+    // 面板
+    const pw = 22;
+    const ph = 36;
+    const g = ctx.createLinearGradient(-pw / 2, -ph / 2, pw / 2, ph / 2);
+    g.addColorStop(0, 'rgba(18,28,55,0.95)');
+    g.addColorStop(1, 'rgba(8,14,30,0.98)');
+    ctx.fillStyle = g;
+    roundRect(ctx, -pw / 2, -ph / 2, pw, ph, 3);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(120,180,255,${0.55 + pulse * 0.25})`;
+    ctx.lineWidth = 1.2;
+    roundRect(ctx, -pw / 2, -ph / 2, pw, ph, 3);
+    ctx.stroke();
+    // 小屏光
+    ctx.fillStyle = `rgba(80,160,255,${0.25 + Math.sin(t * 4 + side) * 0.15})`;
+    ctx.fillRect(-pw / 2 + 3, -ph / 2 + 4, pw - 6, ph - 10);
+    ctx.fillStyle = `rgba(200,230,255,${0.5 + pulse * 0.3})`;
+    ctx.font = 'bold 7px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(side < 0 ? '荐' : '推', 0, 2);
+    ctx.restore();
+  }
+
+  // 主躯干：梯形铠甲 + 内发光
+  const bodyTop = by - 78;
+  const bodyBot = by + 6;
+  const bodyGrad = ctx.createLinearGradient(sx, bodyTop, sx, bodyBot);
+  bodyGrad.addColorStop(0, 'rgba(30,50,90,0.98)');
+  bodyGrad.addColorStop(0.45, 'rgba(14,22,48,0.98)');
+  bodyGrad.addColorStop(1, 'rgba(8,12,28,0.98)');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(sx - 18, bodyTop + 8);
+  ctx.lineTo(sx + 18, bodyTop + 8);
+  ctx.lineTo(sx + 32, bodyBot);
+  ctx.lineTo(sx - 32, bodyBot);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = `rgba(130,190,255,${0.55 + pulse * 0.2})`;
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // 胸甲屏幕阵列（斜切）
+  for (let i = 0; i < 5; i++) {
+    const ry = bodyTop + 16 + i * 12;
+    const w = 28 + i * 2;
+    const glow = 0.4 + Math.sin(t * 3.5 + i * 0.9) * 0.35;
+    ctx.fillStyle = `rgba(40,110,220,${0.2 + glow * 0.45})`;
+    ctx.beginPath();
+    ctx.moveTo(sx - w / 2, ry);
+    ctx.lineTo(sx + w / 2, ry);
+    ctx.lineTo(sx + w / 2 - 2, ry + 9);
+    ctx.lineTo(sx - w / 2 + 2, ry + 9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = `rgba(160,210,255,${0.25 + glow * 0.4})`;
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+
+  // 头部：多面屏幕王冠
+  const hx = sx;
+  const hy = bodyTop - 4;
+  // 后冠光晕
+  if (!reduced) {
+    ctx.shadowColor = 'rgba(80,160,255,0.85)';
+    ctx.shadowBlur = 22 + pulse * 12;
+  }
+  ctx.fillStyle = `rgba(60,140,255,${0.15 + pulse * 0.1})`;
+  ctx.beginPath();
+  ctx.arc(hx, hy - 8, 28, 0, Math.PI * 2);
+  ctx.fill();
+  if (!reduced) ctx.shadowBlur = 0;
+
+  // 主脸屏
+  const fw = 36;
+  const fh = 42;
+  const faceG = ctx.createLinearGradient(hx, hy - fh / 2, hx, hy + fh / 2);
+  faceG.addColorStop(0, 'rgba(20,40,80,0.98)');
+  faceG.addColorStop(0.5, 'rgba(12,24,55,0.98)');
+  faceG.addColorStop(1, 'rgba(8,16,40,0.98)');
+  ctx.fillStyle = faceG;
+  roundRect(ctx, hx - fw / 2, hy - fh / 2, fw, fh, 6);
+  ctx.fill();
+  ctx.strokeStyle = `rgba(150,200,255,${0.7 + pulse * 0.25})`;
+  ctx.lineWidth = 2;
+  roundRect(ctx, hx - fw / 2, hy - fh / 2, fw, fh, 6);
+  ctx.stroke();
+
+  // 双眼（竖瞳 + 扫描线）
+  const eyeY = hy - 6;
+  for (const side of [-1, 1]) {
+    const ex = hx + side * 9;
+    ctx.fillStyle = 'rgba(0,10,30,0.95)';
+    ctx.beginPath();
+    ctx.ellipse(ex, eyeY, 5, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (!reduced) {
+      ctx.shadowColor = 'rgba(100,220,255,0.95)';
+      ctx.shadowBlur = 10 + pulse * 6;
+    }
+    ctx.fillStyle = `rgba(120,230,255,${0.75 + pulse * 0.25})`;
+    ctx.beginPath();
+    ctx.ellipse(ex, eyeY, 2.2, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (!reduced) ctx.shadowBlur = 0;
+    // 瞳心
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(ex, eyeY - 1.5, 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 口：滚动推荐条
+  const mouthWords = ['为你推荐', '下一首', '猜你喜欢', '别划走', '热榜'];
+  const mw = mouthWords[Math.floor(gameTime / 700) % mouthWords.length];
+  ctx.fillStyle = 'rgba(20,50,120,0.85)';
+  roundRect(ctx, hx - 14, hy + 8, 28, 10, 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(180,220,255,${0.65 + pulse * 0.3})`;
+  ctx.font = 'bold 7px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(mw, hx, hy + 15);
+
+  // 头顶悬浮碎片屏（王冠）
+  for (let i = -2; i <= 2; i++) {
+    const cx = hx + i * 11;
+    const cy = hy - fh / 2 - 10 - Math.abs(i) * 2 + Math.sin(t * 2.5 + i) * 2;
+    const cw = 9;
+    const ch = 12;
+    ctx.fillStyle = i === 0 ? `rgba(80,160,255,${0.45 + pulse * 0.3})` : 'rgba(30,50,90,0.9)';
+    ctx.fillRect(cx - cw / 2, cy - ch / 2, cw, ch);
+    ctx.strokeStyle = `rgba(160,210,255,${0.5 + pulse * 0.2})`;
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(cx - cw / 2, cy - ch / 2, cw, ch);
+  }
+
+  // 两侧轨道弹幕字
+  const floatWords = [
+    { t: '荐', ox: -48, oy: -20 },
+    { t: '推', ox: 50, oy: -8 },
+    { t: '茧', ox: -44, oy: 18 },
+    { t: '核', ox: 46, oy: 24 },
+  ];
+  ctx.font = 'bold 10px serif';
+  for (let i = 0; i < floatWords.length; i++) {
+    const fw = floatWords[i];
+    const fx = sx + fw.ox + Math.sin(t * 1.8 + i) * 4;
+    const fy = by - 40 + fw.oy + Math.cos(t * 2 + i) * 3;
+    ctx.fillStyle = `rgba(140,200,255,${0.35 + pulse * 0.25})`;
+    ctx.fillText(fw.t, fx, fy);
+  }
+
+  // 名牌 + 交互
+  const nameY = hy - fh / 2 - 28;
+  ctx.fillStyle = 'rgba(10,16,32,0.82)';
+  const label = e.name || '算法茧房·推荐之核';
+  ctx.font = 'bold 11px serif';
+  const lw = Math.min(160, ctx.measureText(label).width + 16);
+  roundRect(ctx, sx - lw / 2, nameY - 10, lw, 18, 4);
+  ctx.fill();
+  ctx.strokeStyle = `rgba(120,180,255,${0.45 + pulse * 0.2})`;
+  ctx.lineWidth = 1;
+  roundRect(ctx, sx - lw / 2, nameY - 10, lw, 18, 4);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(200,230,255,0.95)';
+  ctx.fillText(label, sx, nameY);
+
+  if (near) {
+    const p2 = 0.55 + Math.sin(gameTime * 0.009) * 0.4;
+    ctx.fillStyle = `rgba(140,200,255,${p2})`;
+    ctx.font = 'bold 11px serif';
+    ctx.fillText('! 侵入茧房核心', sx, nameY - 18);
+  }
+  ctx.textAlign = 'left';
 }
 
 // ============================================================

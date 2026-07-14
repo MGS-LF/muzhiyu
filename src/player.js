@@ -20,6 +20,7 @@ export class Player {
     this.maxSan = 100;
     this.collectedChars = [];
     this.collectedCharsAll = [];
+    this.wordBelt = [];
     this.inventory = [];
     this.diaries = new Set();
     this.seeds = 0;

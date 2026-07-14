@@ -2,7 +2,7 @@ import { W, H } from '../config.js';
 import { HACK, STR } from './theme.js';
 import { LAYER_MAX } from './sim.js';
 
-/** 言锋飞行器：舱体 + 双翼 + 尾焰 */
+/** 字锋航行体：舱体 + 双翼 + 尾焰（诗句凝成的刃） */
 function drawShip(ctx, x, y, size, aim, invBlink, alpha = 1) {
   if (invBlink) return;
   const s = size;
@@ -75,32 +75,129 @@ function drawEnemy(ctx, e, frame) {
   ctx.save();
   ctx.translate(e.x, e.y);
   if (e.type === 'boss') {
-    ctx.rotate(e.rot * 0.35);
+    // 推荐之核：悬浮屏幕巨神（蓝青霓虹，非绿梗）
     const s = e.s;
-    ctx.fillStyle = e.flash ? HACK.orange : HACK.void;
-    ctx.strokeStyle = HACK.parchment;
-    ctx.lineWidth = 3;
+    const flash = !!e.flash;
+    const pulse = 0.5 + Math.sin(frame * 0.08) * 0.5;
+    ctx.rotate(e.rot * 0.12);
+
+    // 外光晕
+    const aura = ctx.createRadialGradient(0, 0, s * 0.1, 0, 0, s * 0.95);
+    aura.addColorStop(0, flash ? 'rgba(255,160,80,0.35)' : `rgba(80,160,255,${0.28 + pulse * 0.12})`);
+    aura.addColorStop(0.55, 'rgba(40,90,200,0.12)');
+    aura.addColorStop(1, 'rgba(10,20,40,0)');
+    ctx.fillStyle = aura;
     ctx.beginPath();
-    ctx.moveTo(0, -s / 2);
-    ctx.lineTo(s / 2, -s * 0.12);
-    ctx.lineTo(s * 0.38, s / 2);
-    ctx.lineTo(-s * 0.38, s / 2);
-    ctx.lineTo(-s / 2, -s * 0.12);
+    ctx.arc(0, 0, s * 0.95, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 旋转数据环
+    ctx.strokeStyle = `rgba(120,200,255,${0.35 + pulse * 0.2})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 10]);
+    ctx.beginPath();
+    ctx.ellipse(0, 4, s * 0.72, s * 0.28, frame * 0.02, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 肩屏
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(side * s * 0.55, -s * 0.05);
+      ctx.rotate(side * 0.25);
+      ctx.fillStyle = flash ? 'rgba(200,100,40,0.9)' : 'rgba(12,22,48,0.95)';
+      ctx.strokeStyle = 'rgba(140,200,255,0.75)';
+      ctx.lineWidth = 1.5;
+      const pw = s * 0.28;
+      const ph = s * 0.42;
+      ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+      ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
+      ctx.fillStyle = `rgba(60,140,255,${0.35 + pulse * 0.25})`;
+      ctx.fillRect(-pw / 2 + 3, -ph / 2 + 4, pw - 6, ph - 12);
+      ctx.fillStyle = 'rgba(200,230,255,0.9)';
+      ctx.font = `bold ${Math.max(9, s * 0.12)}px ${HACK.font}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(side < 0 ? '荐' : '推', 0, 4);
+      ctx.restore();
+    }
+
+    // 躯干
+    ctx.fillStyle = flash ? 'rgba(180,90,40,0.95)' : 'rgba(10,18,40,0.96)';
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.22, -s * 0.35);
+    ctx.lineTo(s * 0.22, -s * 0.35);
+    ctx.lineTo(s * 0.38, s * 0.45);
+    ctx.lineTo(-s * 0.38, s * 0.45);
     ctx.closePath();
     ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = HACK.gold;
+    ctx.strokeStyle = 'rgba(150,200,255,0.7)';
     ctx.lineWidth = 2;
-    ctx.strokeRect(-s * 0.22, -s * 0.08, s * 0.44, s * 0.28);
-    ctx.fillStyle = HACK.red;
+    ctx.stroke();
+
+    // 胸屏阵列
+    for (let i = 0; i < 4; i++) {
+      const y = -s * 0.18 + i * s * 0.14;
+      const w = s * (0.28 + i * 0.03);
+      ctx.fillStyle = `rgba(40,110,220,${0.25 + Math.sin(frame * 0.1 + i) * 0.2})`;
+      ctx.fillRect(-w / 2, y, w, s * 0.1);
+      ctx.strokeStyle = 'rgba(160,210,255,0.45)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-w / 2, y, w, s * 0.1);
+    }
+
+    // 头屏
+    const fw = s * 0.42;
+    const fh = s * 0.48;
+    ctx.fillStyle = flash ? 'rgba(220,120,50,0.95)' : 'rgba(14,28,60,0.98)';
     ctx.beginPath();
-    ctx.arc(-s * 0.12, -s * 0.18, s * 0.06, 0, Math.PI * 2);
-    ctx.arc(s * 0.12, -s * 0.18, s * 0.06, 0, Math.PI * 2);
+    // 圆角近似
+    ctx.rect(-fw / 2, -s * 0.78, fw, fh);
     ctx.fill();
-    ctx.fillStyle = HACK.gold;
-    ctx.font = `12px ${HACK.font}`;
+    ctx.strokeStyle = `rgba(160,220,255,${0.75 + pulse * 0.2})`;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+
+    // 竖瞳双眼
+    for (const side of [-1, 1]) {
+      const ex = side * s * 0.1;
+      const ey = -s * 0.58;
+      ctx.fillStyle = 'rgba(0,8,24,0.95)';
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, s * 0.055, s * 0.09, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = flash ? HACK.orange : `rgba(100,230,255,${0.8 + pulse * 0.2})`;
+      ctx.shadowColor = flash ? HACK.orange : 'rgba(80,200,255,0.9)';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, s * 0.025, s * 0.07, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // 口：滚动词
+    const words = ['为你推荐', '下一首', '别划走', '热榜'];
+    const mw = words[Math.floor(frame / 18) % words.length];
+    ctx.fillStyle = 'rgba(20,50,120,0.9)';
+    ctx.fillRect(-s * 0.14, -s * 0.42, s * 0.28, s * 0.1);
+    ctx.fillStyle = 'rgba(200,230,255,0.95)';
+    ctx.font = `bold ${Math.max(8, s * 0.09)}px ${HACK.font}`;
     ctx.textAlign = 'center';
-    ctx.fillText('复', 0, s * 0.22);
+    ctx.fillText(mw, 0, -s * 0.35);
+
+    // 顶冠小屏
+    for (let i = -2; i <= 2; i++) {
+      const cx = i * s * 0.1;
+      const cy = -s * 0.85 - Math.abs(i) * s * 0.02;
+      ctx.fillStyle = i === 0 ? `rgba(80,160,255,${0.5 + pulse * 0.3})` : 'rgba(20,40,80,0.9)';
+      ctx.fillRect(cx - s * 0.04, cy - s * 0.05, s * 0.08, s * 0.1);
+      ctx.strokeStyle = 'rgba(160,210,255,0.6)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - s * 0.04, cy - s * 0.05, s * 0.08, s * 0.1);
+    }
+
+    ctx.fillStyle = 'rgba(180,220,255,0.9)';
+    ctx.font = `bold ${Math.max(10, s * 0.11)}px ${HACK.font}`;
+    ctx.fillText('核', 0, s * 0.38);
   } else {
     ctx.rotate(e.rot);
     const s = e.s;

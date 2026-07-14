@@ -4,8 +4,9 @@ import { CONTROL_HINTS } from './data/controls.js';
 
 export const SCENE_INTROS = {
   dream_tutorial: 'WASD 移动 · E 互动。一次只做一件事，跟着左上角目标走。',
-  freeze_center: '左上角是你的目标。靠近发光物体按 E 互动。',
-  street_01: '废墟街道很大——跟着金色箭头走，沿途按 E 拾取发光的汉字碎片。',
+  freeze_center: '顶部是目标。换上衣服后推门离开。靠近发光物按 E。',
+  street_01:
+    '大失语后的街道：先捡发光汉字 → 靠近招牌/失语者按 F 补全诗句 → 世界会从「扁」重新「立」起来。',
   riverside: '江风里有人在念诗。往西侧的光柱走，找到那位老人。',
   subway_depth: '检修通道深处。这里是地铁站背后的空间，读完日志后可以回到大厅继续主线。',
   subway: '地下很暗。可探索，也可随时从台阶（↑地面）离开。',
@@ -19,9 +20,9 @@ export const SCENE_INTROS = {
 };
 
 const START_TUTORIAL = {
-  title: '刻 痕 · 遗 忘 的 文 字',
+  title: '墓 之 语',
   keys: CONTROL_HINTS.tutorialKeys,
-  tip: '左上角是当前目标，金色箭头指向下一步。靠近发光物按 E，靠近绿色梗鬼会进入战斗。',
+  tip: '目标在顶部。捡汉字 → 靠近招牌/人按 F 补诗净化。完整的话能把塌平的世界重新「立」起来。',
 };
 
 export function createStartTutorial() {
