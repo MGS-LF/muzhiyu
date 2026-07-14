@@ -529,7 +529,7 @@ export const methods = {
       if (allChars(this)) {
         this.flags.onboarding_pickup_done = true;
         this._dreamSetStep('wall3');
-        this.showHint('字齐了。去读「三战场」之墙。', 'success');
+        this.showHint('字齐了。去把「言」「语」带到留言前。', 'success');
         fx.flash('#ffd866', 0.25, 280);
       } else {
         this.showHint(`获得「${detail.char || ''}」。还差另一枚。`, 'info');
@@ -540,15 +540,15 @@ export const methods = {
     if (event === 'door_blocked') {
       const door = detail.door;
       if (door === 'a' && (step === 'intro' || step === 'wall1')) {
-        this.showHint('先读第一面墙上的字。', 'warn');
+        this.showHint('先靠近破损的旧广播，按 E 调查。', 'warn');
       } else if (door === 'b' && step === 'collect') {
-        this.showHint('还缺字，或还没读完第二面墙。', 'warn');
+        this.showHint('先调查广播旁残缺的留言，或捡齐「言」「语」。', 'warn');
       } else if (door === 'c' && step === 'wall3') {
-        this.showHint('先读「三战场」之墙。', 'warn');
+        this.showHint('先把「言」「语」带到留言前读完。', 'warn');
       } else if (door === 'd' && step === 'battle') {
         this.showHint('先与至少一只梗鬼交手。', 'warn');
       } else if (door === 'e') {
-        this.showHint('先读完要石与慈悲之墙。', 'warn');
+        this.showHint('先调查要石与最后的广播。', 'warn');
       } else {
         this.showHint('还不是时候。', 'warn');
       }

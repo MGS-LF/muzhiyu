@@ -4,7 +4,7 @@ import { CONTROL_HINTS } from './data/controls.js';
 
 export const SCENE_INTROS = {
   dream_tutorial:
-    '读墙上的字了解失语真相。捡字 · 三随机战场 · 要石 · 慈悲/残忍。WASD 移动，E 互动。',
+    '靠近破损的旧广播按 E 调查。捡字 · 战斗 · 要石 · 最后的广播。WASD 移动，E 互动。',
   freeze_center: '顶部是目标。换上衣服后推门离开。靠近发光物按 E。',
   street_01:
     '大失语后的街道：先捡发光汉字 → 靠近招牌/失语者按 F 补全诗句 → 世界会从「扁」重新「立」起来。',
