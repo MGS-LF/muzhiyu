@@ -115,18 +115,27 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     ctx.save();
     ctx.translate(w.x, w.y);
     ctx.rotate(w.rot || 0);
-    ctx.shadowColor = 'rgba(80,255,120,0.8)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = 'rgba(40,70,45,0.75)';
+    const flash = w.hitFlash > 0;
+    ctx.shadowColor = flash ? 'rgba(255,255,180,0.95)' : 'rgba(80,255,120,0.8)';
+    ctx.shadowBlur = flash ? 16 : 12;
+    ctx.fillStyle = w.tough ? 'rgba(28,55,38,0.88)' : 'rgba(40,70,45,0.75)';
     const tw = Math.max(40, w.text.length * 16);
     roundRect(ctx, -tw / 2, -16, tw, 32, 4);
     ctx.fill();
-    ctx.strokeStyle = `rgba(120,255,150,${0.7 + pulse * 0.2})`;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = w.tough
+      ? `rgba(180,255,200,${0.85 + pulse * 0.15})`
+      : `rgba(120,255,150,${0.7 + pulse * 0.2})`;
+    ctx.lineWidth = w.tough ? 2.5 : 1.5;
     roundRect(ctx, -tw / 2, -16, tw, 32, 4);
     ctx.stroke();
+    if (w.tough && w.hp > 1) {
+      ctx.fillStyle = 'rgba(255,240,160,0.85)';
+      ctx.font = 'bold 9px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('坚', 0, -22);
+    }
     ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(180,255,190,0.95)';
+    ctx.fillStyle = flash ? 'rgba(255,255,220,0.98)' : 'rgba(180,255,190,0.95)';
     ctx.font = 'bold 16px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

@@ -31,19 +31,27 @@ export class SlashBattle {
     const ng = player.ngPlus ? 1.4 : 1;
     const baseHp = enemy.hp || 30;
     const baseMax = enemy.maxHp || 30;
+    // 划墨战独立血量：原 UT 战数值太低，一刀一片；按类型拉长战局
+    const typeId = enemy.typeId || 'geng_weak';
+    let slashHpMul = 4.2; // 弱梗约 30→126
+    if (enemy.boss || typeId === 'geng_boss') slashHpMul = 5.5;
+    else if (typeId === 'geng_medium' || typeId === 'geng_elite' || (baseMax || 0) >= 50) slashHpMul = 4.8;
+    const hp = Math.round(baseHp * mul.enemyHp * ng * slashHpMul);
+    const maxHp = Math.round(baseMax * mul.enemyHp * ng * slashHpMul);
     this.isSlash = true;
     this.mode = 'slash';
     this.enemy = {
       ...enemy,
-      hp: Math.round(baseHp * mul.enemyHp * ng),
-      maxHp: Math.round(baseMax * mul.enemyHp * ng),
+      hp,
+      maxHp,
       name: enemy.name || '梗鬼',
-      typeId: enemy.typeId || 'geng_weak',
+      typeId,
     };
     this.player = player;
     this.onEnd = onEnd;
     this.game = game;
     this.isBoss = !!enemy.boss;
+    this.mul = mul;
 
     this.phase = 'intro'; // intro | fight | carve | result
     this.timer = 0;
@@ -64,11 +72,13 @@ export class SlashBattle {
     this.combo = 0;
     this.comboTimer = 0;
     this.cuts = 0;
+    this.cutIFrame = 0; // 同帧多切节流，防一划清屏
 
-    // 飞字
+    // 飞字：更密更快
     this.words = [];
     this.spawnTimer = 0;
-    this.spawnEvery = this.isBoss ? 480 : 620;
+    this.spawnEvery = this.isBoss ? 280 : 380;
+    this.wave = 0;
 
     // 切开碎片 / 粒子
     this.shards = [];
@@ -115,6 +125,7 @@ export class SlashBattle {
       this.comboTimer -= dt;
       if (this.comboTimer <= 0) this.combo = 0;
     }
+    if (this.cutIFrame > 0) this.cutIFrame -= dt;
 
     // 粒子
     for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -201,12 +212,16 @@ export class SlashBattle {
       this.tryStartCarve();
     }
 
-    // 生成飞字（从上方怪兽位置向下/向中心飘落）
+    // 生成飞字：更密；越打越急
     this.spawnTimer += dt;
-    const maxWords = this.isBoss ? 14 : 10;
-    if (this.spawnTimer > this.spawnEvery && this.words.length < maxWords) {
+    const pressure = 1 + Math.min(1.2, this.cuts * 0.04 + (1 - this.enemy.hp / this.enemy.maxHp) * 0.8);
+    const every = this.spawnEvery / pressure;
+    const maxWords = Math.floor((this.isBoss ? 16 : 12) * (this.mul.bulletCount || 1));
+    if (this.spawnTimer > every && this.words.length < maxWords) {
       this.spawnTimer = 0;
-      this.spawnWord();
+      this.spawnWord(pressure);
+      // 高压时偶尔双吐
+      if (pressure > 1.5 && Math.random() < 0.35) this.spawnWord(pressure);
     }
 
     // 更新飞字
@@ -217,13 +232,14 @@ export class SlashBattle {
       w.x += w.vx * (dt / 16);
       w.y += w.vy * (dt / 16);
       w.rot += w.vr * (dt / 16);
-      
-      // 轻微吸向你的中心圈（压迫感）
-      w.vx += ((cx - w.x) * 0.00015) * (dt / 16);
-      w.vy += ((cy - w.y) * 0.00015) * (dt / 16);
+      // 吸向护持圈，压力随残血加大
+      const pull = 0.00018 + (1 - this.enemy.hp / this.enemy.maxHp) * 0.00012;
+      w.vx += (cx - w.x) * pull * (dt / 16);
+      w.vy += (cy - w.y) * pull * (dt / 16);
       w.life -= dt;
-      // 撞到玩家护持圈 = 伤 SAN
-      if (Math.hypot(w.x - cx, w.y - cy) < 36) {
+      // 坚固字：需切 2 次
+      if (w.hitFlash > 0) w.hitFlash -= dt;
+      if (Math.hypot(w.x - cx, w.y - cy) < 36 + (w.r || 14) * 0.15) {
         this.hitPlayer(w);
         this.words.splice(i, 1);
         continue;
@@ -234,50 +250,89 @@ export class SlashBattle {
     }
   }
 
-  spawnWord() {
-    // 飞字统一由上方的梗鬼实体嘴里吐出（或头部位置），扩散向玩家
-    const x = W / 2;
+  spawnWord(pressure = 1) {
+    // 从梗鬼口中吐出；高压时更偏中心、更快
+    const x = W / 2 + rand(-40, 40);
     const y = 110;
     const text = MEME_WORDS[Math.floor(Math.random() * MEME_WORDS.length)];
-    const sp = (this.isBoss ? 1.35 : 1) * difficulty.currentMul().bulletSpeed;
-    const ang = Math.atan2(H / 2 - y, W / 2 - x) + rand(-0.8, 0.8);
-    const speed = rand(0.9, 1.8) * sp;
+    const sp = (this.isBoss ? 1.55 : 1.15) * (this.mul.bulletSpeed || 1) * (0.85 + pressure * 0.35);
+    const ang = Math.atan2(H / 2 - 20 - y, W / 2 - x) + rand(-0.55, 0.55);
+    const speed = rand(1.15, 2.15) * sp;
+    // 约 28% 坚固字（需两刀）
+    const tough = Math.random() < 0.28;
     this.words.push({
       text,
       x,
       y,
       vx: Math.cos(ang) * speed,
       vy: Math.sin(ang) * speed,
-      r: 14 + text.length * 5,
+      r: 15 + text.length * 5,
       rot: rand(-0.3, 0.3),
       vr: rand(-0.04, 0.04),
       life: 9000,
-      hp: 1,
+      hp: tough ? 2 : 1,
+      tough,
+      hitFlash: 0,
     });
   }
 
   tryCutWithStroke() {
     if (this.stroke.length < 2) return;
+    // 一划最多切 2 个字，避免横扫秒杀
+    if (this.cutIFrame > 0) return;
     const a = this.stroke[this.stroke.length - 2];
     const b = this.stroke[this.stroke.length - 1];
     let any = false;
-    for (let i = this.words.length - 1; i >= 0; i--) {
+    let cutCount = 0;
+    for (let i = this.words.length - 1; i >= 0 && cutCount < 2; i--) {
       const w = this.words[i];
-      if (segIntersectsCircle(a.x, a.y, b.x, b.y, w.x, w.y, w.r + 6)) {
+      if (segIntersectsCircle(a.x, a.y, b.x, b.y, w.x, w.y, w.r + 4)) {
         this.cutWord(w, i);
         any = true;
+        cutCount += 1;
       }
     }
-    if (any) audio.playSfx('hit');
+    if (any) {
+      this.cutIFrame = 55; // ms 级节流
+      audio.playSfx('hit');
+    }
   }
 
   cutWord(w, index) {
+    // 坚固字第一次只裂痕
+    if (w.hp > 1) {
+      w.hp -= 1;
+      w.hitFlash = 200;
+      w.vx *= 0.4;
+      w.vy *= 0.4;
+      this.combo += 1;
+      this.comboTimer = 1000;
+      this.floats.push({ x: w.x, y: w.y - 10, text: '裂！', life: 400, color: '180,255,160' });
+      for (let i = 0; i < 6; i++) {
+        const a = Math.random() * Math.PI * 2;
+        this.particles.push({
+          x: w.x,
+          y: w.y,
+          vx: Math.cos(a) * rand(1, 3),
+          vy: Math.sin(a) * rand(1, 3),
+          life: 280,
+          maxLife: 280,
+          color: '100,255,140',
+          size: rand(2, 3),
+        });
+      }
+      // 轻伤
+      const chip = Math.floor(1 + Math.min(this.combo, 6) * 0.35);
+      this.enemy.hp = Math.max(0, this.enemy.hp - chip);
+      if (this.enemy.hp <= 0) this.win('purify');
+      return;
+    }
+
     this.words.splice(index, 1);
     this.cuts += 1;
     this.combo += 1;
-    this.comboTimer = 1200;
+    this.comboTimer = 1100;
 
-    // 切开两半
     const ang = rand(0, Math.PI);
     for (const side of [-1, 1]) {
       this.shards.push({
@@ -307,14 +362,14 @@ export class SlashBattle {
       });
     }
 
-    // 伤害：连击加成
-    const dmg = Math.floor(5 + Math.min(this.combo, 8) * 1.8 + (this.isBoss ? 0 : 2));
+    // 低伤 + 弱连击：约需切 15~25 个完整字才清弱怪
+    const dmg = Math.floor(2.2 + Math.min(this.combo, 10) * 0.55 + (w.tough ? 1 : 0));
     this.enemy.hp -= dmg;
     this.floats.push({ x: w.x, y: w.y - 10, text: `-${dmg}`, life: 600, color: '255,220,120' });
 
-    if (this.combo >= 5 && this.combo % 5 === 0) {
-      this.setEnemyText(`${this.combo} 连切！字在尖叫！`);
-      fx.shake(4, 100);
+    if (this.combo >= 6 && this.combo % 6 === 0) {
+      this.setEnemyText(`${this.combo} 连切！继续！`);
+      fx.shake(3, 80);
     }
 
     if (this.enemy.hp <= 0) {
@@ -324,13 +379,15 @@ export class SlashBattle {
   }
 
   hitPlayer(w) {
-    const mul = difficulty.currentMul().sanDamage || 1;
-    const dmg = Math.round(7 * mul);
+    const mul = this.mul.sanDamage || 1;
+    // 挨打更疼，逼玩家认真切
+    const dmg = Math.round((10 + (w.tough ? 4 : 0)) * mul);
     this.san = Math.max(0, this.san - dmg);
     this.player.san = this.san;
+    this.combo = 0;
     audio.playSfx('bulletHit');
-    fx.shake(6, 160);
-    fx.flash('#cc4444', 0.25, 150);
+    fx.shake(7, 180);
+    fx.flash('#cc4444', 0.28, 160);
     this.floats.push({ x: W / 2, y: H / 2, text: `理性-${dmg}`, life: 700, color: '255,100,100' });
     if (this.san <= 0) {
       this.san = 0;
@@ -359,7 +416,7 @@ export class SlashBattle {
       glyph: ch,
       progress: 0,
       trail: [],
-      needed: 0.82,
+      needed: 0.88,
       cx: W / 2,
       cy: H / 2 - 10,
       size: 160,
@@ -379,18 +436,21 @@ export class SlashBattle {
     const ptr = this._pointer();
     // 简化：在字中心半径内拖动累计进度（模拟描边）
     const dist = Math.hypot(ptr.x - c.cx, ptr.y - c.cy);
-    const onRing = dist > c.size * 0.15 && dist < c.size * 0.55;
+    const onRing = dist > c.size * 0.18 && dist < c.size * 0.52;
     if (ptr.down && onRing) {
       c.trail.push({ x: ptr.x, y: ptr.y, t: this.timer });
-      c.progress = Math.min(1, c.progress + dt * 0.0011);
+      // 描边更慢，大招不那么随便
+      c.progress = Math.min(1, c.progress + dt * 0.00072);
       if (c.trail.length > 80) c.trail.shift();
     }
     // 超时失败回战斗
-    if (this.timer > 4500 && c.progress < c.needed) {
-      this.setEnemyText('刻偏了……');
+    if (this.timer > 3800 && c.progress < c.needed) {
+      this.setEnemyText('刻偏了……字被冲散！');
       this.phase = 'fight';
       this.carve = null;
       this.hint = '拖动切开烂梗 · K 描字大招';
+      // 失败惩罚：吐一波
+      for (let i = 0; i < 3; i++) this.spawnWord(1.4);
       return;
     }
     if (c.progress >= c.needed) {
@@ -401,8 +461,9 @@ export class SlashBattle {
   resolveCarve() {
     const glyph = this.carve?.glyph || '正';
     this.carve = null;
-    // 全屏净化
-    const dmg = this.isBoss ? 28 : 40;
+    // 大招：清屏 + 中等比例伤（不再一口秒）
+    const pct = this.isBoss ? 0.14 : 0.22;
+    const dmg = Math.max(12, Math.floor(this.enemy.maxHp * pct));
     this.enemy.hp -= dmg;
     this.words = [];
     for (let i = 0; i < 40; i++) {
