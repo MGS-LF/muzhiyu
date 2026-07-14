@@ -450,8 +450,9 @@ export function isInteractableVisible(it, game) {
 
 export function markerKind(it) {
   if (it.type === 'scene_change' || it.type === 'exit' || it.type === 'dream_wake') return 'portal';
+  const k = (it.dialogKey || '') + (it.label || '') + (it.type || '');
+  if (/广播|收音机|radio/.test(k)) return 'radio';
   if (it.type === 'dream_wall' || it.type === 'dream_door') return 'sign';
-  const k = (it.dialogKey || '') + (it.label || '');
   if (/屏幕|内壁|screen/.test(k)) return 'screen';
   if (/线路图|map/.test(k)) return 'map';
   if (/守砚|老人|蹲|victim|失语|人/.test(k)) return 'person';
@@ -499,6 +500,7 @@ export function drawInteractableMarkers(ctx, W2S, scene, game, gameTime) {
     else if (kind === 'person') drawPersonMarker(ctx, cx, cy + bob, it, gameTime, pulse);
     else if (kind === 'screen') drawScreenMarker(ctx, cx, cy + bob, it, gameTime, pulse);
     else if (kind === 'map') drawMapMarker(ctx, cx, cy + bob, it, gameTime, pulse);
+    else if (kind === 'radio') drawRadioMarker(ctx, cx, cy + bob, it, gameTime, pulse);
     else drawSignMarker(ctx, cx, cy + bob, it, gameTime, pulse);
 
     // 标签（远距离半透明可见；靠近后 drawInteractHints 会强化为 E·标签）
@@ -673,6 +675,54 @@ export function drawSignMarker(ctx, x, y, it, gameTime, pulse) {
   ctx.fillText('※', x, y - h + 1);
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
+}
+
+// 破损旧广播 / 收音机：机身 + 喇叭网 + 天线 + 微光
+export function drawRadioMarker(ctx, x, y, it, gameTime, pulse) {
+  const w = 30;
+  const h = 20;
+  const top = y - h - 2;
+  // 机身
+  ctx.fillStyle = '#2c2824';
+  ctx.fillRect(x - w / 2, top, w, h);
+  ctx.strokeStyle = 'rgba(180,150,90,0.55)';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(x - w / 2, top, w, h);
+  // 锈蚀/破损缺口
+  ctx.fillStyle = '#1a1612';
+  ctx.fillRect(x + w / 2 - 7, top + 3, 5, 8);
+  // 喇叭网
+  ctx.strokeStyle = `rgba(200,180,120,${0.35 + pulse * 0.25})`;
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc(x - 4, top + h / 2, 3 + i * 1.6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // 旋钮
+  ctx.fillStyle = `rgba(255,220,140,${0.55 + pulse * 0.3})`;
+  ctx.beginPath();
+  ctx.arc(x + 9, top + 7, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 9, top + 13, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  // 天线（弯曲感）
+  ctx.strokeStyle = '#8a8070';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2 + 4, top);
+  ctx.lineTo(x - w / 2 - 2, top - 12);
+  ctx.stroke();
+  // 信号微光
+  ctx.strokeStyle = `rgba(120,200,255,${0.2 + pulse * 0.35})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x - w / 2 - 2, top - 12, 4 + pulse * 2, -0.8, 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x - w / 2 - 2, top - 12, 7 + pulse * 2, -0.7, 0.25);
+  ctx.stroke();
 }
 
 // ===== from enemies.js =====
