@@ -26,22 +26,20 @@ $:
         - name: package
           script: tar -czf muzhiyu-$CNB_BRANCH.tar.gz dist
 
-        - name: upload attachment
-          image: cnbcool/attachments:latest
-          settings:
-            attachments:
-              - muzhiyu-$CNB_BRANCH.tar.gz
-              
         - name: create release
           type: git:release
           options:
             title: $CNB_BRANCH
             latest: true
 
+        - name: upload attachment
+          image: cnbcool/attachments:latest
+          settings:
+            attachments:
+              - muzhiyu-$CNB_BRANCH.tar.gz
+
   vscode:
-    - env:
-        CNB_WELCOME_CMD: "npm start"
-      stages:
+    - stages:
         - name: install dependencies
           script: npm install
 
