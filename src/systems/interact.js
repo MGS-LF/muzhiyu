@@ -1,6 +1,7 @@
 import { DIALOGS } from '../data/dialogs.js';
 import { POEM_LINES } from '../data/puzzles.js';
 import { SCENE_TRANSITIONS } from '../data/scene_transitions.js';
+import { FEATURES } from '../config.js';
 import * as audio from '../audio.js';
 import * as fx from '../fx.js';
 import { AI } from '../ai/config.js';
@@ -133,6 +134,10 @@ export const methods = {
         return;
       }
       if (best.type === 'portal3d') {
+        if (best._feature === 'level3d' && !FEATURES.level3d) {
+          this.showHint('裂隙已封闭。主线不经此路。');
+          return;
+        }
         if (typeof this.enterLevel3D === 'function') this.enterLevel3D();
         else this.showHint('裂隙已封。');
         return;

@@ -473,7 +473,7 @@ export const methods = {
       if (id === 1 && (step === 'wall1' || step === 'intro')) {
         this.flags.onboarding_wall1 = true;
         this._dreamSetStep('collect');
-        this.showHint('下一面墙会教你如何把碎字捡回来。', 'info');
+        this.showHint('去广播旁的残缺留言，再把碎字捡回来。', 'info');
         return;
       }
       if (id === 2 && step === 'collect') {
@@ -517,7 +517,7 @@ export const methods = {
         );
         this.startDialog(lines, '要石', () => {
           this._dreamSetStep('wall5');
-          this.showHint('最后一面墙：慈悲与残忍。', 'info');
+          this.showHint('最后一段广播：慈悲与残忍。', 'info');
         });
       }
       return;
@@ -546,7 +546,7 @@ export const methods = {
       } else if (door === 'c' && step === 'wall3') {
         this.showHint('先把「言」「语」带到留言前读完。', 'warn');
       } else if (door === 'd' && step === 'battle') {
-        this.showHint('先与至少一只梗鬼交手。', 'warn');
+        this.showHint('先与至少一重回声交手。', 'warn');
       } else if (door === 'e') {
         this.showHint('先调查要石与最后的广播。', 'warn');
       } else {

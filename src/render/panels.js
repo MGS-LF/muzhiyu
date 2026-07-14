@@ -525,7 +525,7 @@ export function drawSaveMenu(ctx, game, gameTime) {
       ctx.fillStyle = 'rgba(178, 169, 152, 0.75)';
       ctx.font = font(11);
       ctx.fillText(
-        `时间 ${it.time}  ·  SAN ${it.san}  ·  碎片 ${it.chars}  ·  仁慈${it.karma.mercy}/武力${it.karma.violence}`,
+        `时间 ${it.time}  ·  SAN ${it.san}  ·  碎片 ${it.chars}  ·  慈悲${it.karma.mercy}/残忍${it.karma.violence}`,
         px + 40,
         iy + 42
       );

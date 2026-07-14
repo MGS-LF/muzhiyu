@@ -1246,7 +1246,7 @@ export class Game {
       char: drop,
     });
 
-    this.showHint(`你念出一字——弱梗鬼散成「${drop}」。（探索净化 · 仁慈 +1）`);
+    this.showHint(`你念出一字——弱梗鬼散成「${drop}」。（探索净化 · 慈悲 +1）`);
     audio.playSfx('purifyWave');
     fx.flash('#ffd866', 0.35, 400);
     fx.purifyWave(best.x, best.y, 200);
@@ -1508,7 +1508,7 @@ export class Game {
       });
       this.showHint(
         result === 'purify'
-          ? `净化梗鬼！烂梗化作汉字「${drop}」`
+          ? `净化梗鬼！烂梗化作汉字「${drop}」（慈悲）`
           : `击败梗鬼！掉落汉字碎片「${drop}」`
       );
       audio.playSfx('victory');
@@ -2423,7 +2423,7 @@ export class Game {
     // 道德
     quests.push({
       cat: '倾向',
-      text: `仁慈 ${k.mercy} · 武力 ${k.violence} · 救助 ${k.saved}`,
+      text: `慈悲 ${k.mercy} · 残忍 ${k.violence} · 救助 ${k.saved}`,
       done: false,
     });
     // 刻字

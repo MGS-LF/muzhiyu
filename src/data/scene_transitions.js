@@ -4,7 +4,7 @@
 // flag: 切换后设置的 flag
 // objective: 切换后的目标文案
 export const SCENE_TRANSITIONS = {
-  riverside: { objective: '前往江堤，与守砚对话', dialog: 'street_to_riverside' },
+  riverside: { objective: '在江堤找到守砚', dialog: 'street_to_riverside' },
   street_01: { objective: '捡汉字 → 按 F 补诗净化招牌与失语者' },
   freeze_center: { objective: '返回冷冻中心' },
   subway: {
@@ -19,9 +19,9 @@ export const SCENE_TRANSITIONS = {
     dialog: 'riverside_to_alley',
     dialogCond: 'met_shuyuan',
   },
-  house_a: { objective: '搜刮民居A' },
+  house_a: { objective: '查看屋内旧物，然后离开' },
   house_b: { objective: '清除民居B里的梗鬼' },
-  stadium: { objective: '与守砚对话', dialog: 'alley_to_stadium' },
+  stadium: { objective: '在茧房收集「眠」「处」「风」「少」', dialog: 'alley_to_stadium' },
   ruined_library: {
     objective: '在废图书馆找到方知远的终端',
     dialog: 'chapter5_intro',

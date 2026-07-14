@@ -27,7 +27,7 @@ export const CONTROL_LABELS = {
 export const CONTROL_HINTS = {
   startMenu: [
     `移动：${CONTROL_LABELS.move}，交互：${CONTROL_LABELS.interact}，冲刺：${CONTROL_LABELS.dash}`,
-    `战斗：${CONTROL_LABELS.menuAdjust} 选择攻击/调查/净化/宽恕，${CONTROL_LABELS.confirm} 确认，WASD 躲弹幕，${CONTROL_LABELS.poemUltimate} 诗词大招`,
+    `战斗形态随机：弹幕（${CONTROL_LABELS.menuAdjust} 菜单 + WASD 躲）/ 言锋（空格发字）/ 骇入（射击）；${CONTROL_LABELS.poemUltimate} 大招`,
     `菜单：${CONTROL_LABELS.quest} 任务，${CONTROL_LABELS.inventory} 背包，${CONTROL_LABELS.map} 地图，${CONTROL_LABELS.settings} 设置，${CONTROL_LABELS.system} 系统菜单，${CONTROL_LABELS.quickSave}/${CONTROL_LABELS.quickLoad} 快速存读档`,
   ],
   tutorialKeys: [

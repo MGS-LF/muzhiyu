@@ -426,7 +426,7 @@ export class SlashBattle {
 
     // 提示
     if (this.clarity >= this.clarityMax) {
-      this.hint = 'E · 净化收尾（仁慈） · 或继续打散';
+      this.hint = 'E · 净化收尾（慈悲） · 或继续打散';
     } else {
       const memory = this._memoryChars();
       this.hint = memory.length

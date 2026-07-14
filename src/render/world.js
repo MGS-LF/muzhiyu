@@ -1,6 +1,6 @@
 import { drawLostPerson } from './scenes.js';
 import { roundRect } from './util.js';
-import { W, H } from '../config.js';
+import { W, H, FEATURES } from '../config.js';
 
 // ===== from world.js =====
 // 渲染模块：world
@@ -444,8 +444,10 @@ export const INTERACTABLES_WITH_VISUAL = new Set([
 export function isInteractableVisible(it, game) {
   if (!it) return false;
   if (it._hidden) return false;
-  if (!it._cond) return true;
-  return !!(game && game.flags && game.flags[it._cond]);
+  // 功能开关：如 level3d 关闭时隐藏维度裂隙
+  if (it._feature === 'level3d' && !FEATURES.level3d) return false;
+  if (it._cond) return !!(game && game.flags && game.flags[it._cond]);
+  return true;
 }
 
 export function markerKind(it) {

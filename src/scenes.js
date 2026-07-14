@@ -405,7 +405,7 @@ export const scenes = {
         pollutedLabel: 'YYDS大道',
         cleansedLabel: '关雎路',
         successHint: '诗句补全——招牌上的烂梗碎裂，露出「关雎路」。',
-        failHint: '不是这句《关雎》。墙上的「绝绝子」跳得更响了。',
+        failHint: '不是这句《关雎》。招牌上的「YYDS」跳得更响了。',
         dialogKey: 'utter_meme_wall_done',
       },
       {
@@ -616,8 +616,15 @@ export const scenes = {
         type: 'dialog',
         dialogKey: 'subway_train_window',
       },
-      // 维度裂隙：通往3D深渊关卡的传送点（原"黑暗深处"位置）
-      { id: 'portal_3d', x: 1300, y: 800, label: '维度裂隙', type: 'portal3d' },
+      // 维度裂隙：仅 FEATURES.level3d 开启时显示（主线默认关闭）
+      {
+        id: 'portal_3d',
+        x: 1300,
+        y: 800,
+        label: '已封闭的裂隙',
+        type: 'portal3d',
+        _feature: 'level3d',
+      },
       {
         id: 'subway_depth_door',
         x: 1180,
