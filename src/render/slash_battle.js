@@ -122,17 +122,6 @@ export function drawSlashBattle(ctx, battle, gameTime) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // 引导：嘴 → 玩家
-  if (battle.phase === 'fight' || battle.phase === 'intro') {
-    ctx.strokeStyle = `rgba(100,220,130,${0.1 + mouthOpen * 0.15})`;
-    ctx.setLineDash([5, 9]);
-    ctx.beginPath();
-    ctx.moveTo(ex, ey + 36);
-    ctx.lineTo(px, py - 24);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
   drawGengEnemy(ctx, ex, ey, gameTime, mouthOpen, hpRatio);
 
   for (const s of battle.spitFx || []) {
@@ -185,19 +174,6 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     ctx.fillText(o.char, 0, 0);
     ctx.restore();
   }
-  // 字盾连线（仅 orbit）
-  const orbs = (battle.orbit || []).filter((o) => o.state === 'orbit');
-  if (orbs.length > 1) {
-    ctx.strokeStyle = 'rgba(255,215,140,0.22)';
-    ctx.setLineDash([3, 4]);
-    ctx.beginPath();
-    ctx.moveTo(orbs[0].x, orbs[0].y);
-    for (let i = 1; i < orbs.length; i++) ctx.lineTo(orbs[i].x, orbs[i].y);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
   // 飞字
   for (const w of battle.words || []) {
     if (!w || !Number.isFinite(w.x)) continue;
