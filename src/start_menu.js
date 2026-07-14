@@ -326,7 +326,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
         <h2 class="start-menu__heading">关于游戏</h2>
         <div class="start-menu__about">
           <p>《墓之语》是一款废墟探索与诗词弹幕战斗游戏。你将扮演顾言，在 2147 年的上海废墟中收集散落文字，唤醒失语者，并追寻 Sydney 与方知远留下的记忆。</p>
-          <p>主线：俯视角探索、捡字补诗、净化/唤醒、关键弹幕与多结局。操作以移动、E 交互、F 补诗、战斗攻/净/恕为主。余烬章节与言锋试炼为可选内容。</p>
+          <p>主线：俯视角探索、捡字补诗、江堤横版关卡、弹幕战斗与多结局。余烬章节与言锋试炼为可选内容。</p>
           <ul>
             ${CONTROL_HINTS.startMenu.map((line) => `<li>${line}</li>`).join('')}
           </ul>

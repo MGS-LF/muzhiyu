@@ -392,7 +392,7 @@ export const scenes = {
       motes: { n: 40, color: '255,210,150', speed: 0.3, size: 1.8 },
       fog: 0.6,
     },
-    // 俯视角江堤（主线）；sidescrollLong 开启时由 loadScene 再启横版
+    mode: 'sidescroll', // 江堤横版关卡
 
     walls: [
       { x: 0, y: 0, w: 2000, h: 6 },
@@ -411,34 +411,13 @@ export const scenes = {
       { x: 1620, y: 120, w: 110, h: 200, name: '对岸高楼', collidable: true },
     ],
 
-    enemies: [
-      {
-        id: 'river_geng_1',
-        typeId: 'geng_weak',
-        x: 900,
-        y: 980,
-        hp: 30,
-        maxHp: 30,
-        name: '游荡梗鬼',
-      },
-      {
-        id: 'river_geng_2',
-        typeId: 'geng_weak',
-        x: 1400,
-        y: 1000,
-        hp: 30,
-        maxHp: 30,
-        name: '游荡梗鬼',
-      },
-    ],
-
     interactables: [
       { id: 'shuyuan', x: 400, y: 900, label: '老人', type: 'dialog', dialogKey: 'meet_shuyuan' },
       { id: 'keystone_riverside', x: 700, y: 880, label: '要石', type: 'keystone', text: '记得' },
       {
         id: 'back_street',
-        x: 200,
-        y: 1100,
+        x: 900,
+        y: 1080,
         label: '返回废弃街道',
         type: 'scene_change',
         target: 'street_01',
@@ -459,10 +438,7 @@ export const scenes = {
       },
     ],
 
-    items: [
-      { id: 'page_river_1', x: 1100, y: 950, type: 'page', name: '旧书页' },
-      { id: 'char_river_zhou', x: 600, y: 960, type: 'char_fragment', char: '洲' },
-    ],
+    items: [{ id: 'page_river_1', x: 1100, y: 950, type: 'page', name: '旧书页' }],
 
     spawn: { x: 200, y: 1000 },
   },

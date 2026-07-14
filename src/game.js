@@ -416,8 +416,8 @@ export class Game {
       this._lastAutoSave = performance.now();
       autoSave(this);
     }
-    // 江堤长横版：仅 FEATURES.sidescrollLong 时启动
-    if (this.scene.mode === 'sidescroll' && FEATURES.sidescrollLong) {
+    // 江堤横版模式：进入 riverside 时启动
+    if (this.scene.mode === 'sidescroll') {
       this.sidescroll = new SideScrollLevel(this);
       if (this._pendingSideScroll && typeof this.sidescroll.restoreFromResumeSnapshot === 'function') {
         this.sidescroll.restoreFromResumeSnapshot(this._pendingSideScroll);

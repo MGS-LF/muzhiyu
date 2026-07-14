@@ -248,7 +248,7 @@ export const methods = {
           this.player.inventory.push({ id: 'knife', name: '记忆合金刻刀' });
           this.player.inventory.push({ id: 'poem_guanju', name: '诗词纸片《关雎》' });
           this.showHint('获得：刻刀、诗词纸片《关雎》');
-          this.objective = { text: '沿江堤东行，前往废墟居民区', done: false };
+          this.objective = { text: '穿过江堤，前往废墟居民区', done: false };
           // karma 口风：暴力多 vs 净化/宽恕多
           const k = this.karma || {};
           if ((k.violence || 0) > (k.mercy || 0) + 1) {

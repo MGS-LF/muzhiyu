@@ -22,7 +22,7 @@ export const FEATURES = {
   slashBattle: false, // 已废弃：全部走 UT 弹幕菜单战
   level3d: false, // 主线关闭；调试可改 true
   hacking: false, // 主线关闭；Boss 走 UT 弹幕
-  sidescrollLong: false, // 江堤改俯视角
+  sidescrollLong: true, // 江堤横版关卡
   aiDirector: true,
 };
 
