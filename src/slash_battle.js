@@ -52,7 +52,8 @@ export class SlashBattle {
     // 不再 4~6 倍虚血：一场弱怪约 12~25 秒
     let hpMul = 1.15;
     if (enemy.boss || typeId === 'geng_boss') hpMul = 1.55;
-    else if (typeId === 'geng_medium' || typeId === 'geng_elite' || (baseMax || 0) >= 50) hpMul = 1.35;
+    else if (typeId === 'geng_medium' || typeId === 'geng_elite' || (baseMax || 0) >= 50)
+      hpMul = 1.35;
     const hp = Math.max(18, Math.round(baseHp * mul.enemyHp * ng * hpMul));
     const maxHp = Math.max(hp, Math.round(baseMax * mul.enemyHp * ng * hpMul));
 
@@ -356,7 +357,10 @@ export class SlashBattle {
       w.life -= dt;
       if (w.hitFlash > 0) w.hitFlash -= dt;
 
-      if (this.invuln <= 0 && Math.hypot(w.x - this.px, w.y - this.py) < L.guardR + (w.r || 16) * 0.45) {
+      if (
+        this.invuln <= 0 &&
+        Math.hypot(w.x - this.px, w.y - this.py) < L.guardR + (w.r || 16) * 0.45
+      ) {
         this.hitPlayer(w);
         this.words.splice(i, 1);
         continue;

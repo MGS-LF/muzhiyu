@@ -488,7 +488,9 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, Math.min(skyH, H));
 
   // 杩滄櫙澶╅檯绾?
-  const tallBuildings = scene._groupedProps ? (scene._groupedProps['高楼'] || []) : scene.props.filter((p) => p.name === '高楼');
+  const tallBuildings = scene._groupedProps
+    ? scene._groupedProps['高楼'] || []
+    : scene.props.filter((p) => p.name === '高楼');
   for (const b of tallBuildings) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#2a2826';
@@ -624,13 +626,17 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   }
 
   // 搴熷純杞﹁締
-  const abandonedCars = scene._groupedProps ? (scene._groupedProps['废弃车辆'] || []) : scene.props.filter((p) => p.name === '废弃车辆');
+  const abandonedCars = scene._groupedProps
+    ? scene._groupedProps['废弃车辆'] || []
+    : scene.props.filter((p) => p.name === '废弃车辆');
   for (const car of abandonedCars) {
     drawAbandonedCar(ctx, W2S, car, gameTime);
   }
 
   // 碎石堆
-  const subwayRubble = scene._groupedProps ? (scene._groupedProps['碎石堆'] || []) : scene.props.filter((p) => p.name === '碎石堆');
+  const subwayRubble = scene._groupedProps
+    ? scene._groupedProps['碎石堆'] || []
+    : scene.props.filter((p) => p.name === '碎石堆');
   for (const rubble of subwayRubble) {
     drawRubble(ctx, W2S, rubble);
   }
@@ -1137,7 +1143,9 @@ export function drawSubway(ctx, W2S, scene, gameTime, game) {
   }
 
   // 搴熷純鍒楄溅杞﹀帰
-  const trainCars = scene._groupedProps ? (scene._groupedProps['列车车厢'] || []) : scene.props.filter((p) => p.name === '列车车厢');
+  const trainCars = scene._groupedProps
+    ? scene._groupedProps['列车车厢'] || []
+    : scene.props.filter((p) => p.name === '列车车厢');
   for (const car of trainCars) {
     const s = W2S(car.x + car.w / 2, car.y + car.h / 2);
     // 闃村奖
@@ -1223,7 +1231,9 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 杩滄櫙楂樻ゼ
-  const alleyBuildings = scene._groupedProps ? (scene._groupedProps['高楼'] || []) : scene.props.filter((p) => p.name === '高楼');
+  const alleyBuildings = scene._groupedProps
+    ? scene._groupedProps['高楼'] || []
+    : scene.props.filter((p) => p.name === '高楼');
   for (const b of alleyBuildings) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#1a1612';
@@ -1257,7 +1267,9 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 姘戝眳寤虹瓚
-  const minjuProps = scene._groupedProps ? (scene._groupedProps['民居'] || []) : scene.props.filter((p) => p.name && p.name.includes('民居'));
+  const minjuProps = scene._groupedProps
+    ? scene._groupedProps['民居'] || []
+    : scene.props.filter((p) => p.name && p.name.includes('民居'));
   for (const b of minjuProps) {
     const s = W2S(b.x, b.y);
     // 灞嬮《
@@ -1283,13 +1295,18 @@ export function drawAlley(ctx, W2S, scene, gameTime, game) {
   }
 
   // 碎石堆
-  const rubbleProps = scene._groupedProps ? (scene._groupedProps['碎石堆'] || []) : scene.props.filter((p) => p.name === '碎石堆');
+  const rubbleProps = scene._groupedProps
+    ? scene._groupedProps['碎石堆'] || []
+    : scene.props.filter((p) => p.name === '碎石堆');
   for (const r of rubbleProps) {
     drawRubble(ctx, W2S, r);
   }
 
   // 搴熷純鑺卞潧
-  const planter = scene._groupedProps && scene._groupedProps['废弃花坛'] ? scene._groupedProps['废弃花坛'][0] : scene.props.find((p) => p.name === '废弃花坛');
+  const planter =
+    scene._groupedProps && scene._groupedProps['废弃花坛']
+      ? scene._groupedProps['废弃花坛'][0]
+      : scene.props.find((p) => p.name === '废弃花坛');
   if (planter) {
     const s = W2S(planter.x, planter.y);
     ctx.fillStyle = '#3a3020';
@@ -1351,7 +1368,9 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 妗屽瓙
-  const tableProps = scene._groupedProps ? (scene._groupedProps['桌子'] || []) : scene.props.filter((p) => p.name === '桌子');
+  const tableProps = scene._groupedProps
+    ? scene._groupedProps['桌子'] || []
+    : scene.props.filter((p) => p.name === '桌子');
   for (const t of tableProps) {
     const s = W2S(t.x, t.y);
     ctx.fillStyle = '#4a3020';
@@ -1364,7 +1383,9 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 鏃ф敹闊虫満
-  const radioProps = scene._groupedProps ? (scene._groupedProps['收音机'] || []) : scene.props.filter((p) => p.name === '收音机');
+  const radioProps = scene._groupedProps
+    ? scene._groupedProps['收音机'] || []
+    : scene.props.filter((p) => p.name === '收音机');
   for (const r of radioProps) {
     const s = W2S(r.x, r.y);
     ctx.fillStyle = '#1b1712';
@@ -1386,7 +1407,9 @@ export function drawHouse(ctx, W2S, scene, gameTime, game) {
   }
 
   // 涔︽灦
-  const bookshelfProps = scene._groupedProps ? (scene._groupedProps['书架'] || []) : scene.props.filter((p) => p.name === '书架');
+  const bookshelfProps = scene._groupedProps
+    ? scene._groupedProps['书架'] || []
+    : scene.props.filter((p) => p.name === '书架');
   for (const b of bookshelfProps) {
     const s = W2S(b.x, b.y);
     ctx.fillStyle = '#3a2010';
@@ -1473,7 +1496,9 @@ export function drawStadium(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 灞忓箷澧欙紙鍙戝厜锛?
-  const screenWalls = scene._groupedProps ? (scene._groupedProps['屏幕墙'] || []) : scene.props.filter((p) => p.name === '屏幕墙');
+  const screenWalls = scene._groupedProps
+    ? scene._groupedProps['屏幕墙'] || []
+    : scene.props.filter((p) => p.name === '屏幕墙');
   const useReduced = game && game.settings && game.settings.reducedFx;
   for (const p of screenWalls) {
     const s = W2S(p.x, p.y);
@@ -1511,7 +1536,9 @@ export function drawDataCenter(ctx, W2S, scene, gameTime, game) {
   ctx.fillRect(0, 0, W, H);
 
   // 娣辨笂锛堜袱渚э級
-  const abyssProps = scene._groupedProps ? (scene._groupedProps['深渊'] || []) : scene.props.filter((p) => p.name === '深渊');
+  const abyssProps = scene._groupedProps
+    ? scene._groupedProps['深渊'] || []
+    : scene.props.filter((p) => p.name === '深渊');
   for (const p of abyssProps) {
     const s = W2S(p.x, p.y);
     // 鏃嬭浆鐨勮櫄鏃?
@@ -1755,4 +1782,3 @@ export function drawGenericScene(ctx, W2S, scene, gameTime, game) {
     }
   }
 }
-

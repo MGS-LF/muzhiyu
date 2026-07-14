@@ -44,7 +44,9 @@ function snapshot(game) {
     difficultyId: game.difficultyId || 'normal',
     settings: game.settings ? { ...game.settings } : null,
     newGamePlus: !!game.flags.new_game_plus,
-    clearedEndings: Array.isArray(game.clearedEndings) ? Array.from(new Set(game.clearedEndings)) : [],
+    clearedEndings: Array.isArray(game.clearedEndings)
+      ? Array.from(new Set(game.clearedEndings))
+      : [],
     explored: minimap.snapshotExplored(),
     storyState: normalizeStoryState(game.storyState || createEmptyStoryState()),
   };
@@ -215,7 +217,8 @@ export function restore(game, snap) {
     game.converse = null;
     game.sidescroll = null;
     game.level3d = null;
-    game._pendingSideScroll = snap.runtime && snap.runtime.sidescroll ? snap.runtime.sidescroll : null;
+    game._pendingSideScroll =
+      snap.runtime && snap.runtime.sidescroll ? snap.runtime.sidescroll : null;
     game.combat.bullets = [];
     game.combat.particles = [];
     game.combat.dead = false;
@@ -269,7 +272,8 @@ export const SAVE_SLOTS = SLOT_COUNT;
 export function loadMeta() {
   try {
     const raw = localStorage.getItem(META_KEY);
-    if (!raw) return { clearCount: 0, lastEnding: null, lastKarma: null, clearedEndings: [], updatedAt: 0 };
+    if (!raw)
+      return { clearCount: 0, lastEnding: null, lastKarma: null, clearedEndings: [], updatedAt: 0 };
     const meta = JSON.parse(raw);
     return {
       clearCount: Math.max(0, Number(meta.clearCount || 0)),
@@ -291,7 +295,9 @@ export function recordClear(game, ending) {
       clearCount: prev.clearCount + 1,
       lastEnding: endingId,
       lastKarma: { ...game.karma },
-      clearedEndings: Array.from(new Set([...(prev.clearedEndings || []), endingId].filter(Boolean))),
+      clearedEndings: Array.from(
+        new Set([...(prev.clearedEndings || []), endingId].filter(Boolean))
+      ),
       updatedAt: Date.now(),
     };
     localStorage.setItem(META_KEY, JSON.stringify(meta));

@@ -119,7 +119,9 @@ export function drawInteractHints(ctx, W2S, scene, player, collected, gameTime, 
     const isWall =
       isPurify &&
       (it.purifyKind === 'meme_wall' ||
-        /墙|招牌|路牌|梗/.test((it.purifyKind || '') + (it.label || '') + (it.pollutedLabel || '')));
+        /墙|招牌|路牌|梗/.test(
+          (it.purifyKind || '') + (it.label || '') + (it.pollutedLabel || '')
+        ));
 
     // 环：净化物抬高，避免盖住招牌/气泡
     const ringY = isWall ? s.y - 8 : s.y;
@@ -181,7 +183,10 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
     const pulse = 0.5 + Math.sin(gameTime * 0.004 + it.x * 0.01) * 0.3;
     const kind = it.purifyKind || '';
 
-    if (kind === 'meme_wall' || /墙|招牌|路牌|梗/.test(kind + (it.label || '') + (it.pollutedLabel || ''))) {
+    if (
+      kind === 'meme_wall' ||
+      /墙|招牌|路牌|梗/.test(kind + (it.label || '') + (it.pollutedLabel || ''))
+    ) {
       const text = done
         ? it.cleansedLabel || it.label || '正名'
         : it.pollutedLabel || it.label || '梗';
@@ -275,26 +280,32 @@ export function drawPurifyProps(ctx, W2S, scene, game, gameTime) {
       const bubbleText = done
         ? it.cleansedLabel || '…'
         : it.pollutedSpeech || it.pollutedLabel || '…';
-      ctx.font = '11px serif';
-      const bw = Math.min(130, Math.max(40, ctx.measureText(bubbleText).width + 16));
+      ctx.font = 'bold 11px serif';
+      const maxSpeechW = 120; // 限制气泡最大宽度以防字超出
+      const textWidth = ctx.measureText(bubbleText).width;
+      const bw = Math.min(maxSpeechW, Math.max(40, textWidth + 16));
       const bx = s.x - bw / 2;
       const by = s.y - 42;
       const bh = 18;
-      ctx.fillStyle = done ? 'rgba(20,16,10,0.88)' : 'rgba(12,20,14,0.9)';
-      roundRect(ctx, bx, by, bw, bh, 4);
-      ctx.fill();
-      ctx.strokeStyle = done
-        ? 'rgba(224,178,98,0.55)'
-        : `rgba(80,200,100,${0.5 + pulse * 0.28})`;
+      ctx.fillStyle = done ? 'rgba(7, 8, 10, 0.95)' : 'rgba(20, 22, 26, 0.95)';
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeStyle = done ? 'rgba(0, 240, 255, 0.6)' : `rgba(211, 54, 54, ${0.5 + pulse * 0.28})`;
       ctx.lineWidth = 1;
-      roundRect(ctx, bx, by, bw, bh, 4);
-      ctx.stroke();
+      ctx.strokeRect(bx, by, bw, bh);
       ctx.fillStyle = done
-        ? `rgba(255,220,140,${0.85 + pulse * 0.15})`
-        : `rgba(155,240,165,${0.9 + pulse * 0.1})`;
+        ? `rgba(0, 240, 255, ${0.85 + pulse * 0.15})`
+        : `rgba(235, 230, 220, ${0.9 + pulse * 0.1})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(bubbleText, s.x, by + bh / 2 + 1); // 文本垂直视觉居中微调
+      
+      let drawText = bubbleText;
+      if (textWidth > maxSpeechW - 12) {
+        while (drawText.length > 2 && ctx.measureText(drawText + '…').width > maxSpeechW - 12) {
+          drawText = drawText.slice(0, -1);
+        }
+        drawText += '…';
+      }
+      ctx.fillText(drawText, s.x, by + bh / 2 + 1); // 文本垂直视觉居中微调
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
     }

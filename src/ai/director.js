@@ -17,7 +17,14 @@ export function directorEnabled() {
   return !!(FEATURES.aiDirector && AI.llm);
 }
 
-const DREAM_KEYS = ['afterMercy', 'afterViolence', 'keystoneMercy', 'keystoneViolence', 'wakeMercy', 'wakeViolence'];
+const DREAM_KEYS = [
+  'afterMercy',
+  'afterViolence',
+  'keystoneMercy',
+  'keystoneViolence',
+  'wakeMercy',
+  'wakeViolence',
+];
 const DREAM_SPEAKERS = new Set(['系统', '顾言', '陌生女声', '失语者', '要石', '旧广播']);
 
 function sanitizeDreamLines(lines) {
@@ -230,7 +237,8 @@ function sanitizeStoryDelta(d) {
   if (d.npcAttitude && typeof d.npcAttitude === 'object') {
     out.npcAttitude = {};
     for (const [k, v] of Object.entries(d.npcAttitude)) {
-      if (typeof v === 'number') out.npcAttitude[String(k).slice(0, 24)] = Math.max(-5, Math.min(5, v));
+      if (typeof v === 'number')
+        out.npcAttitude[String(k).slice(0, 24)] = Math.max(-5, Math.min(5, v));
     }
   }
   if (typeof d.historyAdd === 'string') out.historyAdd = d.historyAdd.slice(0, 120);
@@ -327,7 +335,9 @@ export function tingyuTurnPolicy(turn, minTurns = 3, maxTurns = 8) {
 }
 
 export function tingyuFallbackEpilogue(game, end, playerInput = '') {
-  const words = String(playerInput || '').trim().slice(0, 36);
+  const words = String(playerInput || '')
+    .trim()
+    .slice(0, 36);
   const engraving = game?.engravings?.length
     ? game.engravings[game.engravings.length - 1].text
     : null;
@@ -344,11 +354,7 @@ export function tingyuFallbackEpilogue(game, end, playerInput = '') {
 export async function tingyuReply(game, history, playerInput, turnOptions = {}) {
   if (!AI.llm) throw new Error('LLM 不可用');
   const journey = journeySummary(game);
-  const policy = tingyuTurnPolicy(
-    turnOptions.turn,
-    turnOptions.minTurns,
-    turnOptions.maxTurns
-  );
+  const policy = tingyuTurnPolicy(turnOptions.turn, turnOptions.minTurns, turnOptions.maxTurns);
   const msgs = [
     { role: 'system', content: TINGYU_SYS },
     {
@@ -369,19 +375,22 @@ export async function tingyuReply(game, history, playerInput, turnOptions = {}) 
   if (policy.mustConclude) {
     msgs.push({
       role: 'system',
-      content: '【系统】对话需要收束了。请在本次回应里给出 end 与 epilogue，并点出至少一条玩家线索或选择。',
+      content:
+        '【系统】对话需要收束了。请在本次回应里给出 end 与 epilogue，并点出至少一条玩家线索或选择。',
     });
   }
   const obj = await callLLM(msgs, { json: true, temperature: 0.88, max_tokens: 700 });
-  const reply = obj && typeof obj.reply === 'string' && obj.reply.trim()
-    ? obj.reply.trim().slice(0, 280)
-    : '……';
+  const reply =
+    obj && typeof obj.reply === 'string' && obj.reply.trim()
+      ? obj.reply.trim().slice(0, 280)
+      : '……';
   let end = obj && obj.end;
   if (end !== 'fire' && end !== 'silence' && end !== 'burnout') end = null;
   if (!policy.allowEnd) end = null;
-  const epilogue = end && obj && typeof obj.epilogue === 'string' && obj.epilogue.trim()
-    ? obj.epilogue.trim().slice(0, 800)
-    : null;
+  const epilogue =
+    end && obj && typeof obj.epilogue === 'string' && obj.epilogue.trim()
+      ? obj.epilogue.trim().slice(0, 800)
+      : null;
   return { reply, end, epilogue };
 }
 

@@ -232,7 +232,8 @@ export const methods = {
     };
 
     // 逐步开门（注意：开门条件要比「到达该房间」略宽，避免卡在门外）
-    if (['collect', 'wall3', 'battle', 'wall4', 'wall5', 'wake_gate'].includes(step)) doors.a = true;
+    if (['collect', 'wall3', 'battle', 'wall4', 'wall5', 'wake_gate'].includes(step))
+      doors.a = true;
     // 字齐后即可进「三战场」墙；不必等 step 先变成 wall3
     if (
       ['wall3', 'battle', 'wall4', 'wall5', 'wake_gate'].includes(step) ||
@@ -382,9 +383,7 @@ export const methods = {
       this.objective = {
         text: '拾取发光的字：言、语',
         done: false,
-        target: nearestChar()
-          ? { x: nearestChar().x, y: nearestChar().y }
-          : { x: 630, y: 250 },
+        target: nearestChar() ? { x: nearestChar().x, y: nearestChar().y } : { x: 630, y: 250 },
         progress: {
           title: '梦境·句子',
           chars: NEED_CHARS.map((c) => ({ c, have: hasChar(this, c) })),
@@ -565,8 +564,12 @@ export const methods = {
       if (n < DREAM_ENEMY_IDS.length) {
         this._dreamApplyWorld();
         this._dreamRefreshObjective();
-        const nextName = n === 1 ? '言锋形态：墨刃无限，记忆字会强化攻击。' : '骇入形态：击破噪声节点并保持移动。';
-        this.showHint(result === 'lose' ? `梦境托住了你。继续：${nextName}` : `形态破裂。下一重：${nextName}`, result === 'lose' ? 'warn' : 'success');
+        const nextName =
+          n === 1 ? '言锋形态：墨刃无限，记忆字会强化攻击。' : '骇入形态：击破噪声节点并保持移动。';
+        this.showHint(
+          result === 'lose' ? `梦境托住了你。继续：${nextName}` : `形态破裂。下一重：${nextName}`,
+          result === 'lose' ? 'warn' : 'success'
+        );
         return;
       }
 

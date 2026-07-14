@@ -44,7 +44,10 @@ export function normalizeStoryState(raw) {
     }
   }
   if (Array.isArray(raw.history)) {
-    base.history = raw.history.map((h) => String(h).slice(0, 120)).filter(Boolean).slice(-20);
+    base.history = raw.history
+      .map((h) => String(h).slice(0, 120))
+      .filter(Boolean)
+      .slice(-20);
   }
   if (Array.isArray(raw.branchTags)) {
     base.branchTags = [...new Set(raw.branchTags.map((t) => String(t).slice(0, 32)))].slice(-24);
@@ -53,7 +56,9 @@ export function normalizeStoryState(raw) {
     for (const [k, msgs] of Object.entries(raw.branchHistory)) {
       if (!Array.isArray(msgs)) continue;
       base.branchHistory[String(k).slice(0, 40)] = msgs
-        .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .filter(
+          (m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string'
+        )
         .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }))
         .slice(-8);
     }
@@ -143,9 +148,7 @@ export function applyStoryDelta(game, delta) {
 
 export function storyStateSummary(game) {
   const st = ensureStoryState(game);
-  const clues = st.clues.length
-    ? st.clues.map((c) => c.label || c.id).join('；')
-    : '无';
+  const clues = st.clues.length ? st.clues.map((c) => c.label || c.id).join('；') : '无';
   const att = Object.keys(st.npcAttitude).length
     ? Object.entries(st.npcAttitude)
         .map(([n, v]) => `${n}:${v > 0 ? '+' : ''}${v}`)

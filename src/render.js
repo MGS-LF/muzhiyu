@@ -192,7 +192,8 @@ export function render(game, gameTime) {
   if (tutorial) drawTutorial(ctx, gameTime, tutorial);
 
   if (game.aiThinking) drawThinking(ctx, gameTime, game.aiThinkingText, game);
-  if (game._uiOverlay) drawThinking(ctx, gameTime, game._uiOverlay.text || game._uiOverlay.kind, game);
+  if (game._uiOverlay)
+    drawThinking(ctx, gameTime, game._uiOverlay.text || game._uiOverlay.kind, game);
 
   // 组句面板（探索 overlay，盖在 HUD 之上）
   if (game.utteranceState) {
@@ -274,5 +275,3 @@ export function render(game, gameTime) {
   // 瀛樻。鑿滃崟
   if (game._saveMenu) drawSaveMenu(ctx, game, gameTime);
 }
-
-

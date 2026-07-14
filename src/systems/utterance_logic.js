@@ -98,6 +98,12 @@ export function buildPool(collectedAll, target) {
   const blanks = getBlanks(target);
   // 保证空缺字若已收集则出现在池中（unique 已处理）
   const distractors = (target && target.distractors) || [];
-  const extra = uniqueCharsFrom(distractors.filter((c) => base.includes(c) || (collectedAll || []).includes(c)));
-  return uniqueCharsFrom([...base, ...extra, ...blanks.filter((c) => (collectedAll || []).includes(c))]);
+  const extra = uniqueCharsFrom(
+    distractors.filter((c) => base.includes(c) || (collectedAll || []).includes(c))
+  );
+  return uniqueCharsFrom([
+    ...base,
+    ...extra,
+    ...blanks.filter((c) => (collectedAll || []).includes(c)),
+  ]);
 }

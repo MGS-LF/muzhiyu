@@ -270,12 +270,26 @@ export class Game {
   _settingsRows() {
     const def = difficulty.getDifficultyDef(this.difficultyId);
     const rate = Number(this.settings.playbackRate) || 1;
-    const rateLabel = rate === 0.75 ? '0.75×' : rate === 1.25 ? '1.25×' : rate === 1.5 ? '1.5×' : rate === 2 ? '2×' : '1×';
+    const rateLabel =
+      rate === 0.75
+        ? '0.75×'
+        : rate === 1.25
+          ? '1.25×'
+          : rate === 1.5
+            ? '1.5×'
+            : rate === 2
+              ? '2×'
+              : '1×';
     return [
       {
         id: 'dialogSpeed',
         label: '对话速度',
-        value: this.settings.dialogSpeed === 'fast' ? '快' : this.settings.dialogSpeed === 'slow' ? '慢' : '标准',
+        value:
+          this.settings.dialogSpeed === 'fast'
+            ? '快'
+            : this.settings.dialogSpeed === 'slow'
+              ? '慢'
+              : '标准',
       },
       {
         id: 'playbackRate',
@@ -442,7 +456,10 @@ export class Game {
     // 江堤横版模式：进入 riverside 时启动
     if (this.scene.mode === 'sidescroll') {
       this.sidescroll = new SideScrollLevel(this);
-      if (this._pendingSideScroll && typeof this.sidescroll.restoreFromResumeSnapshot === 'function') {
+      if (
+        this._pendingSideScroll &&
+        typeof this.sidescroll.restoreFromResumeSnapshot === 'function'
+      ) {
         this.sidescroll.restoreFromResumeSnapshot(this._pendingSideScroll);
         this._pendingSideScroll = null;
       }
@@ -698,7 +715,7 @@ export class Game {
         text = '在茧房迷宫收集「眠」「处」「风」「少」';
         target = point(nearestChar(need)) || point(it('keystone_stadium'));
       } else if (!this.solvedPuzzles.has('zhengqi')) {
-        text = '点亮熄灭的诗屏，削弱茧房推荐屏障'
+        text = '点亮熄灭的诗屏，削弱茧房推荐屏障';
         target = point(it('light_screen'));
       } else if (!this.defeatedEnemies.has('stadium_geng_1')) {
         text = '侵入算法茧房·推荐之核';
@@ -906,7 +923,12 @@ export class Game {
 
     if (this.endless && !this.battle) {
       if (this.endless.state === 'gameover') {
-        if (input.wasPressed('escape') || input.wasPressed('e') || input.wasPressed(' ') || input.wasPressed('enter')) {
+        if (
+          input.wasPressed('escape') ||
+          input.wasPressed('e') ||
+          input.wasPressed(' ') ||
+          input.wasPressed('enter')
+        ) {
           this.endless.quit();
         }
         return;
@@ -1037,7 +1059,8 @@ export class Game {
       // 将打字机更新计时器移动至 update 循环中，使用实际帧耗时 dt 代替硬编码的 16ms
       if (!d.done && node.t !== undefined) {
         d.charTimer += dt;
-        const typeInterval = typeof this.dialogTypeInterval === 'function' ? this.dialogTypeInterval() : 25;
+        const typeInterval =
+          typeof this.dialogTypeInterval === 'function' ? this.dialogTypeInterval() : 25;
         if (d.charTimer > typeInterval) {
           d.charTimer = 0;
           d.charIdx++;
@@ -1372,7 +1395,14 @@ export class Game {
   // 战斗系统
   // ============================================
   startEndlessMode() {
-    if (this.battle || this.dialogState || this.compose || this.converse || this.level3d || this.sidescroll) {
+    if (
+      this.battle ||
+      this.dialogState ||
+      this.compose ||
+      this.converse ||
+      this.level3d ||
+      this.sidescroll
+    ) {
       return false;
     }
     this.endless = new EndlessMode(this);
@@ -1513,7 +1543,8 @@ export class Game {
       );
       audio.playSfx('victory');
       fx.flash('#ffd866', 0.3, 300);
-      if (result === 'purify') fx.purifyWave(enemy.x || this.player.x, enemy.y || this.player.y, 320);
+      if (result === 'purify')
+        fx.purifyWave(enemy.x || this.player.x, enemy.y || this.player.y, 320);
       // 检查集齐
       const haveZhou = this.player.collectedCharsAll.filter((c) => c === '洲').length;
       const haveQiu = this.player.collectedCharsAll.filter((c) => c === '逑').length;
@@ -1891,9 +1922,13 @@ export class Game {
           if (step !== 'battle' && step !== 'wall4') return;
           if (!this.flags.onboarding_battle_intro_done) {
             this.flags.onboarding_battle_intro_done = true;
-            this.startDialog(DIALOGS.onboarding_battle_intro || DIALOGS.first_geng_intro, '', () => {
-              this.startBattle(e);
-            });
+            this.startDialog(
+              DIALOGS.onboarding_battle_intro || DIALOGS.first_geng_intro,
+              '',
+              () => {
+                this.startBattle(e);
+              }
+            );
             return;
           }
           this.startBattle(e);
@@ -2107,7 +2142,8 @@ export class Game {
     if ((this.karma && this.karma.violence) > 0) missing.push('全程宽恕');
     const requiredPuzzles = Object.keys(PUZZLES).filter((id) => !id.startsWith('cure_'));
     const unsolved = requiredPuzzles.filter((id) => !this.solvedPuzzles.has(id));
-    if (unsolved.length) missing.push(`关键诗词 ${this.solvedPuzzles.size}/${requiredPuzzles.length}`);
+    if (unsolved.length)
+      missing.push(`关键诗词 ${this.solvedPuzzles.size}/${requiredPuzzles.length}`);
     if (!this.flags.all_memory_shards) missing.push('三枚记忆碎片');
     if (!this.flags.all_diaries && (!this.player.diaries || this.player.diaries.size < 6))
       missing.push(`方知远日记 ${(this.player.diaries && this.player.diaries.size) || 0}/6`);
@@ -2156,9 +2192,7 @@ export class Game {
     }
     this._uiOverlay = {
       kind,
-      text:
-        text ||
-        (kind === 'loading' ? '加载中…' : kind === 'thinking' ? '正在思考' : ''),
+      text: text || (kind === 'loading' ? '加载中…' : kind === 'thinking' ? '正在思考' : ''),
     };
   }
 
@@ -2483,7 +2517,10 @@ export class Game {
   }
 
   _allVillagersCured() {
-    return !!this.flags.all_villagers_cured || VILLAGER_CURE_IDS.every((id) => this.completedQuests.has(id));
+    return (
+      !!this.flags.all_villagers_cured ||
+      VILLAGER_CURE_IDS.every((id) => this.completedQuests.has(id))
+    );
   }
 
   _refreshDerivedProgress() {

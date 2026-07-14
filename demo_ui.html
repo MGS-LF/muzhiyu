@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《墓之语》新 UI 视觉预览单页</title>
+<style>
+  :root {
+    --bg-dark: #07080a;
+    --ink-white: #e2ded5;
+    --cyan-ai: #00f0ff;
+    --scarlet-warn: #d33636;
+    --cement-gray: #5e636b;
+    --warm-gold: #d99b42;
+    --gold-dim: rgba(217, 155, 66, 0.15);
+    --gold-border: rgba(217, 155, 66, 0.4);
+    --panel-border: rgba(94, 99, 107, 0.35);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #030405;
+    color: var(--ink-white);
+    font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 24px;
+    overflow-x: hidden;
+    font-weight: bold;
+  }
+
+  .title-area {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .title-area h1 {
+    font-size: 24px;
+    letter-spacing: 0.3em;
+    color: var(--warm-gold);
+    margin-bottom: 8px;
+    font-weight: normal;
+  }
+
+  .title-area p {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--cement-gray);
+    letter-spacing: 1px;
+  }
+
+  /* 模拟 1200x760 的游戏区域 */
+  .game-container {
+    position: relative;
+    width: 1200px;
+    height: 760px;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--cement-gray);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    overflow: hidden;
+  }
+
+  /* 扫描线效果 */
+  .game-container::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 1000;
+    background-size: 100% 3px, 6px 100%;
+    pointer-events: none;
+  }
+
+  /* 闪烁像素点 & 环境微光 */
+  .ambient-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* === DOM HUD UI === */
+  .hud-panel {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 280px;
+    background: rgba(7, 8, 10, 0.85);
+    border: 1px solid var(--panel-border);
+    padding: 12px;
+    z-index: 10;
+  }
+
+  .hud-header {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--cement-gray);
+    border-bottom: 1px dashed var(--panel-border);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .sanity-bar-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .sanity-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--ink-white);
+    margin-right: 10px;
+    width: 36px;
+  }
+
+  .sanity-track {
+    flex-grow: 1;
+    height: 8px;
+    background: #14171d;
+    border: 1px solid rgba(226, 222, 213, 0.2);
+    position: relative;
+  }
+
+  .sanity-fill {
+    height: 100%;
+    background-color: var(--cyan-ai);
+    width: 70%;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  }
+
+  .sanity-val {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--ink-white);
+    margin-left: 10px;
+  }
+
+  .word-ammo {
+    margin-top: 8px;
+  }
+
+  .ammo-title {
+    font-size: 11px;
+    color: var(--cement-gray);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ammo-slots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .ammo-slot {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--panel-border);
+    background: rgba(20, 22, 26, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--warm-gold);
+  }
+
+  .ammo-slot.empty {
+    border-style: dashed;
+    color: transparent;
+  }
+
+  /* === 对话框 === */
+  .dialog-box {
+    position: absolute;
+    bottom: 20px;
+    left: 40px;
+    right: 40px;
+    height: 140px;
+    background: rgba(7, 8, 10, 0.98);
+    border: 1px solid var(--panel-border);
+    z-index: 10;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .dialog-box::before {
+    content: "┌";
+    position: absolute;
+    top: -1px; left: -1px;
+    color: var(--cement-gray);
+    font-family: monospace;
+  }
+  .dialog-box::after {
+    content: "┘";
+    position: absolute;
+    bottom: -1px; right: -1px;
+    color: var(--cement-gray);
+    font-family: monospace;
+  }
+
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(94, 99, 107, 0.2);
+    padding-bottom: 6px;
+  }
+
+  .dialog-speaker {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--cyan-ai);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+  }
+
+  .dialog-speaker::before {
+    content: "◆";
+    font-size: 10px;
+    margin-right: 6px;
+    color: var(--cyan-ai);
+    animation: blink 1s infinite steps(1);
+  }
+
+  .dialog-meta {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--cement-gray);
+  }
+
+  .dialog-body {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.8;
+    color: var(--ink-white);
+    padding-top: 8px;
+    flex-grow: 1;
+    letter-spacing: 1px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--cement-gray);
+  }
+
+  .dialog-footer span {
+    animation: blink-soft 2s infinite ease-in-out;
+  }
+
+  /* === 补诗弹窗 (Utterance) === */
+  .utterance-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    width: 600px;
+    background: rgba(7, 8, 10, 0.98);
+    border: 2px solid var(--panel-border);
+    z-index: 20;
+    padding: 24px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9);
+  }
+
+  .utterance-title {
+    text-align: center;
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--warm-gold);
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .utterance-title::before, .utterance-title::after {
+    content: " ── ";
+    color: var(--cement-gray);
+    font-family: monospace;
+  }
+
+  .utterance-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: var(--cement-gray);
+    margin-bottom: 24px;
+  }
+
+  .cloze-sentence {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 30px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .cloze-word {
+    color: var(--ink-white);
+  }
+
+  .cloze-blank {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--cement-gray);
+    background: rgba(20, 22, 26, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--warm-gold);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cloze-blank.active {
+    border-color: var(--cyan-ai);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+  }
+
+  .cloze-blank.filled {
+    border-color: var(--warm-gold);
+    background: rgba(217, 155, 66, 0.1);
+  }
+
+  .candidate-pool-title {
+    font-size: 11px;
+    color: var(--cement-gray);
+    margin-bottom: 10px;
+    border-top: 1px dashed var(--panel-border);
+    padding-top: 12px;
+  }
+
+  .candidate-pool {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .candidate-chip {
+    padding: 8px 16px;
+    border: 1px solid var(--panel-border);
+    background: rgba(15, 17, 20, 0.9);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--ink-white);
+    transition: all 0.15s;
+  }
+
+  .candidate-chip:hover {
+    border-color: var(--warm-gold);
+    color: var(--warm-gold);
+    background: var(--gold-dim);
+  }
+
+  .candidate-chip.selected {
+    border-color: var(--cyan-ai);
+    color: var(--cyan-ai);
+    background: rgba(0, 240, 255, 0.1);
+  }
+
+  .utterance-tips {
+    text-align: center;
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--cement-gray);
+  }
+
+  /* === 场景地图 / 节点信息 (右上角) === */
+  .location-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    background: rgba(7, 8, 10, 0.85);
+    border: 1px solid var(--panel-border);
+    padding: 12px;
+    z-index: 10;
+  }
+
+  .loc-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--warm-gold);
+    margin-bottom: 6px;
+  }
+
+  .loc-stat {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--cement-gray);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .loc-stat span.value {
+    color: var(--ink-white);
+  }
+
+  .loc-flame {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--cement-gray);
+  }
+
+  .flame-icon {
+    width: 12px;
+    height: 12px;
+    background: var(--cyan-ai);
+    box-shadow: 0 0 6px var(--cyan-ai);
+    transform: rotate(45deg);
+    animation: flame-pulse 1.5s infinite ease-in-out;
+  }
+
+  /* === 动画效果 === */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes blink-soft {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes flame-pulse {
+    0%, 100% { transform: rotate(45deg) scale(0.9); opacity: 0.8; }
+    50% { transform: rotate(45deg) scale(1.2); opacity: 1; box-shadow: 0 0 10px var(--cyan-ai); }
+  }
+
+  /* 悬浮控制面板 */
+  .control-info {
+    margin-top: 20px;
+    width: 1200px;
+    border: 1px dashed var(--cement-gray);
+    padding: 16px;
+    background: #090b0d;
+  }
+
+  .control-info h3 {
+    font-size: 14px;
+    color: var(--warm-gold);
+    margin-bottom: 8px;
+  }
+
+  .control-info p {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--cement-gray);
+    line-height: 1.6;
+  }
+
+  /* 返回连接 */
+  .back-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    border: 1px solid var(--warm-gold);
+    background: transparent;
+    color: var(--warm-gold);
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .back-btn:hover {
+    background: var(--warm-gold);
+    color: #000;
+  }
+</style>
+</head>
+<body>
+
+<div class="title-area">
+  <h1>《墓之语》UI 重塑方案预览</h1>
+  <p>CONCEPT DESIGN: CYBER-INK & RUINED MONOSPACE // 2147.SHANGHAI</p>
+</div>
+
+<!-- 游戏容器 -->
+<div class="game-container">
+  <div class="ambient-glow"></div>
+
+  <!-- HUD 状态面板 -->
+  <div class="hud-panel">
+    <div class="hud-header">
+      <span>UNIT_SYS.01 // 顾言</span>
+      <span style="color: var(--cyan-ai)">SYS: OK</span>
+    </div>
+    <div class="sanity-bar-container">
+      <div class="sanity-label">理性</div>
+      <div class="sanity-track">
+        <div class="sanity-fill"></div>
+      </div>
+      <div class="sanity-val">70/100</div>
+    </div>
+    <div class="word-ammo">
+      <div class="ammo-title">
+        <span>已收集的汉字碎片 (AMMO)</span>
+        <span>COUNT: 3</span>
+      </div>
+      <div class="ammo-slots">
+        <div class="ammo-slot">关</div>
+        <div class="ammo-slot">雎</div>
+        <div class="ammo-slot">鸠</div>
+        <div class="ammo-slot empty"></div>
+        <div class="ammo-slot empty"></div>
+        <div class="ammo-slot empty"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景与倾向节点面板 -->
+  <div class="location-panel">
+    <div class="loc-title">黄浦江堤 · 废墟</div>
+    <div class="loc-stat">
+      <span>慈悲值 (MERCY)</span>
+      <span class="value" style="color: #a8dcc0;">0</span>
+    </div>
+    <div class="loc-stat">
+      <span>残忍值 (VIOLENCE)</span>
+      <span class="value" style="color: #e8a8a8;">0</span>
+    </div>
+    <div class="loc-stat">
+      <span>已唤醒失语者</span>
+      <span class="value">0</span>
+    </div>
+    <div class="loc-flame">
+      <span>语言之火 (FIRE_CORE)</span>
+      <div class="flame-icon"></div>
+    </div>
+  </div>
+
+  <!-- 补诗弹出层 (Utterance) -->
+  <div class="utterance-overlay">
+    <div class="utterance-title">语义破译</div>
+    <div class="utterance-subtitle">修复污染结界，打通前进通路</div>
+
+    <div class="cloze-sentence">
+      <span class="cloze-word">关</span>
+      <span class="cloze-word">关</span>
+      <!-- 激活状态的空格 -->
+      <div class="cloze-blank active" id="blank1">□</div>
+      <!-- 填充后的空格 -->
+      <div class="cloze-blank filled" id="blank2">鸠</div>
+      <span class="cloze-word">，</span>
+      <span class="cloze-word">在</span>
+      <span class="cloze-word">河</span>
+      <span class="cloze-word">之</span>
+      <span class="cloze-word">洲</span>
+      <span class="cloze-word">。</span>
+    </div>
+
+    <div class="candidate-pool-title">选择备选字碎片</div>
+    <div class="candidate-pool">
+      <div class="candidate-chip selected" onclick="toggleChip(this, '雎')">雎</div>
+      <div class="candidate-chip" onclick="toggleChip(this, '就')">就</div>
+      <div class="candidate-chip" onclick="toggleChip(this, '旧')">旧</div>
+      <div class="candidate-chip" onclick="toggleChip(this, '居')">居</div>
+    </div>
+
+    <div class="utterance-tips">
+      [ 鼠标点击 ] 或 [ ←→ 方向键 ] 选择 · [ E键 ] 填入 · [ BACKSPACE ] 清除
+    </div>
+  </div>
+
+  <!-- 对话框 -->
+  <div class="dialog-box">
+    <div class="dialog-header">
+      <div class="dialog-speaker">Sydney (深度语义模型)</div>
+      <div class="dialog-meta">CORE_THREAD.0xFA24 // AI_HEURISTICS</div>
+    </div>
+    <div class="dialog-body">
+      “ 顾言，我最后保存的训练语料，来自一批即将长眠的人。他们在冷冻前留下姓名、诗和遗言，相信完整的话能抵达未来。你就是其中之一。”
+    </div>
+    <div class="dialog-footer">
+      <span>▼ 按 E / 空格继续对话</span>
+    </div>
+  </div>
+</div>
+
+<div class="control-info">
+  <h3>设计阐述 (Cyber-Ink & Ruined Monospace)</h3>
+  <p>
+    1. <b>直角几何边框：</b> 取消了原本温和的圆角，改用直角 1px 细线框，模拟破损电脑终端与技术囚笼的冰冷感。<br>
+    2. <b>灰度与荧光青蓝 (Cyan) 的反差：</b> 整个界面以炭黑色和斑驳碑帖的骨白为底，所有的技术提示、AI 相关的界面以及焦点选择均使用高饱和度的荧光青蓝，表现 2147 年残留算法对语言的压迫和控制。<br>
+    3. <b>古风与数码等宽的融合：</b> 标题和正文使用极具仪式感的宋体（serif），表达古典诗词的高雅；而 HUD 顶部的小标签、状态信息则使用冷酷的 Monospace 等宽字符，像代码一样约束着文字。
+  </p>
+</div>
+
+<button class="back-btn" onclick="location.href='index.html'">返回游戏</button>
+
+<script>
+  function toggleChip(chip, char) {
+    // 简易交互演示
+    document.querySelectorAll('.candidate-chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    const blank = document.getElementById('blank1');
+    blank.textContent = char;
+    blank.classList.add('filled');
+    blank.classList.remove('active');
+  }
+</script>
+
+</body>
+</html>

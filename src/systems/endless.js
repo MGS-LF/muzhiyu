@@ -18,7 +18,8 @@ function makeTrialEnemy(wave) {
     '试炼·格式化核',
     '试炼·茧房回响',
   ];
-  const name = names[Math.min(names.length - 1, wave - 1)] + (wave > names.length ? `·第${wave}波` : '');
+  const name =
+    names[Math.min(names.length - 1, wave - 1)] + (wave > names.length ? `·第${wave}波` : '');
 
   return {
     id: `trial_${wave}_${Date.now()}`,
@@ -37,10 +38,7 @@ function makeTrialEnemy(wave) {
       spdMul: 1 + Math.min(0.55, (wave - 1) * 0.06),
       dmgMul: 1 + Math.min(0.4, (wave - 1) * 0.05),
       title: wave === 1 ? '茧心试炼——入门推送' : `茧心试炼·第 ${wave} 波`,
-      subtitle:
-        wave < 3
-          ? '用字锋撕开当前推荐层'
-          : '终核苏醒——击破推荐之核的试炼投影',
+      subtitle: wave < 3 ? '用字锋撕开当前推荐层' : '终核苏醒——击破推荐之核的试炼投影',
       bossName: wave >= 3 ? '试炼·推荐之核' : '推送节点',
       bossCore: wave >= 3 ? '试炼核心·推荐之核' : '推送节点',
     },
@@ -116,8 +114,7 @@ export class EndlessMode {
     if (result !== 'win') {
       this.state = 'gameover';
       this.bestWave = Math.max(this.bestWave, this.wave - (result === 'lose' ? 0 : 1));
-      this.summaryText =
-        result === 'lose' ? '理性崩坏——试炼结束。' : '本轮茧心试炼已中止。';
+      this.summaryText = result === 'lose' ? '理性崩坏——试炼结束。' : '本轮茧心试炼已中止。';
       this.game.showHint(this.summaryText);
       return;
     }

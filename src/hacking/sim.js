@@ -15,10 +15,12 @@ export function createSimState(opts = {}) {
   const spdMul = opts.spdMul ?? 1;
   const sanHit = opts.sanHit ?? 14;
   const layerMax = Math.max(1, Math.min(6, opts.layerMax ?? LAYER_MAX));
-  const finishAfterLayer = opts.finishAfterLayer === null || opts.finishAfterLayer === undefined
-    ? null
-    : Math.max(1, Math.min(layerMax, Number(opts.finishAfterLayer) || 1));
-  let startLayer = opts.startLayer != null ? opts.startLayer : shortRoute ? Math.min(2, layerMax) : 1;
+  const finishAfterLayer =
+    opts.finishAfterLayer === null || opts.finishAfterLayer === undefined
+      ? null
+      : Math.max(1, Math.min(layerMax, Number(opts.finishAfterLayer) || 1));
+  let startLayer =
+    opts.startLayer != null ? opts.startLayer : shortRoute ? Math.min(2, layerMax) : 1;
   startLayer = Math.max(1, Math.min(layerMax, startLayer));
 
   return {
@@ -303,7 +305,10 @@ export function stepSim(state, inputSnap, heart) {
       setBanner(state, state.layer < state.layerMax ? '撕开一层推荐' : '茧壳裂开', 70);
     }
     if (state.clearWait > 55) {
-      if ((state.finishAfterLayer && state.layer >= state.finishAfterLayer) || state.layer >= state.layerMax) {
+      if (
+        (state.finishAfterLayer && state.layer >= state.finishAfterLayer) ||
+        state.layer >= state.layerMax
+      ) {
         state.done = 'win';
       } else {
         state.layer++;
@@ -444,7 +449,14 @@ function updateEnemies(state, heart, k) {
     if (canFire && g.type === 'spinner') {
       g.spiral += 0.2;
       if (state.frame % 4 === 0) {
-        pushBullet(state, g.x, g.y, Math.cos(g.spiral) * 2.1 * k, Math.sin(g.spiral) * 2.1 * k, 'geng');
+        pushBullet(
+          state,
+          g.x,
+          g.y,
+          Math.cos(g.spiral) * 2.1 * k,
+          Math.sin(g.spiral) * 2.1 * k,
+          'geng'
+        );
       }
     }
 
@@ -464,7 +476,14 @@ function updateEnemies(state, heart, k) {
       g.cool = Math.max(48, rand(80, 130) / k);
       const a = Math.atan2(p.y - g.y, p.x - g.x);
       for (const off of [-0.22, 0, 0.22]) {
-        pushBullet(state, g.x, g.y, Math.cos(a + off) * 2.7 * k, Math.sin(a + off) * 2.7 * k, 'silent');
+        pushBullet(
+          state,
+          g.x,
+          g.y,
+          Math.cos(a + off) * 2.7 * k,
+          Math.sin(a + off) * 2.7 * k,
+          'silent'
+        );
       }
     }
 
@@ -503,7 +522,14 @@ function updateEnemies(state, heart, k) {
         } else if (mode === 1) {
           const a = Math.atan2(p.y - g.y, p.x - g.x);
           for (const off of [-0.35, -0.18, 0, 0.18, 0.35]) {
-            pushBullet(state, g.x, g.y, Math.cos(a + off) * 3 * k, Math.sin(a + off) * 3 * k, 'silent');
+            pushBullet(
+              state,
+              g.x,
+              g.y,
+              Math.cos(a + off) * 3 * k,
+              Math.sin(a + off) * 3 * k,
+              'silent'
+            );
           }
         } else if (mode === 2) {
           for (let i = 0; i < 18; i++) {

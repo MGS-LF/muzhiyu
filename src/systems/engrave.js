@@ -158,7 +158,10 @@ export const methods = {
         )
         .join('\n');
       const prompt = `玩家在一款关于"语言消亡与文字守护"的游戏中，于各处要石与残碑上刻下了以下文字：\n${list}\n\n请以一位历经沧桑的叙事者口吻，对玩家刻下的这些字进行简短的汇总、分析与评价（120字以内）。可点评其用词倾向、情感内核，以及这些字在这个失语的世界里意味着什么。不要复述列表，直接给出评价。`;
-      const reply = await callLLM([{ role: 'user', content: prompt }], { temperature: 0.7, max_tokens: 200 });
+      const reply = await callLLM([{ role: 'user', content: prompt }], {
+        temperature: 0.7,
+        max_tokens: 200,
+      });
       this.aiThinking = false;
       return (reply || '').trim();
     } catch (e) {

@@ -83,11 +83,7 @@ export const methods = {
       }
       if (best.type === 'terminal') {
         // 已深读过且导演在线：可再听一轮 AI 内心戏（只一次）
-        if (
-          directorEnabled() &&
-          this.flags.terminal_scanned &&
-          !this.flags._ai_terminal_deep
-        ) {
+        if (directorEnabled() && this.flags.terminal_scanned && !this.flags._ai_terminal_deep) {
           this.flags._ai_terminal_deep = true;
           this._runDirectorBranch('terminal_deep', DIALOGS.terminal || [], '终端机', () => {
             addStoryClue(this, 'terminal_corpus');
@@ -391,7 +387,8 @@ export const methods = {
           audio.playSfx('pickup');
           this.showHint(`获得：汉字碎片「${it.char}」`);
           if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
-            if (typeof this.notifyOnboarding === 'function') this.notifyOnboarding('pickup_char', { char: it.char });
+            if (typeof this.notifyOnboarding === 'function')
+              this.notifyOnboarding('pickup_char', { char: it.char });
             return;
           }
           // 检查是否集齐

@@ -25,7 +25,7 @@ function drawUtTutorial(ctx, battle) {
       '净化：按节奏接唱，削弱敌人与弹幕。',
       '宽恕：清醒满后结束战斗，增加慈悲。',
     ],
-    attack_aim: ['攻击判定', '光标接近中央金色区域时按 E / 空格。'],
+    attack_aim: ['攻击判定', '光标接近中央青色区域时按 E / 空格。'],
     attack_resolve: ['准备躲避', '攻击完成。敌人即将反击，注意弹幕框。'],
     enemyTurn: [
       '躲避敌方弹幕',
@@ -33,40 +33,41 @@ function drawUtTutorial(ctx, battle) {
       '碰到文字会损失理性。',
       '本波可按 F 消耗一个当前字清除弹幕。',
     ],
-    poem: ['净化接唱', '每句出现金色边框时按 E，连续命中效果更强。'],
-    purify_cast: ['净化接唱', '每句出现金色边框时按 E，连续命中效果更强。'],
+    poem: ['净化接唱', '每句出现青色边框时按 E，连续命中效果更强。'],
+    purify_cast: ['净化接唱', '每句出现青色边框时按 E，连续命中效果更强。'],
     ultimate: ['诗词大招', '集齐完整诗句后，K 可释放本场一次的大招。'],
     result: ['教学完成', '正式旅途中可以根据敌人与经历决定消灭或宽恕。'],
   };
   const lines = phaseHelp[battle.phase] || ['观察战场', '根据界面提示继续。'];
 
-  ctx.fillStyle = 'rgba(10,12,16,0.94)';
-  roundRect(ctx, x, y, w, h, 6);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,215,120,0.72)';
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, x, y, w, h, 6);
-  ctx.stroke();
+  ctx.fillStyle = 'rgba(7, 8, 10, 0.98)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(94, 99, 107, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(255,226,150,0.98)';
-  ctx.font = 'bold 16px serif';
+  ctx.fillStyle = 'rgba(0, 240, 255, 0.98)';
+  ctx.font = 'bold 15px serif';
   ctx.fillText('弹幕菜单战 · 新手指引', x + 18, y + 28);
-  ctx.fillStyle = 'rgba(120,220,150,0.95)';
+  ctx.fillStyle = 'rgba(0, 240, 255, 0.9)';
   ctx.font = 'bold 13px serif';
   ctx.fillText(lines[0], x + 18, y + 56);
-  ctx.fillStyle = 'rgba(220,215,200,0.9)';
-  ctx.font = '12px serif';
+  ctx.fillStyle = 'rgba(235, 230, 220, 0.9)';
+  ctx.font = 'bold 12px serif';
   for (let i = 1; i < lines.length; i++) {
     ctx.fillText(lines[i], x + 18, y + 56 + i * 28);
   }
 
   const clarityReady = battle.clarity >= battle.clarityMax;
-  ctx.fillStyle = clarityReady ? 'rgba(255,220,120,0.14)' : 'rgba(255,255,255,0.04)';
-  roundRect(ctx, x + 16, y + h - 46, w - 32, 30, 4);
-  ctx.fill();
-  ctx.fillStyle = clarityReady ? 'rgba(255,230,150,0.98)' : 'rgba(175,175,180,0.78)';
+  ctx.fillStyle = clarityReady ? 'rgba(0, 240, 255, 0.1)' : 'rgba(255,255,255,0.03)';
+  ctx.fillRect(x + 16, y + h - 46, w - 32, 30);
+  ctx.strokeStyle = clarityReady ? 'rgba(0, 240, 255, 0.4)' : 'rgba(94, 99, 107, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 16, y + h - 46, w - 32, 30);
+
+  ctx.fillStyle = clarityReady ? 'rgba(0, 240, 255, 0.98)' : 'rgba(150, 155, 165, 0.8)';
   ctx.font = 'bold 11px serif';
   ctx.fillText(
     clarityReady
@@ -94,66 +95,81 @@ export function drawBattle(ctx, battle, gameTime) {
   drawBattleEnemy(ctx, enemyCX, enemyCY, battle.enemy, gameTime);
 
   // 敌人名字 + HP 条
-  ctx.fillStyle = 'rgba(255,220,140,0.9)';
-  ctx.font = 'bold 14px serif';
+  ctx.fillStyle = 'rgba(235,230,220,0.98)';
+  ctx.font = 'bold 15px serif';
   ctx.textAlign = 'center';
   ctx.fillText(battle.enemy.name, enemyCX, enemyCY + 70);
   // HP 条
   const eBarW = 120;
-  ctx.fillStyle = '#400';
+  ctx.fillStyle = '#220808';
   ctx.fillRect(enemyCX - eBarW / 2, enemyCY + 78, eBarW, 8);
-  ctx.fillStyle = '#e44';
+  ctx.fillStyle = 'rgba(211, 54, 54, 0.95)';
   ctx.fillRect(
     enemyCX - eBarW / 2,
     enemyCY + 78,
     eBarW * (battle.enemy.hp / battle.enemy.maxHp),
     8
   );
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = 'rgba(94, 99, 107, 0.5)';
   ctx.lineWidth = 1;
   ctx.strokeRect(enemyCX - eBarW / 2, enemyCY + 78, eBarW, 8);
-  ctx.fillStyle = '#ccc';
-  ctx.font = '10px serif';
-  ctx.fillText(`${battle.enemy.hp} / ${battle.enemy.maxHp}`, enemyCX, enemyCY + 95);
+  ctx.fillStyle = 'rgba(150, 155, 165, 0.9)';
+  ctx.font = 'bold 10px monospace';
+  ctx.fillText(`${battle.enemy.hp} / ${battle.enemy.maxHp}`, enemyCX, enemyCY + 96);
 
   // 清醒值（调查累积，满了可宽恕）
   if (battle.clarityMax) {
     const cw = 120,
-      cyc = enemyCY + 103;
-    ctx.fillStyle = 'rgba(40,40,20,0.8)';
+      cyc = enemyCY + 104;
+    ctx.fillStyle = 'rgba(20,22,26,0.9)';
     ctx.fillRect(enemyCX - cw / 2, cyc, cw, 6);
-    ctx.fillStyle = 'rgba(255,210,140,0.95)';
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.95)';
     ctx.fillRect(enemyCX - cw / 2, cyc, cw * (battle.clarity / battle.clarityMax), 6);
-    ctx.strokeStyle = 'rgba(255,210,140,0.5)';
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
     ctx.lineWidth = 1;
     ctx.strokeRect(enemyCX - cw / 2, cyc, cw, 6);
     ctx.fillStyle =
-      battle.clarity >= battle.clarityMax ? 'rgba(255,225,150,0.95)' : 'rgba(200,190,160,0.7)';
-    ctx.font = '9px serif';
+      battle.clarity >= battle.clarityMax ? 'rgba(0, 240, 255, 0.98)' : 'rgba(150, 155, 165, 0.85)';
+    ctx.font = 'bold 10px serif';
     ctx.fillText(
       battle.clarity >= battle.clarityMax
         ? '清醒：可宽恕'
         : `清醒 ${battle.clarity}/${battle.clarityMax}`,
       enemyCX,
-      cyc + 14
+      cyc + 15
     );
   }
 
-  // 敌人文字气泡
+  // 敌人文字气泡 (气泡提示UI优化：采用赛博终端直角线框，高亮骨白加粗字，限制最大宽度并做换行或截断处理，保证文字不溢出)
   if (battle.enemyText && battle.enemyTextTimer > 0) {
-    ctx.font = '13px serif';
-    const tw = ctx.measureText(battle.enemyText).width + 30;
-    ctx.fillStyle = 'rgba(20,20,30,0.9)';
-    roundRect(ctx, enemyCX - tw / 2, enemyCY + 124, tw, 26, 4);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(80,220,100,0.5)';
+    ctx.font = 'bold 13px serif';
+    const text = battle.enemyText;
+    const maxTextW = 280; // 气泡最大宽度
+    const textWidth = ctx.measureText(text).width;
+    const tw = Math.min(maxTextW, textWidth + 24);
+
+    // 气泡直角面板框
+    ctx.fillStyle = 'rgba(7, 8, 10, 0.98)';
+    ctx.fillRect(enemyCX - tw / 2, enemyCY + 124, tw, 30);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
     ctx.lineWidth = 1;
-    roundRect(ctx, enemyCX - tw / 2, enemyCY + 124, tw, 26, 4);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(120,255,140,0.9)';
+    ctx.strokeRect(enemyCX - tw / 2, enemyCY + 124, tw, 30);
+
+    ctx.fillStyle = 'rgba(235, 230, 220, 0.98)';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(battle.enemyText, enemyCX, enemyCY + 137);
+
+    // 如果文字太长，进行截断展示以防溢出
+    let drawText = text;
+    if (textWidth > maxTextW - 20) {
+      while (drawText.length > 3 && ctx.measureText(drawText + '…').width > maxTextW - 20) {
+        drawText = drawText.slice(0, -1);
+      }
+      drawText += '…';
+    }
+    ctx.fillText(drawText, enemyCX, enemyCY + 139);
     ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
   }
 
   // === 中部：弹幕框 / 攻击条 ===
@@ -164,10 +180,10 @@ export function drawBattle(ctx, battle, gameTime) {
   ctx.translate(boxCX, boxCY);
 
   // 弹幕框边框
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(94, 99, 107, 0.6)';
+  ctx.lineWidth = 2;
   ctx.strokeRect(-BOX_W / 2, -BOX_H / 2, BOX_W, BOX_H);
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = 'rgba(7, 8, 10, 0.98)';
   ctx.fillRect(-BOX_W / 2, -BOX_H / 2, BOX_W, BOX_H);
 
   if (battle.phase === 'enemyTurn') {
@@ -180,14 +196,14 @@ export function drawBattle(ctx, battle, gameTime) {
     for (const b of battle.bullets) {
       const warning = b.warn > 0;
       // 光晕
-      ctx.shadowColor = warning ? 'rgba(255,220,100,0.7)' : 'rgba(80,220,100,0.8)';
+      ctx.shadowColor = warning ? 'rgba(211, 54, 54, 0.7)' : 'rgba(0, 240, 255, 0.8)';
       ctx.shadowBlur = warning ? 3 : 6;
-      ctx.fillStyle = warning ? 'rgba(255,210,90,0.10)' : 'rgba(80,220,100,0.3)';
+      ctx.fillStyle = warning ? 'rgba(211, 54, 54, 0.15)' : 'rgba(0, 240, 255, 0.1)';
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r + (warning ? 7 : 2), 0, Math.PI * 2);
       ctx.fill();
       if (warning) {
-        ctx.strokeStyle = 'rgba(255,220,120,0.75)';
+        ctx.strokeStyle = 'rgba(211, 54, 54, 0.75)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r + 5, 0, Math.PI * 2);
@@ -195,8 +211,8 @@ export function drawBattle(ctx, battle, gameTime) {
       }
       ctx.shadowBlur = 0;
       // 文字
-      ctx.fillStyle = warning ? 'rgba(255,230,150,0.65)' : 'rgba(180,255,180,0.95)';
-      ctx.font = 'bold 11px serif';
+      ctx.fillStyle = warning ? 'rgba(211, 54, 54, 0.95)' : 'rgba(235, 230, 220, 0.98)';
+      ctx.font = 'bold 12px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(b.text, b.x, b.y);
@@ -411,9 +427,8 @@ export function drawBattle(ctx, battle, gameTime) {
     ctx.fillStyle = 'rgba(255,100,100,0.85)';
     ctx.font = 'bold 13px serif';
     ctx.textAlign = 'center';
-    const ammo = (battle.player && battle.player.collectedChars
-      ? battle.player.collectedChars.length
-      : 0);
+    const ammo =
+      battle.player && battle.player.collectedChars ? battle.player.collectedChars.length : 0;
     const canF = !battle.dodgePurifyUsed && ammo > 0;
     ctx.fillText(
       canF

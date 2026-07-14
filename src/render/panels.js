@@ -9,13 +9,17 @@ import { UI, SPACE, font, fontMono, panelFrame, selectionPulse } from '../ui/tok
 // UI 面板：任务列表 / 地图 / 调试传送
 // ============================================================
 export function drawUIPanel(ctx, game, gameTime) {
-  // 使用高质感深色向外淡出径向暗角代替原本单调的 panelMask 纯色遮罩
+  // 赛博碑拓环境：采用炭黑到渐变暗蓝的细致遮罩
   const maskGrad = ctx.createRadialGradient(
-    W / 2, H / 2, Math.min(W, H) * 0.18,
-    W / 2, H / 2, Math.max(W, H) * 0.72
+    W / 2,
+    H / 2,
+    Math.min(W, H) * 0.18,
+    W / 2,
+    H / 2,
+    Math.max(W, H) * 0.72
   );
-  maskGrad.addColorStop(0, 'rgba(10, 8, 6, 0.45)');
-  maskGrad.addColorStop(1, 'rgba(5, 4, 3, 0.92)');
+  maskGrad.addColorStop(0, 'rgba(7, 8, 10, 0.5)');
+  maskGrad.addColorStop(1, 'rgba(3, 4, 5, 0.95)');
   ctx.fillStyle = maskGrad;
   ctx.fillRect(0, 0, W, H);
 
@@ -54,7 +58,7 @@ export function drawUIPanel(ctx, game, gameTime) {
     ctx.fillStyle = UI.danger;
     ctx.font = fontMono(18, true);
     ctx.textAlign = 'center';
-    ctx.fillText(title, px + panelW / 2, py + 32);
+    ctx.fillText(`── [ ${title} ] ──`, px + panelW / 2, py + 26);
     ctx.textAlign = 'left';
   }
 
@@ -79,16 +83,16 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
 
   // 使用优雅的低饱和度古风色卡替换高亮度霓虹色
   const catColors = {
-    主线: 'rgba(224, 178, 98, 0.95)',  // 鎏金黄
-    可选: 'rgba(110, 135, 180, 0.95)', // 黛蓝
-    支线: 'rgba(120, 165, 130, 0.95)', // 竹绿
-    收集: 'rgba(160, 130, 180, 0.95)', // 暮紫
-    倾向: 'rgba(180, 120, 150, 0.95)', // 烟绯
-    刻字: 'rgba(160, 140, 120, 0.95)', // 赭石
-    余烬: 'rgba(190, 120, 90, 0.95)',  // 丹砂
-    线索: 'rgba(130, 170, 200, 0.95)', // 青灰
-    世界史: 'rgba(150, 150, 170, 0.95)',
-    规则: 'rgba(140, 140, 150, 0.95)', // 灰石
+    主线: 'rgba(0, 240, 255, 0.95)', // 荧光青蓝
+    可选: 'rgba(150, 155, 165, 0.95)', // 废墟水泥灰
+    支线: 'rgba(217, 155, 66, 0.95)', // 琥珀古金
+    收集: 'rgba(217, 155, 66, 0.95)',
+    倾向: 'rgba(150, 155, 165, 0.95)',
+    刻字: 'rgba(150, 155, 165, 0.95)',
+    余烬: 'rgba(211, 54, 54, 0.95)', // 朱砂红
+    线索: 'rgba(0, 240, 255, 0.95)',
+    世界史: 'rgba(150, 155, 165, 0.95)',
+    规则: 'rgba(150, 155, 165, 0.95)',
   };
   let yy = py + 58;
   let curCat = '';
@@ -101,7 +105,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
       ctx.fillStyle = catColors[q.cat] || '#ccc';
       ctx.font = font(12, true);
       ctx.fillText(q.cat, px + pad, yy);
-      ctx.strokeStyle = 'rgba(224, 178, 98, 0.14)'; // 面板辅助分隔金线，风格统一
+      ctx.strokeStyle = 'rgba(94, 99, 107, 0.2)'; // 细框分隔线
       ctx.beginPath();
       ctx.moveTo(px + 82, yy - 4);
       ctx.lineTo(px + pw - pad, yy - 4);
@@ -110,35 +114,33 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
     }
     if (yy > maxY - 24) {
       ctx.fillStyle = UI.inkFaint;
-      ctx.font = font(12);
+      ctx.font = font(12, true);
       ctx.fillText('…还有更多条目', px + 50, maxY);
       break;
     }
     const badge = q.done ? '完成' : q.optional ? '可选' : '进行中';
 
-    // 任务状态微章：低饱和度、淡雅边框，文字色在玄石黑底色上拥有优秀对比度
+    // 任务状态微章：直角、加粗高清晰文字对比
     let badgeBg, badgeBorder, badgeText;
     if (q.done) {
-      badgeBg = 'rgba(108, 178, 132, 0.12)';
-      badgeBorder = 'rgba(108, 178, 132, 0.45)';
+      badgeBg = 'rgba(0, 240, 255, 0.08)';
+      badgeBorder = 'rgba(0, 240, 255, 0.35)';
       badgeText = UI.ok;
     } else if (q.optional) {
-      badgeBg = 'rgba(110, 135, 180, 0.12)';
-      badgeBorder = 'rgba(110, 135, 180, 0.45)';
-      badgeText = 'rgba(165, 185, 220, 0.95)';
+      badgeBg = 'rgba(150, 155, 165, 0.08)';
+      badgeBorder = 'rgba(150, 155, 165, 0.35)';
+      badgeText = 'rgba(180, 185, 195, 0.95)';
     } else {
-      badgeBg = 'rgba(217, 163, 61, 0.1)';
-      badgeBorder = 'rgba(217, 163, 61, 0.4)';
-      badgeText = 'rgba(240, 200, 120, 0.95)';
+      badgeBg = 'rgba(217, 155, 66, 0.08)';
+      badgeBorder = 'rgba(217, 155, 66, 0.35)';
+      badgeText = 'rgba(240, 180, 100, 0.95)';
     }
 
     ctx.fillStyle = badgeBg;
-    roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
-    ctx.fill();
+    ctx.fillRect(px + 48, yy - 12, 44, 18);
     ctx.strokeStyle = badgeBorder;
     ctx.lineWidth = 1;
-    roundRect(ctx, px + 48, yy - 12, 44, 18, 4);
-    ctx.stroke();
+    ctx.strokeRect(px + 48, yy - 12, 44, 18);
 
     ctx.fillStyle = badgeText;
     ctx.font = font(10, true);
@@ -147,11 +149,11 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
     ctx.textAlign = 'left';
 
     ctx.fillStyle = q.done
-      ? UI.inkSoft // 已完成任务显示烟尘灰，降低视觉喧宾夺主
+      ? UI.inkSoft // 已完成任务显示废墟水泥灰
       : q.optional
-        ? 'rgba(210, 215, 245, 0.95)'
+        ? 'rgba(210, 215, 225, 0.95)'
         : UI.ink;
-    ctx.font = q.cat === '主线' && !q.done ? font(13, true) : font(13);
+    ctx.font = font(13, true);
     const lines = wrapText(ctx, q.text, pw - 150);
     for (let i = 0; i < Math.min(lines.length, 2); i++) {
       ctx.fillText(lines[i], px + 104, yy + i * 17);
@@ -159,7 +161,7 @@ export function drawQuestPanel(ctx, game, px, py, pw, ph, gameTime) {
     yy += Math.max(24, Math.min(lines.length, 2) * 17 + 6);
   }
   ctx.fillStyle = UI.inkFaint;
-  ctx.font = font(11);
+  ctx.font = font(11, true);
   ctx.textAlign = 'center';
   ctx.fillText(
     '主线是通关所需；可选目标提供复活点、补给或剧情记录。按 Q / Esc 关闭',
@@ -561,7 +563,10 @@ function _readSaveMenuItems(mode) {
   if (mode === 'save') return manual;
 
   const autoSummary = summarize(saves.auto);
-  return [autoSummary ? { slot: 'auto', ...autoSummary } : { slot: 'auto', empty: true }, ...manual];
+  return [
+    autoSummary ? { slot: 'auto', ...autoSummary } : { slot: 'auto', empty: true },
+    ...manual,
+  ];
 }
 
 // ============================================================

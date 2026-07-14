@@ -248,10 +248,14 @@ window.addEventListener('message', (e) => {
   }
 });
 
-window.addEventListener('keydown', (e) => {
-  const key = e.key.toLowerCase();
-  if (key === 'f5' || ((e.ctrlKey || e.metaKey) && key === 'r')) writeRefreshResume();
-}, true);
+window.addEventListener(
+  'keydown',
+  (e) => {
+    const key = e.key.toLowerCase();
+    if (key === 'f5' || ((e.ctrlKey || e.metaKey) && key === 'r')) writeRefreshResume();
+  },
+  true
+);
 window.addEventListener('pagehide', writeRefreshResume);
 window.addEventListener('beforeunload', writeRefreshResume);
 
@@ -261,7 +265,9 @@ if (FROM_INTRO && NG_PLUS) {
     const endings = Array.isArray(game.flags.ngplus_cleared_endings)
       ? game.flags.ngplus_cleared_endings.length
       : 0;
-    game.showHint(`二周目：刻字记录与上次旅程的倾向已继承，通关 ${count} 次，见证 ${endings} 种结局。`);
+    game.showHint(
+      `二周目：刻字记录与上次旅程的倾向已继承，通关 ${count} 次，见证 ${endings} 种结局。`
+    );
   }, 500);
 }
 

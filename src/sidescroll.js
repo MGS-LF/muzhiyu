@@ -52,7 +52,10 @@ const KNIFE_DIALOG = [
 const EXIT_DIALOG = [
   { s: '系统', t: '你穿过长堤，踩过最后一片芦苇。东面的路口通向废墟居民区。' },
   { s: '系统', t: '身后远远传来守砚的声音——' },
-  { s: '守砚', t: '路通了！好孩子。居民区里还有你要找的东西，我在那边的老巷子等你——我知道另一条路。' },
+  {
+    s: '守砚',
+    t: '路通了！好孩子。居民区里还有你要找的东西，我在那边的老巷子等你——我知道另一条路。',
+  },
 ];
 
 const KEYSTONE_DIALOG = [
@@ -346,9 +349,7 @@ export class SideScrollLevel {
         this.returnPortal.active = true;
         this.game.flags.sidescroll_lantern = true;
         this.game.startDialog(RETURN_DIALOG, '守砚', () => {
-          this.game.showHint(
-            '空格跳跃踩踏梗鬼 · J 挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石'
-          );
+          this.game.showHint('空格跳跃踩踏梗鬼 · J 挥刀 · 老人旁光圈按 E 返回街道 · 中段有要石');
         });
       };
       if (directorEnabled() && typeof this.game._runDirectorBranch === 'function') {
@@ -438,8 +439,7 @@ export class SideScrollLevel {
     // 跳跃：空格为主；W 仅在不爬梯时跳（避免与攀爬抢键）
     const jumpPressed =
       input.wasPressed(' ') ||
-      ((!p.onLadder && !p._wasOnLadder) &&
-        (input.wasPressed('w') || input.wasPressed('arrowup')));
+      (!p.onLadder && !p._wasOnLadder && (input.wasPressed('w') || input.wasPressed('arrowup')));
 
     if (p.coyote > 0) p.coyote -= dt;
     if (p.jumpBuffer > 0) p.jumpBuffer -= dt;
@@ -1084,7 +1084,11 @@ export class SideScrollLevel {
           ctx.fillStyle = `rgba(255,220,140,${0.8 + pulse * 0.2})`;
           ctx.font = 'bold 10px serif';
           ctx.textAlign = 'center';
-          ctx.fillText(ks.activated ? CONTROL_HINTS.interactEngrave : CONTROL_HINTS.interactKeystone, sx, GROUND_Y - 50);
+          ctx.fillText(
+            ks.activated ? CONTROL_HINTS.interactEngrave : CONTROL_HINTS.interactKeystone,
+            sx,
+            GROUND_Y - 50
+          );
           ctx.textAlign = 'left';
         }
       }
@@ -1469,7 +1473,10 @@ export class SideScrollLevel {
     ctx.fill();
 
     const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 34);
-    g.addColorStop(0, flash ? 'rgba(255,255,255,0.7)' : `rgba(105,255,145,${0.34 + breathe * 0.12})`);
+    g.addColorStop(
+      0,
+      flash ? 'rgba(255,255,255,0.7)' : `rgba(105,255,145,${0.34 + breathe * 0.12})`
+    );
     g.addColorStop(0.5, 'rgba(38,170,80,0.16)');
     g.addColorStop(1, 'rgba(80,220,100,0)');
     ctx.fillStyle = g;

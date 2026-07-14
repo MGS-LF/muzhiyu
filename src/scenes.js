@@ -679,8 +679,24 @@ export const scenes = {
     ],
 
     enemies: [
-      { id: 'subdepth_geng_1', typeId: 'geng_medium', x: 710, y: 280, hp: 60, maxHp: 60, name: '裂隙梗鬼' },
-      { id: 'subdepth_geng_2', typeId: 'geng_weak', x: 1030, y: 640, hp: 30, maxHp: 30, name: '回音梗鬼' },
+      {
+        id: 'subdepth_geng_1',
+        typeId: 'geng_medium',
+        x: 710,
+        y: 280,
+        hp: 60,
+        maxHp: 60,
+        name: '裂隙梗鬼',
+      },
+      {
+        id: 'subdepth_geng_2',
+        typeId: 'geng_weak',
+        x: 1030,
+        y: 640,
+        hp: 30,
+        maxHp: 30,
+        name: '回音梗鬼',
+      },
     ],
 
     interactables: [

@@ -18,7 +18,11 @@ export function drawHUD(ctx, player, game, objective) {
 
   // 变化脉冲
   if (game._sanPulse === null || game._sanPulse === undefined) game._sanPulse = 0;
-  if (game._lastSanHud !== null && game._lastSanHud !== undefined && game._lastSanHud !== player.san) {
+  if (
+    game._lastSanHud !== null &&
+    game._lastSanHud !== undefined &&
+    game._lastSanHud !== player.san
+  ) {
     game._sanPulse = 200;
     game._sanPulseDir = player.san > game._lastSanHud ? 1 : player.san < game._lastSanHud ? -1 : 0;
   }
@@ -32,23 +36,20 @@ export function drawHUD(ctx, player, game, objective) {
     sy = 14;
   const ratio = Math.max(0, game._displaySan / player.maxSan);
   ctx.fillStyle = UI.barBg;
-  roundRect(ctx, sx, sy, sanW, sanH, 3);
-  ctx.fill();
+  ctx.fillRect(sx, sy, sanW, sanH);
   let barColor = ratio > 0.6 ? UI.ok : ratio > 0.3 ? UI.warn : UI.danger;
   if (game._sanPulse > 0) {
     const p = game._sanPulse / 200;
-    if (game._sanPulseDir > 0) barColor = `rgba(120,220,140,${0.7 + p * 0.3})`;
-    else if (game._sanPulseDir < 0) barColor = `rgba(224,80,80,${0.7 + p * 0.3})`;
+    if (game._sanPulseDir > 0) barColor = `rgba(0,240,255,${0.7 + p * 0.3})`;
+    else if (game._sanPulseDir < 0) barColor = `rgba(211,54,54,${0.7 + p * 0.3})`;
   }
   ctx.fillStyle = barColor;
-  roundRect(ctx, sx + 1, sy + 1, (sanW - 2) * ratio, sanH - 2, 2);
-  ctx.fill();
-  ctx.strokeStyle = UI.goldLine;
+  ctx.fillRect(sx, sy, sanW * ratio, sanH);
+  ctx.strokeStyle = UI.panelLine;
   ctx.lineWidth = 1;
-  roundRect(ctx, sx, sy, sanW, sanH, 3);
-  ctx.stroke();
-  ctx.fillStyle = UI.goldBright;
-  ctx.font = font(10, true);
+  ctx.strokeRect(sx, sy, sanW, sanH);
+  ctx.fillStyle = '#000000';
+  ctx.font = font(11, true);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillText('理性', sx + 5, sy + sanH / 2);
@@ -56,11 +57,7 @@ export function drawHUD(ctx, player, game, objective) {
   // 将具体数值 100/100 移出理性条本身，改到右侧作为白字呈现，防止与能量条颜色冲突影响阅读
   ctx.fillStyle = UI.ink;
   ctx.font = font(11, true);
-  ctx.fillText(
-    `${Math.floor(game._displaySan)}/${player.maxSan}`,
-    sx + sanW + 8,
-    sy + sanH / 2
-  );
+  ctx.fillText(`${Math.floor(game._displaySan)}/${player.maxSan}`, sx + sanW + 8, sy + sanH / 2);
   ctx.textBaseline = 'alphabetic';
 
   const prog = game.objective && game.objective.progress;
@@ -69,31 +66,25 @@ export function drawHUD(ctx, player, game, objective) {
   if (prog) {
     const panelW = 250,
       panelH = 40;
-    ctx.fillStyle = 'rgba(22,17,10,0.78)';
-    roundRect(ctx, sx, poemY, panelW, panelH, 4);
-    ctx.fill();
-    ctx.strokeStyle = UI.goldLine;
+    ctx.fillStyle = UI.panelBg;
+    ctx.fillRect(sx, poemY, panelW, panelH);
+    ctx.strokeStyle = UI.panelLine;
     ctx.lineWidth = 1;
-    roundRect(ctx, sx, poemY, panelW, panelH, 4);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(212,168,90,0.4)';
-    ctx.fillRect(sx, poemY, panelW, 2);
-    ctx.fillStyle = UI.goldBright;
-    ctx.font = font(10, true);
+    ctx.strokeRect(sx, poemY, panelW, panelH);
+    ctx.fillStyle = UI.ok;
+    ctx.font = font(11, true);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('碎片 · ' + prog.title, sx + 8, poemY + 12);
     let cxp = sx + 10;
     const cy2 = poemY + 28;
     for (const { c, have } of prog.chars) {
-      ctx.fillStyle = have ? 'rgba(70,55,25,0.9)' : 'rgba(40,40,44,0.8)';
-      roundRect(ctx, cxp, cy2 - 9, 18, 18, 3);
-      ctx.fill();
-      ctx.strokeStyle = have ? UI.goldBright : 'rgba(110,110,120,0.6)';
+      ctx.fillStyle = have ? 'rgba(217,155,66,0.2)' : 'rgba(20,22,26,0.9)';
+      ctx.fillRect(cxp, cy2 - 9, 18, 18);
+      ctx.strokeStyle = have ? UI.gold : 'rgba(94,99,107,0.4)';
       ctx.lineWidth = 1;
-      roundRect(ctx, cxp, cy2 - 9, 18, 18, 3);
-      ctx.stroke();
-      ctx.fillStyle = have ? 'rgba(255,232,150,1)' : 'rgba(120,120,128,0.7)';
+      ctx.strokeRect(cxp, cy2 - 9, 18, 18);
+      ctx.fillStyle = have ? UI.ink : 'rgba(100,105,115,0.7)';
       ctx.font = font(12, true);
       ctx.textAlign = 'center';
       ctx.fillText(c, cxp + 9, cy2);
@@ -105,20 +96,18 @@ export function drawHUD(ctx, player, game, objective) {
       cxp += 24;
     }
     ctx.fillStyle = UI.inkSoft;
-    ctx.font = font(10);
+    ctx.font = font(11, true);
     ctx.textAlign = 'right';
-    ctx.fillText('诗词弹药 ×' + ammo, sx + panelW - 8, poemY + 12);
+    ctx.fillText('弹药 ×' + ammo, sx + panelW - 8, poemY + 12);
   } else {
     const panelW = 250;
-    ctx.fillStyle = 'rgba(22,17,10,0.7)';
-    roundRect(ctx, sx, poemY, panelW, 22, 3);
-    ctx.fill();
-    ctx.strokeStyle = UI.goldLine;
+    ctx.fillStyle = UI.panelBg;
+    ctx.fillRect(sx, poemY, panelW, 22);
+    ctx.strokeStyle = UI.panelLine;
     ctx.lineWidth = 1;
-    roundRect(ctx, sx, poemY, panelW, 22, 3);
-    ctx.stroke();
+    ctx.strokeRect(sx, poemY, panelW, 22);
     ctx.fillStyle = UI.gold;
-    ctx.font = font(10, true);
+    ctx.font = font(11, true);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('诗词弹药 ×' + ammo, sx + 8, poemY + 11);
@@ -132,32 +121,28 @@ export function drawHUD(ctx, player, game, objective) {
     const bagY = poemY + (prog ? 48 : 30);
     const bagW = 250;
     const bagH = 28;
-    ctx.fillStyle = 'rgba(22,17,10,0.78)';
-    roundRect(ctx, sx, bagY, bagW, bagH, 4);
-    ctx.fill();
-    ctx.strokeStyle = UI.goldLine;
+    ctx.fillStyle = UI.panelBg;
+    ctx.fillRect(sx, bagY, bagW, bagH);
+    ctx.strokeStyle = UI.panelLine;
     ctx.lineWidth = 1;
-    roundRect(ctx, sx, bagY, bagW, bagH, 4);
-    ctx.stroke();
-    ctx.fillStyle = UI.gold;
-    ctx.font = font(10, true);
+    ctx.strokeRect(sx, bagY, bagW, bagH);
+    ctx.fillStyle = UI.ok;
+    ctx.font = font(11, true);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('词袋', sx + 8, bagY + bagH / 2);
     let bx = sx + 38;
     for (let i = 0; i < bagMax; i++) {
       const ch = bag[i];
-      ctx.fillStyle = ch ? 'rgba(60,48,22,0.95)' : 'rgba(28,26,22,0.85)';
-      roundRect(ctx, bx, bagY + 5, 18, 18, 3);
-      ctx.fill();
-      ctx.strokeStyle = ch ? UI.goldBright : 'rgba(90,85,75,0.5)';
+      ctx.fillStyle = ch ? 'rgba(0,240,255,0.08)' : 'rgba(20,22,26,0.9)';
+      ctx.fillRect(bx, bagY + 5, 18, 18);
+      ctx.strokeStyle = ch ? UI.ok : 'rgba(94,99,107,0.3)';
       ctx.lineWidth = 1;
       if (!ch) ctx.setLineDash([2, 2]);
-      roundRect(ctx, bx, bagY + 5, 18, 18, 3);
-      ctx.stroke();
+      ctx.strokeRect(bx, bagY + 5, 18, 18);
       ctx.setLineDash([]);
       if (ch) {
-        ctx.fillStyle = 'rgba(255,232,150,1)';
+        ctx.fillStyle = UI.ink;
         ctx.font = font(12, true);
         ctx.textAlign = 'center';
         ctx.fillText(ch, bx + 9, bagY + bagH / 2);
@@ -165,7 +150,7 @@ export function drawHUD(ctx, player, game, objective) {
       bx += 22;
     }
     ctx.fillStyle = UI.inkFaint;
-    ctx.font = font(9);
+    ctx.font = font(10, true);
     ctx.textAlign = 'right';
     ctx.fillText('F 补诗', sx + bagW - 8, bagY + bagH / 2);
     ctx.textAlign = 'left';
@@ -177,30 +162,28 @@ export function drawHUD(ctx, player, game, objective) {
     const ox = W / 2,
       oy = 14;
     const text = objective.text || '';
-    ctx.font = font(12);
+    ctx.font = font(12, true);
     const textW = Math.min(ctx.measureText(text).width + 100, W - 48);
     const ow = Math.max(280, Math.min(420, textW));
     const oh = 32;
 
     ctx.fillStyle = UI.panelBg;
-    roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
-    ctx.fill();
-    ctx.strokeStyle = UI.goldLine;
-    ctx.lineWidth = 1.5;
-    roundRect(ctx, ox - ow / 2, oy, ow, oh, 4);
-    ctx.stroke();
+    ctx.fillRect(ox - ow / 2, oy, ow, oh);
+    ctx.strokeStyle = UI.panelLine;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(ox - ow / 2, oy, ow, oh);
 
-    ctx.fillStyle = UI.gold;
-    ctx.fillRect(ox - ow / 2 + 6, oy + 5, 3, oh - 10);
-    ctx.fillRect(ox + ow / 2 - 9, oy + 5, 3, oh - 10);
+    ctx.fillStyle = UI.ok;
+    ctx.fillRect(ox - ow / 2 + 6, oy + 5, 2, oh - 10);
+    ctx.fillRect(ox + ow / 2 - 8, oy + 5, 2, oh - 10);
 
-    ctx.fillStyle = UI.goldBright;
-    ctx.font = font(11, true);
+    ctx.fillStyle = UI.ok;
+    ctx.font = font(12, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('目标', ox - ow / 2 + 36, oy + oh / 2);
     ctx.fillStyle = UI.ink;
-    ctx.font = font(12);
+    ctx.font = font(13, true);
     ctx.textAlign = 'left';
     // 过长截断
     let drawText = text;
@@ -217,7 +200,9 @@ export function drawHUD(ctx, player, game, objective) {
 
   const scene = game.scene;
   // 竖屏：场景信息与火苗放到底部；横屏：右上（避开小地图）
-  let mx, my, panelH = FEATURES.aiDirector ? 88 : 74;
+  let mx,
+    my,
+    panelH = FEATURES.aiDirector ? 88 : 74;
   if (portrait) {
     mx = 16;
     my = H - (panelH + 12);
@@ -226,46 +211,44 @@ export function drawHUD(ctx, player, game, objective) {
     mx = W - 200;
     my = 14 + miniH;
   }
-  ctx.fillStyle = 'rgba(20,15,10,0.7)';
-  roundRect(ctx, mx, my, 184, panelH, 4);
-  ctx.fill();
-  ctx.strokeStyle = UI.goldLine;
+  ctx.fillStyle = UI.panelBg;
+  ctx.fillRect(mx, my, 184, panelH);
+  ctx.strokeStyle = UI.panelLine;
   ctx.lineWidth = 1;
-  roundRect(ctx, mx, my, 184, panelH, 4);
-  ctx.stroke();
+  ctx.strokeRect(mx, my, 184, panelH);
 
-  ctx.fillStyle = UI.gold;
-  ctx.font = font(11, true);
+  ctx.fillStyle = UI.ok;
+  ctx.font = font(13, true);
   ctx.textAlign = 'left';
-  ctx.fillText(scene.name, mx + 10, my + 16);
+  ctx.fillText(scene.name, mx + 10, my + 18);
 
   const mercy = (game.karma && game.karma.mercy) || 0;
   const violence = (game.karma && game.karma.violence) || 0;
   const saved = (game.karma && game.karma.saved) || 0;
-  ctx.font = font(9, true);
-  ctx.fillStyle = 'rgba(140,210,170,0.95)';
-  ctx.fillText(`慈悲 ${mercy}`, mx + 10, my + 32);
-  ctx.fillStyle = 'rgba(220,120,120,0.95)';
-  ctx.fillText(`残忍 ${violence}`, mx + 78, my + 32);
-  ctx.fillStyle = 'rgba(200,200,200,0.7)';
-  ctx.font = font(9);
-  ctx.fillText(saved > 0 ? `已唤醒 ${saved}` : '尚未唤醒失语者', mx + 10, my + 46);
+  ctx.font = font(10, true);
+  ctx.fillStyle = 'rgba(0, 240, 255, 0.95)';
+  ctx.fillText(`慈悲 ${mercy}`, mx + 10, my + 34);
+  ctx.fillStyle = 'rgba(211, 54, 54, 0.95)';
+  ctx.fillText(`残忍 ${violence}`, mx + 78, my + 34);
+  ctx.fillStyle = UI.inkSoft;
+  ctx.font = font(10, true);
+  ctx.fillText(saved > 0 ? `已唤醒 ${saved}` : '尚未唤醒失语者', mx + 10, my + 48);
 
-  ctx.fillStyle = player.hasClothes ? UI.ok : 'rgba(220,120,120,0.9)';
-  ctx.fillText(player.hasClothes ? '已穿装备' : '未穿装备', mx + 10, my + 60);
+  ctx.fillStyle = player.hasClothes ? UI.ok : 'rgba(211, 54, 54, 0.9)';
+  ctx.fillText(player.hasClothes ? '已穿装备' : '未穿装备', mx + 10, my + 62);
 
   // 叙事导演 / 配音在线状态（参赛演示可见）
   if (FEATURES.aiDirector) {
     const llmOn = !!(AI.ready && AI.llm);
     const ttsOn = !!(AI.ready && AI.tts);
-    ctx.fillStyle = llmOn ? 'rgba(120,200,160,0.9)' : 'rgba(160,160,170,0.75)';
-    ctx.font = font(9);
+    ctx.fillStyle = llmOn ? UI.ok : UI.inkFaint;
+    ctx.font = font(9, true);
     const bits = [];
     bits.push(llmOn ? '导演在线' : '导演离线');
     bits.push(ttsOn ? '配音在线' : '配音离线');
     const clueN = (game.storyState && game.storyState.clues && game.storyState.clues.length) || 0;
     if (clueN) bits.push(`线索${clueN}`);
-    ctx.fillText(bits.join(' · '), mx + 10, my + 74);
+    ctx.fillText(bits.join(' · '), mx + 10, my + 76);
   }
   ctx.textAlign = 'left';
 
@@ -276,16 +259,15 @@ export function drawHUD(ctx, player, game, objective) {
     const fl = Math.max(0.25, Math.min(1, 0.45 + (warm - cold) * 0.12));
     const fx = mx + 168,
       fy = my + 26;
-    const fcol = cold > warm + 1 ? '120,210,130' : '255,185,95';
+    const fcol = cold > warm + 1 ? '211,54,54' : '0,240,255';
     ctx.save();
     ctx.shadowColor = `rgba(${fcol},${fl})`;
     ctx.shadowBlur = 9 * fl;
     ctx.fillStyle = `rgba(${fcol},${0.5 + fl * 0.5})`;
     ctx.beginPath();
     ctx.moveTo(fx, fy - 9);
-    ctx.quadraticCurveTo(fx + 6, fy - 1, fx + 3, fy + 5);
-    ctx.quadraticCurveTo(fx, fy + 8, fx - 3, fy + 5);
-    ctx.quadraticCurveTo(fx - 6, fy - 1, fx, fy - 9);
+    ctx.lineTo(fx + 6, fy + 3);
+    ctx.lineTo(fx - 6, fy + 3);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -317,24 +299,24 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
       const bw = 150,
         bh = 90;
       const flow = (gameTime * 0.05) % 18;
-      // 优化为低饱和度朱砂红/翡翠绿与深邃暗紫渐变封锁，更契合失语污染废土美学
-      const fogA = '100, 50, 80';   // 污染深紫
-      const fogB = '70, 120, 110';  // 暗翠绿
-      const lineC = '110, 180, 140'; // 虚弱翡翠绿线
-      const lockC = '204, 73, 73';   // 朱砂红
-      const lockStroke = '255, 120, 120';
-      const textC = '240, 200, 200';
+      // 赛博碑刻：采用水泥灰和朱砂红的极简硬派条纹遮罩
+      const fogA = '7, 8, 10'; // 炭黑
+      const fogB = '110, 115, 122'; // 水泥灰
+      const lineC = '94, 99, 107'; // 细线框色
+      const lockC = '211, 54, 54'; // 朱砂红
+      const lockStroke = '255, 100, 100';
+      const textC = '235, 230, 220';
 
       const grad = ctx.createRadialGradient(s.x, s.y - 10, 6, s.x, s.y - 10, 90);
-      grad.addColorStop(0, `rgba(${fogA},${0.26 + pulse * 0.14})`);
-      grad.addColorStop(0.6, `rgba(${fogB},0.15)`);
-      grad.addColorStop(1, 'rgba(15, 14, 12, 0)');
+      grad.addColorStop(0, `rgba(${fogA},${0.4 + pulse * 0.2})`);
+      grad.addColorStop(0.6, `rgba(${fogB},0.2)`);
+      grad.addColorStop(1, 'rgba(7, 8, 10, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.ellipse(s.x, s.y - 10, 90, 60, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = `rgba(${lineC},${0.38 + pulse * 0.28})`;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(${lineC},${0.4 + pulse * 0.3})`;
+      ctx.lineWidth = 1.0;
       for (let x = -bw / 2; x <= bw / 2; x += 18) {
         ctx.beginPath();
         for (let y = -bh / 2; y <= bh / 2; y += 6) {
@@ -346,44 +328,33 @@ export function drawGates(ctx, W2S, scene, game, gameTime) {
         }
         ctx.stroke();
       }
-      // 锁图标
+      // 锁图标 (直角化)
       const lx = s.x,
         ly = s.y - 46;
-      ctx.fillStyle = `rgba(${lockC},${0.7 + pulse * 0.3})`;
-      ctx.shadowColor = 'rgba(204, 73, 73, 0.8)';
-      ctx.shadowBlur = 8;
+      ctx.fillStyle = `rgba(${lockC},${0.8 + pulse * 0.2})`;
       ctx.fillRect(lx - 7, ly, 14, 11);
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = `rgba(${lockStroke},0.8)`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(lx, ly, 5, Math.PI, 0);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(15,10,10,0.9)';
+      ctx.strokeStyle = `rgba(${lockStroke},0.9)`;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(lx - 5, ly - 6, 10, 6);
+      ctx.fillStyle = 'rgba(7,8,10,0.95)';
       ctx.fillRect(lx - 1.2, ly + 3, 2.4, 5);
-      ctx.fillStyle = `rgba(${textC},${0.7 + pulse * 0.3})`;
-      ctx.font = font(11, true);
+
+      ctx.fillStyle = `rgba(${textC},${0.8 + pulse * 0.2})`;
+      ctx.font = font(12, true);
       ctx.textAlign = 'center';
       ctx.fillText(readyToCompose ? 'E 复原诗句，破除封锁' : '此路被污染封锁', s.x, s.y - 56);
       ctx.textAlign = 'left';
     } else {
-      // 优化通路开启：从单纯的透明块，升级为向上徐徐飘升的鎏金微光粒子效果
+      // 优化通路开启：直角鎏金微光粒子与光环
       ctx.save();
-      const grad = ctx.createLinearGradient(0, s.y - 70, 0, s.y + 24);
-      grad.addColorStop(0, 'rgba(224, 178, 98, 0)');
-      grad.addColorStop(0.5, `rgba(224, 178, 98, ${pulse * 0.35})`);
-      grad.addColorStop(1, 'rgba(224, 178, 98, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(s.x - 44, s.y - 70, 88, 94);
+      ctx.fillStyle = `rgba(217, 155, 66, ${pulse * 0.3})`;
+      ctx.fillRect(s.x - 40, s.y - 60, 80, 80);
 
-      // 绘制通路地面光晕环
-      ctx.fillStyle = `rgba(224, 178, 98, ${pulse * 0.25})`;
-      ctx.beginPath();
-      ctx.ellipse(s.x, s.y, 34, 11, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = `rgba(217, 155, 66, ${pulse * 0.2})`;
+      ctx.fillRect(s.x - 30, s.y - 2, 60, 4);
       ctx.restore();
 
-      ctx.fillStyle = `rgba(240, 233, 218, ${0.72 + pulse * 0.28})`;
+      ctx.fillStyle = `rgba(235, 230, 220, ${0.8 + pulse * 0.2})`;
       ctx.font = font(13, true);
       ctx.textAlign = 'center';
       ctx.fillText('→ ' + (it.label || '前进'), s.x, s.y - 24);
@@ -415,20 +386,20 @@ export function drawObjectiveArrow(ctx, W2S, game, gameTime) {
   ctx.save();
   ctx.translate(ax, ay);
   ctx.rotate(angle);
-  ctx.fillStyle = `rgba(255,228,150,${pulse})`;
-  ctx.shadowColor = `rgba(255,228,150,${pulse * 0.8})`;
-  ctx.shadowBlur = 12;
+  ctx.fillStyle = `rgba(0,240,255,${pulse})`;
+  ctx.shadowColor = `rgba(0,240,255,${pulse * 0.8})`;
+  ctx.shadowBlur = 10;
   ctx.beginPath();
   ctx.moveTo(16, 0);
-  ctx.lineTo(-8, -10);
+  ctx.lineTo(-8, -8);
   ctx.lineTo(-2, 0);
-  ctx.lineTo(-8, 10);
+  ctx.lineTo(-8, 8);
   ctx.closePath();
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.rotate(-angle);
-  ctx.fillStyle = `rgba(255,228,150,${pulse})`;
-  ctx.font = font(11, true);
+  ctx.fillStyle = `rgba(0,240,255,${pulse})`;
+  ctx.font = font(12, true);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(`${Math.floor(dist)}`, 0, -17);
@@ -441,12 +412,12 @@ export function drawDamageOverlay(ctx, player, gameTime) {
   void gameTime;
   const a = Math.min(0.35, (player.invulnerable / 800) * 0.35);
   const grad = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.7);
-  grad.addColorStop(0, 'rgba(220,40,40,0)');
-  grad.addColorStop(1, `rgba(220,40,40,${a})`);
+  grad.addColorStop(0, 'rgba(211,54,54,0)');
+  grad.addColorStop(1, `rgba(211,54,54,${a})`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
   if (Math.random() < 0.3) {
-    ctx.fillStyle = 'rgba(255,100,100,0.04)';
+    ctx.fillStyle = 'rgba(211,54,54,0.04)';
     ctx.fillRect(0, 0, W, H);
   }
 }

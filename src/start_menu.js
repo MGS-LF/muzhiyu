@@ -18,12 +18,13 @@ function ensureStyle() {
       display: grid;
       place-items: center;
       overflow: hidden;
-      color: var(--ink, #e8dcc8);
-      background-color: #050403;
+      color: var(--ink, #e2ded5);
+      background-color: #030405;
       background-image:
-        radial-gradient(circle at 50% 42%, rgba(180, 135, 70, 0.13), transparent 34%),
-        linear-gradient(90deg, #000000, #050609 46%, #000000);
+        radial-gradient(circle at 50% 42%, rgba(0, 240, 255, 0.05), transparent 34%),
+        linear-gradient(90deg, #030405, #07080a 46%, #030405);
       font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+      font-weight: bold;
     }
     .start-menu.is-hidden {
       opacity: 0;
@@ -37,32 +38,51 @@ function ensureStyle() {
       width: min(980px, calc(100vw - 48px));
       min-height: 520px;
       padding: 44px 52px 38px;
-      border: 1px solid rgba(212, 168, 90, 0.48);
-      background: rgba(8, 7, 5, 0.88);
-      box-shadow: inset 0 1px 0 rgba(255, 236, 190, 0.1), 0 30px 80px rgba(0, 0, 0, 0.52);
+      border: 1px solid var(--panel-line, rgba(94, 99, 107, 0.45));
+      background: rgba(7, 8, 10, 0.98);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.82);
+      position: relative;
+    }
+    .start-menu__panel::before {
+      content: "┌";
+      position: absolute;
+      top: 6px; left: 10px;
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .start-menu__panel::after {
+      content: "┘";
+      position: absolute;
+      bottom: 6px; right: 10px;
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
+      font-family: monospace;
+      font-size: 14px;
     }
     .start-menu__kicker {
-      color: rgba(212, 168, 90, 0.72);
+      color: var(--ok, rgba(0, 240, 255, 0.95));
       font-size: 12px;
       letter-spacing: 0.36em;
       text-align: center;
+      font-family: monospace;
     }
     .start-menu__title {
       margin: 14px 0 8px;
-      color: #f0dfbd;
+      color: var(--ink, #e2ded5);
       font-size: 42px;
       font-weight: 700;
       letter-spacing: 0.34em;
       text-align: center;
       text-indent: 0.34em;
-      text-shadow: 0 0 22px rgba(212, 168, 90, 0.32);
+      text-shadow: 0 0 22px rgba(0, 240, 255, 0.3);
     }
     .start-menu__subtitle {
       margin-bottom: 34px;
-      color: rgba(232, 220, 200, 0.58);
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
       font-size: 13px;
       letter-spacing: 0.14em;
       text-align: center;
+      font-family: monospace;
     }
     .start-menu__view {
       display: none;
@@ -78,18 +98,19 @@ function ensureStyle() {
     }
     .start-menu__intro {
       padding-top: 2px;
-      border-top: 1px solid rgba(212, 168, 90, 0.22);
+      border-top: 1px solid rgba(94, 99, 107, 0.25);
     }
     .start-menu__intro-label,
     .start-menu__menu-label {
       margin-bottom: 18px;
-      color: rgba(212, 168, 90, 0.78);
+      color: var(--ok, rgba(0, 240, 255, 0.95));
       font-size: 12px;
       letter-spacing: 0.28em;
+      font-family: monospace;
     }
     .start-menu__intro h2 {
       margin-bottom: 16px;
-      color: #f0dfbd;
+      color: var(--ink, #e2ded5);
       font-size: 24px;
       font-weight: 700;
       letter-spacing: 0.16em;
@@ -98,10 +119,11 @@ function ensureStyle() {
     .start-menu__intro p {
       max-width: 58ch;
       margin: 0 0 14px;
-      color: rgba(232, 220, 200, 0.72);
+      color: var(--ink, #e2ded5);
       font-size: 14px;
       line-height: 1.9;
       letter-spacing: 0.05em;
+      font-weight: bold;
     }
     .start-menu__notes {
       display: grid;
@@ -111,17 +133,18 @@ function ensureStyle() {
     }
     .start-menu__note {
       padding: 12px 10px;
-      border: 1px solid rgba(212, 168, 90, 0.22);
-      background: rgba(212, 168, 90, 0.045);
-      color: rgba(232, 220, 200, 0.68);
+      border: 1px solid rgba(94, 99, 107, 0.3);
+      background: rgba(94, 99, 107, 0.05);
+      color: var(--ink-soft, rgba(150, 155, 165, 0.9));
       font-size: 12px;
       line-height: 1.6;
       letter-spacing: 0.08em;
       text-align: center;
+      font-family: monospace;
     }
     .start-menu__menu {
       padding: 2px 0 0 28px;
-      border-left: 1px solid rgba(212, 168, 90, 0.22);
+      border-left: 1px solid rgba(94, 99, 107, 0.25);
     }
     .start-menu__actions {
       display: grid;
@@ -131,21 +154,23 @@ function ensureStyle() {
     }
     .start-menu button {
       min-height: 46px;
-      border: 1px solid rgba(212, 168, 90, 0.42);
-      color: #e8dcc8;
-      background: rgba(212, 168, 90, 0.08);
+      border: 1px solid var(--panel-line, rgba(94, 99, 107, 0.45));
+      color: var(--ink, #e2ded5);
+      background: rgba(94, 99, 107, 0.06);
       font: inherit;
       font-size: 15px;
+      font-weight: bold;
       letter-spacing: 0.2em;
       cursor: pointer;
+      border-radius: 0;
       transition: transform 140ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
     }
     .start-menu button:hover,
     .start-menu button:focus-visible {
-      color: #fff8e8;
-      border-color: var(--gold-bright, rgba(255, 222, 142, 0.9));
-      background: rgba(212, 168, 90, 0.16);
-      outline: 2px solid var(--gold-bright, rgba(255, 222, 142, 0.9));
+      color: var(--ok, #00f0ff);
+      border-color: var(--ok, #00f0ff);
+      background: rgba(0, 240, 255, 0.08);
+      outline: 1px solid var(--ok, #00f0ff);
       outline-offset: 2px;
     }
     .start-menu button:active {
@@ -161,10 +186,11 @@ function ensureStyle() {
       margin-bottom: 20px;
       font-size: 12px;
       letter-spacing: 0.16em;
+      border-radius: 0;
     }
     .start-menu__heading {
       margin-bottom: 18px;
-      color: #f0dfbd;
+      color: var(--ink, #e2ded5);
       font-size: 22px;
       letter-spacing: 0.2em;
       text-align: center;
@@ -182,18 +208,19 @@ function ensureStyle() {
       padding: 10px 16px;
       text-align: left;
       letter-spacing: 0.04em;
+      border-radius: 0;
     }
     .start-menu__save-title {
       display: flex;
       justify-content: space-between;
       gap: 16px;
-      color: #f0dfbd;
+      color: var(--ink, #e2ded5);
       font-size: 14px;
       line-height: 1.5;
     }
     .start-menu__save-meta {
       margin-top: 4px;
-      color: rgba(232, 220, 200, 0.58);
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
       font-size: 12px;
       line-height: 1.5;
     }
@@ -203,17 +230,18 @@ function ensureStyle() {
       min-height: 156px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(212, 168, 90, 0.18);
-      color: rgba(232, 220, 200, 0.54);
-      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(94, 99, 107, 0.25);
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
+      background: rgba(94, 99, 107, 0.03);
       font-size: 14px;
       letter-spacing: 0.08em;
+      border-radius: 0;
     }
     .start-menu__error {
       min-height: auto;
       margin-top: 12px;
       padding: 10px 12px;
-      color: #f0b0a0;
+      color: var(--danger, #d33636);
     }
     .start-menu__about {
       display: block;
@@ -223,14 +251,15 @@ function ensureStyle() {
     }
     .start-menu__about p {
       margin: 0 0 12px;
-      color: rgba(232, 220, 200, 0.72);
+      color: var(--ink, #e2ded5);
       font-size: 14px;
       letter-spacing: 0.04em;
+      font-weight: bold;
     }
     .start-menu__about ul {
       margin: 10px 0 0;
       padding-left: 1.2em;
-      color: rgba(232, 220, 200, 0.66);
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
       font-size: 13px;
       line-height: 1.9;
     }
@@ -245,16 +274,17 @@ function ensureStyle() {
       gap: 4px 14px;
       align-items: center;
       padding: 12px 14px;
-      border: 1px solid rgba(212, 168, 90, 0.2);
-      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(94, 99, 107, 0.3);
+      background: rgba(94, 99, 107, 0.04);
+      border-radius: 0;
     }
     .start-menu__avatar {
       width: 56px;
       height: 56px;
-      border-radius: 50%;
+      border-radius: 0; /* 彻底直角美学 */
       object-fit: cover;
-      border: 1px solid rgba(212, 168, 90, 0.45);
-      box-shadow: 0 0 12px rgba(212, 168, 90, 0.18);
+      border: 1px solid rgba(94, 99, 107, 0.5);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
       grid-row: 1 / span 2;
       background: rgba(0, 0, 0, 0.35);
     }
@@ -262,12 +292,13 @@ function ensureStyle() {
       min-width: 0;
     }
     .start-menu__member-role {
-      color: rgba(212, 168, 90, 0.85);
+      color: var(--ok, rgba(0, 240, 255, 0.85));
       font-size: 11px;
       letter-spacing: 0.12em;
+      font-family: monospace;
     }
     .start-menu__member-name {
-      color: #f0dfbd;
+      color: var(--ink, #e2ded5);
       font-size: 15px;
       font-weight: 700;
       letter-spacing: 0.08em;
@@ -275,7 +306,7 @@ function ensureStyle() {
     }
     .start-menu__member-desc {
       margin-top: 4px;
-      color: rgba(232, 220, 200, 0.62);
+      color: var(--ink-soft, rgba(150, 155, 165, 0.8));
       font-size: 13px;
       line-height: 1.7;
       letter-spacing: 0.03em;
@@ -283,7 +314,7 @@ function ensureStyle() {
     }
     .start-menu__team-note {
       margin-top: 16px !important;
-      color: rgba(232, 220, 200, 0.5) !important;
+      color: var(--ink-soft, rgba(150, 155, 165, 0.5)) !important;
       font-size: 12px !important;
       letter-spacing: 0.06em !important;
     }
@@ -416,7 +447,9 @@ export function mountStartMenu(game, { fromIntro } = {}) {
   `;
   document.body.appendChild(root);
 
-  const views = /** @type {HTMLElement[]} */ (Array.from(root.querySelectorAll('.start-menu__view')));
+  const views = /** @type {HTMLElement[]} */ (
+    Array.from(root.querySelectorAll('.start-menu__view'))
+  );
   const savesBox = /** @type {HTMLElement} */ (root.querySelector('[data-saves]'));
   const errorBox = /** @type {HTMLElement} */ (root.querySelector('[data-error]'));
   const ngPlusButton = /** @type {HTMLElement} */ (root.querySelector('[data-ngplus]'));

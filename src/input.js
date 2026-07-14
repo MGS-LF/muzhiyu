@@ -30,7 +30,20 @@ window.addEventListener('keydown', (e) => {
   if (!keys[k]) justPressed[k] = true;
   keys[k] = true;
   if (
-    ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'backspace', 'tab', 'f', 'f2', 'f4', 'f6', 'f9'].includes(k)
+    [
+      'arrowup',
+      'arrowdown',
+      'arrowleft',
+      'arrowright',
+      ' ',
+      'backspace',
+      'tab',
+      'f',
+      'f2',
+      'f4',
+      'f6',
+      'f9',
+    ].includes(k)
   )
     e.preventDefault();
 });
@@ -96,7 +109,7 @@ function refreshCanvasCoord() {
   if (!_canvas) return;
   const r = _canvas.getBoundingClientRect();
   const W = 1200; // 游戏的固定逻辑画布宽度
-  const H = 760;  // 游戏的固定逻辑画布高度
+  const H = 760; // 游戏的固定逻辑画布高度
   mouse.canvasX = (mouse.x - r.left) * (W / r.width);
   mouse.canvasY = (mouse.y - r.top) * (H / r.height);
 }

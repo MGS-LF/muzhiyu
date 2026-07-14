@@ -83,7 +83,10 @@ function drawEnemy(ctx, e, frame) {
 
     // 外光晕
     const aura = ctx.createRadialGradient(0, 0, s * 0.1, 0, 0, s * 0.95);
-    aura.addColorStop(0, flash ? 'rgba(255,160,80,0.35)' : `rgba(80,160,255,${0.28 + pulse * 0.12})`);
+    aura.addColorStop(
+      0,
+      flash ? 'rgba(255,160,80,0.35)' : `rgba(80,160,255,${0.28 + pulse * 0.12})`
+    );
     aura.addColorStop(0.55, 'rgba(40,90,200,0.12)');
     aura.addColorStop(1, 'rgba(10,20,40,0)');
     ctx.fillStyle = aura;

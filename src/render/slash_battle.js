@@ -466,14 +466,29 @@ export function drawSlashBattle(ctx, battle, gameTime) {
   if (battle.enemyText && battle.enemyTextTimer > 0) {
     const a = Math.min(1, battle.enemyTextTimer / 400);
     ctx.globalAlpha = a;
-    ctx.font = '13px serif';
-    const tw = Math.min(420, ctx.measureText(battle.enemyText).width + 28);
-    ctx.fillStyle = 'rgba(18,28,20,0.9)';
-    roundRect(ctx, W / 2 - tw / 2, 46, tw, 28, 6);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(160,255,170,0.95)';
+    ctx.font = 'bold 13px serif';
+    const text = battle.enemyText;
+    const maxTextW = 420;
+    const textWidth = ctx.measureText(text).width;
+    const tw = Math.min(maxTextW, textWidth + 24);
+
+    ctx.fillStyle = 'rgba(7, 8, 10, 0.98)';
+    ctx.fillRect(W / 2 - tw / 2, 46, tw, 28);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(W / 2 - tw / 2, 46, tw, 28);
+
+    ctx.fillStyle = 'rgba(235, 230, 220, 0.98)';
     ctx.textAlign = 'center';
-    ctx.fillText(battle.enemyText, W / 2, 60);
+
+    let drawText = text;
+    if (textWidth > maxTextW - 20) {
+      while (drawText.length > 3 && ctx.measureText(drawText + '…').width > maxTextW - 20) {
+        drawText = drawText.slice(0, -1);
+      }
+      drawText += '…';
+    }
+    ctx.fillText(drawText, W / 2, 64);
     ctx.globalAlpha = 1;
   }
 
