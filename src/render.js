@@ -5,6 +5,7 @@ import { isMuted } from './audio.js';
 import { drawMinimap } from './minimap.js';
 import { getDifficultyDef } from './difficulty.js';
 import { drawBattle } from './render/battle.js';
+import { drawSlashBattle } from './render/slash_battle.js';
 import { drawHackingBattle } from './hacking/render.js';
 import {
   drawFreezeCenter,
@@ -57,6 +58,8 @@ export function render(game, gameTime) {
   if (game.battle) {
     if (game.battle.isHack || game.battle.mode === 'hack') {
       drawHackingBattle(ctx, game.battle, gameTime);
+    } else if (game.battle.isSlash || game.battle.mode === 'slash') {
+      drawSlashBattle(ctx, game.battle, gameTime);
     } else {
       drawBattle(ctx, game.battle, gameTime);
     }

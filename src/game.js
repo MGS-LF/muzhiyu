@@ -5,6 +5,7 @@ import { Player } from './player.js';
 import { scenes, DROP_TABLES, DEFAULT_DROPS } from './scenes.js';
 import { Camera, render } from './render.js';
 import { Battle } from './battle.js';
+import { SlashBattle } from './slash_battle.js';
 import { HackingBattle } from './hacking/HackingBattle.js';
 import { voice } from './ai/voice.js';
 import { AI } from './ai/config.js';
@@ -1324,7 +1325,13 @@ export class Game {
       (enemy.combat === 'hack' ||
         enemy.hackTrial ||
         (enemy.boss && enemy.typeId === 'geng_boss' && !this.endless));
-    const Ctor = useHack ? HackingBattle : Battle;
+    // 方案1：普通梗鬼默认划墨切梗；骇入与显式 ut 保留旧战
+    const useSlash =
+      FEATURES.slashBattle &&
+      !useHack &&
+      !(enemy && enemy.combat === 'ut') &&
+      !this.endless;
+    const Ctor = useHack ? HackingBattle : useSlash ? SlashBattle : Battle;
     this.battle = new Ctor(
       enemy,
       this.player,

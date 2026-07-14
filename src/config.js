@@ -19,6 +19,7 @@ export const H = 760;
 
 export const FEATURES = {
   utterance: true,
+  slashBattle: true, // 方案1：划墨切梗（非骇入战默认）
   level3d: true, // leave true for now, P3 will disable
   hacking: true,
   sidescrollLong: true,
