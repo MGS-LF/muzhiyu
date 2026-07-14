@@ -458,29 +458,43 @@ export class SideScrollLevel {
       }
       p.walkCycle += dt * 0.015;
     } else {
+      const step = MOVE_SPD * (dt / 16.67);
       if (mx !== 0) {
-        p.vx = mx * MOVE_SPD * (dt / 16.67);
+        // 地面 / 空中都按住方向键时满速横移，保证 A/D+跳 = 往前跳
+        p.vx = mx * step;
         p.facing = mx;
-        p.walkCycle += dt * 0.02;
-      } else {
+        if (p.onGround) p.walkCycle += dt * 0.02;
+      } else if (p.onGround) {
         p.vx *= 0.7;
         if (Math.abs(p.vx) < 0.1) p.vx = 0;
+      } else {
+        // 空中松开方向：缓慢减速，保留一段前冲
+        p.vx *= 0.92;
+        if (Math.abs(p.vx) < 0.05) p.vx = 0;
       }
 
       // 普通跳跃：按下即跳（土狼时间 / 落地缓冲）
-      const canJump = p.onGround || p.coyote > 0;
-      if (jumpPressed && canJump) {
+      const doJump = () => {
         p.vy = JUMP_V;
         p.onGround = false;
         p.coyote = 0;
         p.jumpBuffer = 0;
+        // 起跳时若按住 A/D，强制满速横移，避免「只竖直上跳」
+        if (mx !== 0) {
+          p.vx = mx * MOVE_SPD * (dt / 16.67);
+          p.facing = mx;
+        } else if (Math.abs(p.vx) < 0.2 && p.facing) {
+          // 刚松开方向键时仍带一点朝向惯性
+          p.vx = p.facing * MOVE_SPD * (dt / 16.67) * 0.55;
+        }
+      };
+      const canJump = p.onGround || p.coyote > 0;
+      if (jumpPressed && canJump) {
+        doJump();
       } else if (jumpPressed && !canJump) {
         p.jumpBuffer = JUMP_BUFFER;
       } else if (p.onGround && p.jumpBuffer > 0) {
-        p.vy = JUMP_V;
-        p.onGround = false;
-        p.jumpBuffer = 0;
-        p.coyote = 0;
+        doJump();
       }
     }
     p._wasOnLadder = p.onLadder;
