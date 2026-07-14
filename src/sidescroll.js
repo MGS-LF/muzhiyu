@@ -2,7 +2,7 @@
 // 前段：老人交付武器 + 基础踩踏/挥刀教学
 // 中段：梯子攀爬 + 核心要石（存档点/刻字）
 // 后段：精准平台跳跃 + 精英梗鬼 + 出口通向居民区
-// 重力 + 跳跃（轻跳/重跳）+ 平台 + 梯子；J 键挥剑近战；空格跳跃踩踏
+// 重力 + 普通跳跃 + 平台 + 梯子；J 键挥剑近战；空格跳跃踩踏
 import { W, H } from './config.js';
 import { DIALOGS } from './data/dialogs.js';
 import { CONTROL_HINTS } from './data/controls.js';
@@ -26,15 +26,10 @@ const KNIFE_HIT_RADIUS = 13;
 const COYOTE_TIME = 90; // 离开地面后仍可起跳的缓冲时间（ms）
 const JUMP_BUFFER = 110; // 落地前提前按跳跃的缓冲时间（ms）
 
-// === 跳跃参数（轻跳 / 重跳）===
-// 轻跳：起跳快、滞空短、高度低 —— 适用于精准平台跳跃
-// 重跳：起跳慢、滞空长、高度高 —— 适用于跨越江堤较大间距或高度差
-const JUMP_LIGHT_V = -10.0; // 轻跳初速度（绝对值小 → 跳得低）
-const JUMP_HEAVY_V = -14.5; // 重跳初速度（绝对值大 → 跳得高）
-const JUMP_LIGHT_HOLD = 140; // 轻跳蓄力时间（ms）—— 短按即起跳
-const JUMP_HEAVY_HOLD = 280; // 重跳蓄力时间（ms）—— 长按蓄力后起跳
-// 上升期持续按住跳跃键 → 重力降低，延长滞空（重跳延长效果更强）
-const JUMP_MAX_VY = 16; // 下落最大速度
+// === 普通跳跃（无蓄力）===
+// 地面 y=624，前段台阶 y≈520（高差约 104）；初速约 -13.2 可上第一层台阶
+const JUMP_V = -13.2;
+const JUMP_MAX_VY = 16;
 
 // 段落分界
 const SEG1_END = 1100; // 前段结束
@@ -44,8 +39,7 @@ const SEG2_END = 2300; // 中段结束
 const KNIFE_DIALOG = [
   { s: '守砚', t: '江堤这条路，被梗鬼堵了。它们在堤面与石板上来回踱步，碰到你就咬你的字。' },
   { s: '守砚', t: '近身的东西，诗一时半刻念不利索。这把小刀给你——记忆合金打的，专破那层绿皮。' },
-  { s: '系统', t: '（A/D 左右走；空格/W 跳跃——短按为轻跳，精准落点；长按为重跳，跨越沟壑）' },
-  { s: '系统', t: '（从上方落下可踩死梗鬼；按 J 挥刀近战）' },
+  { s: '系统', t: '（A/D 左右走；空格/W 跳跃可上台阶；从上方落下可踩死梗鬼；按 J 挥刀近战）' },
   { s: '守砚', t: '砍通这条堤，东头就是去居民区的路。我在出口等你。' },
   { s: '顾言', t: '……多谢。' },
   { s: '系统', t: '（获得：记忆合金小刀）' },
@@ -91,10 +85,6 @@ export class SideScrollLevel {
       hasKnife: !!game.flags.sidescroll_knife,
       hurt: 0,
       onLadder: false,
-      // === 跳跃状态机 ===
-      jumpCharge: 0, // 蓄力计时（>0 表示正在蓄力）
-      jumpHolding: false, // 跳跃键是否仍按住（用于可变重力延长滞空）
-      jumpType: null, // 'light' | 'heavy' | null（当前跳跃类型）
       // 手感缓冲
       coyote: 0,
       jumpBuffer: 0,
@@ -459,12 +449,10 @@ export class SideScrollLevel {
       p.y += my * CLIMB_SPD * (dt / 16.67);
       p.vx = mx * MOVE_SPD * 0.6 * (dt / 16.67);
       p.x += p.vx;
-      // 跳跃脱离梯子（轻跳）
+      // 跳跃脱离梯子
       if (jumpPressed) {
-        p.vy = JUMP_LIGHT_V;
+        p.vy = JUMP_V;
         p.onLadder = false;
-        p.jumpType = 'light';
-        p.jumpHolding = jumpDown;
         p.coyote = 0;
         p.jumpBuffer = 0;
       }
@@ -479,59 +467,20 @@ export class SideScrollLevel {
         if (Math.abs(p.vx) < 0.1) p.vx = 0;
       }
 
-      // === 跳跃状态机（轻跳 / 重跳）===
+      // 普通跳跃：按下即跳（土狼时间 / 落地缓冲）
       const canJump = p.onGround || p.coyote > 0;
       if (jumpPressed && canJump) {
-        if (p.onGround) {
-          p.jumpCharge = 1; // 开始蓄力计时
-          p.jumpHolding = true;
-        } else {
-          // 土狼时间：空中直接轻跳
-          p.vy = JUMP_LIGHT_V;
-          p.jumpType = 'light';
-          p.jumpHolding = jumpDown;
-          p.coyote = 0;
-        }
+        p.vy = JUMP_V;
+        p.onGround = false;
+        p.coyote = 0;
         p.jumpBuffer = 0;
       } else if (jumpPressed && !canJump) {
         p.jumpBuffer = JUMP_BUFFER;
-      }
-
-      if (p.onGround) {
-        // 落地前按下的跳跃被缓冲，立即开始蓄力
-        if (p.jumpBuffer > 0 && p.jumpCharge <= 0) {
-          p.jumpCharge = 1;
-          p.jumpHolding = jumpDown;
-          p.jumpBuffer = 0;
-        }
-        // 在地面：继续蓄力或起跳
-        if (p.jumpCharge > 0) {
-          p.jumpCharge += dt;
-          // 松开跳跃键 或 蓄力超过重跳阈值 → 起跳
-          if (!jumpDown || p.jumpCharge >= JUMP_HEAVY_HOLD) {
-            if (p.jumpCharge >= JUMP_HEAVY_HOLD) {
-              // 重跳：蓄力满 → 高跳
-              p.vy = JUMP_HEAVY_V;
-              p.jumpType = 'heavy';
-            } else if (p.jumpCharge >= JUMP_LIGHT_HOLD) {
-              // 介于轻跳和重跳之间 → 按比例插值（平滑过渡）
-              const t = (p.jumpCharge - JUMP_LIGHT_HOLD) / (JUMP_HEAVY_HOLD - JUMP_LIGHT_HOLD);
-              p.vy = JUMP_LIGHT_V + (JUMP_HEAVY_V - JUMP_LIGHT_V) * t;
-              p.jumpType = 'medium';
-            } else {
-              // 轻跳：短按即起跳
-              p.vy = JUMP_LIGHT_V;
-              p.jumpType = 'light';
-            }
-            p.onGround = false;
-            p.jumpCharge = 0;
-            p.jumpHolding = jumpDown;
-          }
-        }
-      } else {
-        // 空中：更新按键保持状态（用于可变重力延长滞空）
-        p.jumpHolding = jumpDown;
-        p.jumpCharge = 0; // 空中不蓄力
+      } else if (p.onGround && p.jumpBuffer > 0) {
+        p.vy = JUMP_V;
+        p.onGround = false;
+        p.jumpBuffer = 0;
+        p.coyote = 0;
       }
     }
     p._wasOnLadder = p.onLadder;
@@ -559,15 +508,7 @@ export class SideScrollLevel {
 
     // === 物理 ===
     if (!p.onLadder) {
-      // 可变重力：上升期（vy<0）且玩家仍按住跳跃键 → 使用较低重力延长滞空
-      // 重跳的延长效果更强（滞空更长），轻跳较弱
-      let g = GRAVITY;
-      if (p.vy < 0 && p.jumpHolding) {
-        // 重跳延长系数 0.55，轻跳 0.75（重跳滞空更长）
-        const extendMul = p.jumpType === 'heavy' ? 0.55 : p.jumpType === 'medium' ? 0.65 : 0.75;
-        g = GRAVITY * extendMul;
-      }
-      p.vy += g;
+      p.vy += GRAVITY;
       if (p.vy > JUMP_MAX_VY) p.vy = JUMP_MAX_VY;
     }
     p.x += p.vx;
@@ -664,8 +605,7 @@ export class SideScrollLevel {
       ) {
         e.alive = false;
         e.stompCD = 9999;
-        p.vy = JUMP_LIGHT_V * 0.65; // 踩踏后轻弹（用轻跳速度，手感更利落）
-        p.jumpType = 'light';
+        p.vy = JUMP_V * 0.65; // 踩踏后轻弹
         p.onGround = false;
         this.shake = 100;
         this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
@@ -1668,34 +1608,6 @@ export class SideScrollLevel {
       ctx.font = '11px serif';
       ctx.fillText('向前走，找老人……', sx, sy + sanH + 18);
     }
-    // === 跳跃蓄力指示器 ===
-    if (this.p.jumpCharge > 0) {
-      const barW = 100,
-        barH = 6;
-      const bx = sx,
-        by = sy + sanH + 36;
-      ctx.fillStyle = 'rgba(20,15,10,0.8)';
-      ctx.fillRect(bx, by, barW, barH);
-      // 蓄力进度
-      const chargeRatio = Math.min(1, this.p.jumpCharge / JUMP_HEAVY_HOLD);
-      // 轻跳区间（绿色）→ 重跳区间（金色）
-      const lightRatio = JUMP_LIGHT_HOLD / JUMP_HEAVY_HOLD;
-      ctx.fillStyle = chargeRatio < lightRatio ? '#66dd66' : '#ffd866';
-      ctx.fillRect(bx + 1, by + 1, (barW - 2) * chargeRatio, barH - 2);
-      ctx.strokeStyle = 'rgba(220,200,150,0.4)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(bx, by, barW, barH);
-      // 轻跳/重跳分界线
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.beginPath();
-      ctx.moveTo(bx + barW * lightRatio, by);
-      ctx.lineTo(bx + barW * lightRatio, by + barH);
-      ctx.stroke();
-      // 标签
-      ctx.fillStyle = 'rgba(255,240,200,0.7)';
-      ctx.font = '9px serif';
-      ctx.fillText(chargeRatio < lightRatio ? '轻跳蓄力…' : '重跳蓄力…', bx, by - 3);
-    }
     // 剩余敌人计数 + 段落标识
     const left = this.enemies.filter((e) => e.alive).length;
     ctx.fillStyle = 'rgba(120,220,120,0.7)';
@@ -1708,12 +1620,11 @@ export class SideScrollLevel {
     ctx.fillStyle = 'rgba(255,220,140,0.6)';
     ctx.font = '10px serif';
     ctx.fillText(segName, W - 16, sy + 28);
-    // 跳跃提示（首次进入后段时显示）
     if (px > SEG2_END && !this._jumpHintShown) {
       ctx.fillStyle = 'rgba(255,220,140,0.5)';
       ctx.font = '9px serif';
       ctx.textAlign = 'right';
-      ctx.fillText('短按=轻跳  长按=重跳', W - 16, sy + 44);
+      ctx.fillText('空格/W 跳跃上台阶', W - 16, sy + 44);
     }
     ctx.textAlign = 'left';
   }

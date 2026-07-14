@@ -59,7 +59,7 @@ export const CONTROL_HINTS = {
   battleConfirm: `${CONTROL_LABELS.menuAdjust} 选择 · ${CONTROL_LABELS.confirm} 确认`,
   battleUltimate: `${CONTROL_LABELS.poemUltimate} 诗词大招`,
   riversideIntro: `从上方落下可踩死梗鬼；按 ${CONTROL_LABELS.knife} 挥刀近战`,
-  riversideReturn: `空格跳跃踩踏梗鬼 · ${CONTROL_LABELS.knife} 挥刀 · 老人旁光圈按 ${CONTROL_LABELS.interact} 返回街道 · 中段有要石`,
+  riversideReturn: `空格/W 跳跃 · ${CONTROL_LABELS.knife} 挥刀 · 老人旁光圈按 ${CONTROL_LABELS.interact} 返回街道 · 中段有要石`,
   level3dIntro: `（调试）维度裂隙：${CONTROL_LABELS.moveWasd} 移动 · 鼠标视角 · ${CONTROL_LABELS.shoot} 射击`,
   level3dGun: `（调试）捡到「刻字枪」！${CONTROL_LABELS.shoot} 射击`,
   saveMenuSave: `${CONTROL_LABELS.menuSelect} 选择槽位   ${CONTROL_LABELS.menuAdjust} 切换保存/读取   ${CONTROL_LABELS.interact} 保存或覆盖   Delete 删除   ${CONTROL_LABELS.saveMenu}/${CONTROL_LABELS.system} 关闭`,
