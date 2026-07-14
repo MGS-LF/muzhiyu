@@ -9,9 +9,11 @@ import { CONTROL_HINTS } from './data/controls.js';
 import * as audio from './audio.js';
 import { directorEnabled } from './ai/director.js';
 
-// === 物理参数 ===
-const GRAVITY = 0.55;
-const MOVE_SPD = 2.5; // 江堤区域专属移速（低于大地图，仅本关卡生效）
+// === 物理参数（按 60fps 设计，用 dt 归一）===
+const FRAME = 16.67;
+const GRAVITY = 0.52; // 每帧重力（再乘 dt/FRAME）
+const MOVE_SPD = 3.6; // 地面横移 px/帧
+const AIR_SPD = 3.9; // 空中横移（略快，前冲更明显）
 const CLIMB_SPD = 2.0;
 const GROUND_Y = 624;
 const LEVEL_W = 3400;
@@ -23,13 +25,15 @@ const ATTACK_ACTIVE_END = 0.72;
 const KNIFE_ARM_LEN = 22;
 const KNIFE_BLADE_LEN = 38;
 const KNIFE_HIT_RADIUS = 13;
-const COYOTE_TIME = 90; // 离开地面后仍可起跳的缓冲时间（ms）
-const JUMP_BUFFER = 110; // 落地前提前按跳跃的缓冲时间（ms）
+const COYOTE_TIME = 100;
+const JUMP_BUFFER = 120;
 
 // === 普通跳跃（无蓄力）===
-// 地面 y=624，前段台阶 y≈520（高差约 104）；初速约 -13.2 可上第一层台阶
-const JUMP_V = -13.2;
-const JUMP_MAX_VY = 16;
+// 地面 624 → 前段台阶 520/440/500；-16.2 + g0.52 约可抬 250px，能连上第二层
+const JUMP_V = -16.2;
+const JUMP_MAX_VY = 18;
+// 起跳瞬间额外水平冲量（按住 A/D 时）
+const JUMP_FORWARD = 1.35;
 
 // 段落分界
 const SEG1_END = 1100; // 前段结束
@@ -100,24 +104,24 @@ export class SideScrollLevel {
     // 中段：高低差大的攀爬平台
     // 后段：精准跳跃的间距平台
     this.platforms = [
-      // 前段
-      { x: 340, y: 520, w: 120, h: 14 },
-      { x: 560, y: 440, w: 100, h: 14 },
-      { x: 780, y: 500, w: 130, h: 14 },
+      // 前段：递进台阶（地面 624 → 530 → 460 → 500），普通跳可连上
+      { x: 320, y: 530, w: 140, h: 14 },
+      { x: 520, y: 460, w: 120, h: 14 },
+      { x: 740, y: 500, w: 140, h: 14 },
       // 中段（梯子攀爬区）
       { x: 1200, y: 540, w: 100, h: 14 },
-      { x: 1380, y: 420, w: 90, h: 14 },
-      { x: 1560, y: 340, w: 100, h: 14 },
-      { x: 1740, y: 260, w: 110, h: 14 },
-      { x: 1950, y: 380, w: 100, h: 14 },
-      { x: 2100, y: 500, w: 120, h: 14 },
-      // 后段（精准跳跃）
-      { x: 2400, y: 480, w: 80, h: 14 },
-      { x: 2560, y: 400, w: 70, h: 14 },
-      { x: 2720, y: 460, w: 70, h: 14 },
-      { x: 2880, y: 360, w: 80, h: 14 },
-      { x: 3060, y: 440, w: 90, h: 14 },
-      { x: 3220, y: 520, w: 100, h: 14 },
+      { x: 1380, y: 430, w: 100, h: 14 },
+      { x: 1560, y: 360, w: 110, h: 14 },
+      { x: 1740, y: 300, w: 120, h: 14 },
+      { x: 1950, y: 400, w: 110, h: 14 },
+      { x: 2100, y: 500, w: 130, h: 14 },
+      // 后段
+      { x: 2400, y: 490, w: 90, h: 14 },
+      { x: 2560, y: 420, w: 80, h: 14 },
+      { x: 2720, y: 470, w: 80, h: 14 },
+      { x: 2880, y: 390, w: 90, h: 14 },
+      { x: 3060, y: 450, w: 100, h: 14 },
+      { x: 3220, y: 520, w: 110, h: 14 },
     ];
 
     // === 梯子 {x, yTop, yBottom} —— 玩家重叠时可上下攀爬 ===
@@ -426,76 +430,74 @@ export class SideScrollLevel {
     }
 
     // === 玩家输入 ===
+    const t = Math.min(dt, 40) / FRAME; // 归一到 60fps 帧
     let mx = 0;
     if (input.isDown('a') || input.isDown('arrowleft')) mx -= 1;
     if (input.isDown('d') || input.isDown('arrowright')) mx += 1;
 
-    // 跳跃键状态（每帧消费一次 wasPressed，避免重复消费 bug）
+    // 跳跃：空格为主；W 仅在不爬梯时跳（避免与攀爬抢键）
     const jumpPressed =
-      input.wasPressed(' ') || input.wasPressed('w') || input.wasPressed('arrowup');
-    const jumpDown = input.isDown(' ') || input.isDown('w') || input.isDown('arrowup');
+      input.wasPressed(' ') ||
+      ((!p.onLadder && !p._wasOnLadder) &&
+        (input.wasPressed('w') || input.wasPressed('arrowup')));
 
-    // 手感缓冲计时器
     if (p.coyote > 0) p.coyote -= dt;
     if (p.jumpBuffer > 0) p.jumpBuffer -= dt;
     if (p.landTimer > 0) p.landTimer -= dt;
 
     if (p.onLadder) {
-      // 梯子上：忽略重力，上下移动
       p.vy = 0;
       let my = 0;
       if (input.isDown('w') || input.isDown('arrowup')) my -= 1;
       if (input.isDown('s') || input.isDown('arrowdown')) my += 1;
-      p.y += my * CLIMB_SPD * (dt / 16.67);
-      p.vx = mx * MOVE_SPD * 0.6 * (dt / 16.67);
+      p.y += my * CLIMB_SPD * t;
+      p.vx = mx * MOVE_SPD * 0.65 * t;
       p.x += p.vx;
-      // 跳跃脱离梯子
-      if (jumpPressed) {
+      if (input.wasPressed(' ')) {
         p.vy = JUMP_V;
         p.onLadder = false;
         p.coyote = 0;
         p.jumpBuffer = 0;
+        if (mx !== 0) {
+          p.vx = mx * AIR_SPD * JUMP_FORWARD;
+          p.facing = mx;
+        }
       }
       p.walkCycle += dt * 0.015;
     } else {
-      const step = MOVE_SPD * (dt / 16.67);
+      const spd = p.onGround ? MOVE_SPD : AIR_SPD;
       if (mx !== 0) {
-        // 地面 / 空中都按住方向键时满速横移，保证 A/D+跳 = 往前跳
-        p.vx = mx * step;
+        p.vx = mx * spd; // 目标速度（每帧），下面再 * t 积分
         p.facing = mx;
         if (p.onGround) p.walkCycle += dt * 0.02;
       } else if (p.onGround) {
-        p.vx *= 0.7;
-        if (Math.abs(p.vx) < 0.1) p.vx = 0;
+        p.vx *= 0.65;
+        if (Math.abs(p.vx) < 0.15) p.vx = 0;
       } else {
-        // 空中松开方向：缓慢减速，保留一段前冲
-        p.vx *= 0.92;
-        if (Math.abs(p.vx) < 0.05) p.vx = 0;
+        p.vx *= 0.88;
+        if (Math.abs(p.vx) < 0.08) p.vx = 0;
       }
 
-      // 普通跳跃：按下即跳（土狼时间 / 落地缓冲）
       const doJump = () => {
         p.vy = JUMP_V;
         p.onGround = false;
         p.coyote = 0;
         p.jumpBuffer = 0;
-        // 起跳时若按住 A/D，强制满速横移，避免「只竖直上跳」
         if (mx !== 0) {
-          p.vx = mx * MOVE_SPD * (dt / 16.67);
+          // 按住方向：空中满速 + 前冲加成
+          p.vx = mx * AIR_SPD * JUMP_FORWARD;
           p.facing = mx;
-        } else if (Math.abs(p.vx) < 0.2 && p.facing) {
-          // 刚松开方向键时仍带一点朝向惯性
-          p.vx = p.facing * MOVE_SPD * (dt / 16.67) * 0.55;
+        } else if (Math.abs(p.vx) > 0.2) {
+          // 保留起跳前冲
+          p.vx *= 1.15;
+        } else if (p.facing) {
+          p.vx = p.facing * AIR_SPD * 0.45;
         }
       };
       const canJump = p.onGround || p.coyote > 0;
-      if (jumpPressed && canJump) {
-        doJump();
-      } else if (jumpPressed && !canJump) {
-        p.jumpBuffer = JUMP_BUFFER;
-      } else if (p.onGround && p.jumpBuffer > 0) {
-        doJump();
-      }
+      if (jumpPressed && canJump) doJump();
+      else if (jumpPressed && !canJump) p.jumpBuffer = JUMP_BUFFER;
+      else if (p.onGround && p.jumpBuffer > 0) doJump();
     }
     p._wasOnLadder = p.onLadder;
 
@@ -515,18 +517,18 @@ export class SideScrollLevel {
       p.attackCD = KNIFE_COOLDOWN;
       p.attackHitIds.clear();
       p.attackDidHit = false;
-      if (p.onGround && !p.onLadder) p.vx += p.facing * 1.1;
+      if (p.onGround && !p.onLadder) p.vx += p.facing * 1.4;
       audio.playSfx('ui');
       this._doKnifeHit();
     }
 
-    // === 物理 ===
+    // === 物理（位移统一乘 t）===
     if (!p.onLadder) {
-      p.vy += GRAVITY;
+      p.vy += GRAVITY * t;
       if (p.vy > JUMP_MAX_VY) p.vy = JUMP_MAX_VY;
     }
-    p.x += p.vx;
-    p.y += p.vy;
+    p.x += p.vx * t;
+    p.y += p.vy * t;
     // 关卡边界
     if (p.x < 16) p.x = 16;
     if (p.x > LEVEL_W - 16) p.x = LEVEL_W - 16;
@@ -619,7 +621,7 @@ export class SideScrollLevel {
       ) {
         e.alive = false;
         e.stompCD = 9999;
-        p.vy = JUMP_V * 0.65; // 踩踏后轻弹
+        p.vy = JUMP_V * 0.55; // 踩踏后轻弹
         p.onGround = false;
         this.shake = 100;
         this.game.player.san = Math.min(this.game.player.maxSan, this.game.player.san + 6);
