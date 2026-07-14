@@ -27,33 +27,88 @@ export function drawSlashBattle(ctx, battle, gameTime) {
     ctx.stroke();
   }
 
-  // 中心护持圈（被撞就掉 SAN）
+  // 敌人位置移到上方顶端，不再占死中央，让出战斗舞台
   const cx = W / 2;
-  const cy = H / 2 - 20;
+  const cy = 110;
   const pulse = 0.5 + Math.sin(gameTime * 0.005) * 0.3;
-  ctx.strokeStyle = `rgba(255,200,120,${0.2 + pulse * 0.15})`;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 40, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = `rgba(255,220,140,${0.06 + pulse * 0.04})`;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 36, 0, Math.PI * 2);
-  ctx.fill();
 
-  // 敌人剪影（中心后）
+  // 敌人剪影
   ctx.save();
-  ctx.translate(cx, cy - 8);
+  ctx.translate(cx, cy);
   const hurt = battle.enemy.hp / Math.max(1, battle.enemy.maxHp);
   ctx.fillStyle = `rgba(60,${80 + Math.floor(hurt * 80)},60,0.85)`;
   ctx.beginPath();
-  ctx.ellipse(0, 10, 28, 36, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 10, 24, 30, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = `rgba(100,255,140,${0.35 + pulse * 0.2})`;
   ctx.font = 'bold 14px serif';
   ctx.textAlign = 'center';
   ctx.fillText(battle.enemy.name || '梗鬼', 0, -40);
   ctx.restore();
+
+  // 方案 2 视觉效果：文字护盾盘旋在玩家中心点（屏幕中央 H/2 - 20）
+  const px_center = W / 2;
+  const py_center = H / 2 - 20;
+  
+  // 中心护持圈
+  ctx.strokeStyle = `rgba(255,200,120,${0.18 + pulse * 0.12})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(px_center, py_center, 40, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = `rgba(255,220,140,${0.04 + pulse * 0.03})`;
+  ctx.beginPath();
+  ctx.arc(px_center, py_center, 36, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 盘旋的字盾（金色发光字，两两电弧连线）
+  const chars = battle.shieldChars || [];
+  const rot = battle.shieldRot || 0;
+  const radius = 90 + Math.sin(gameTime * 0.003) * 5;
+  const charPos = [];
+  
+  for (let i = 0; i < chars.length; i++) {
+    const a = rot + (i / chars.length) * Math.PI * 2;
+    const x = px_center + Math.cos(a) * radius;
+    const y = py_center + Math.sin(a) * radius;
+    charPos.push({ x, y, char: chars[i] });
+  }
+
+  // 绘制电弧（诗意连线）
+  if (charPos.length > 1) {
+    ctx.strokeStyle = 'rgba(255,215,140,0.18)';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(charPos[0].x, charPos[0].y);
+    for (let i = 1; i < charPos.length; i++) {
+      ctx.lineTo(charPos[i].x, charPos[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 绘制环绕的汉字
+  ctx.font = 'bold 15px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const cp of charPos) {
+    ctx.shadowColor = 'rgba(255,215,142,0.85)';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = 'rgba(32,24,18,0.92)';
+    roundRect(ctx, cp.x - 12, cp.y - 12, 24, 24, 4);
+    ctx.fill();
+    ctx.strokeStyle = UI.goldLine;
+    ctx.lineWidth = 1;
+    roundRect(ctx, cp.x - 12, cp.y - 12, 24, 24, 4);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = UI.goldBright;
+    ctx.fillText(cp.char, cp.x, cp.y);
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
 
   // 飞字
   for (const w of battle.words || []) {

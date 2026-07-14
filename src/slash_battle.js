@@ -53,7 +53,11 @@ export class SlashBattle {
     this.san = player.san;
     this.maxSan = player.maxSan || 100;
 
-    // 划线轨迹（屏幕坐标）
+    // 方案 2 环绕字盾：捡到的汉字碎片变成护盾绕着你转
+    this.shieldRot = 0;
+    this.shieldChars = (player.collectedCharsAll || []).slice(0, 6);
+
+    // 划线轨迹
     this.stroke = []; // {x,y,t}
     this.slashing = false;
     this.slashCooldown = 0;
@@ -167,6 +171,11 @@ export class SlashBattle {
 
   updateFight(dt) {
     const ptr = this._pointer();
+    
+    // 方案 2：盾随时间盘旋
+    this.shieldRot += 0.0016 * dt;
+    this.shieldChars = (this.player.collectedCharsAll || []).slice(0, 6);
+
     // 划线
     if (ptr.down) {
       if (!this._pointerDown) {
@@ -192,7 +201,7 @@ export class SlashBattle {
       this.tryStartCarve();
     }
 
-    // 生成飞字
+    // 生成飞字（从上方怪兽位置向下/向中心飘落）
     this.spawnTimer += dt;
     const maxWords = this.isBoss ? 14 : 10;
     if (this.spawnTimer > this.spawnEvery && this.words.length < maxWords) {
@@ -208,12 +217,13 @@ export class SlashBattle {
       w.x += w.vx * (dt / 16);
       w.y += w.vy * (dt / 16);
       w.rot += w.vr * (dt / 16);
-      // 轻微吸向中心（压迫感）
+      
+      // 轻微吸向你的中心圈（压迫感）
       w.vx += ((cx - w.x) * 0.00015) * (dt / 16);
       w.vy += ((cy - w.y) * 0.00015) * (dt / 16);
       w.life -= dt;
-      // 撞到中心圈 = 伤 SAN
-      if (Math.hypot(w.x - cx, w.y - cy) < 36 + w.r * 0.3) {
+      // 撞到玩家护持圈 = 伤 SAN
+      if (Math.hypot(w.x - cx, w.y - cy) < 36) {
         this.hitPlayer(w);
         this.words.splice(i, 1);
         continue;
@@ -225,25 +235,13 @@ export class SlashBattle {
   }
 
   spawnWord() {
-    const edge = Math.floor(Math.random() * 4);
-    let x, y;
-    if (edge === 0) {
-      x = rand(40, W - 40);
-      y = -30;
-    } else if (edge === 1) {
-      x = W + 30;
-      y = rand(40, H - 80);
-    } else if (edge === 2) {
-      x = rand(40, W - 40);
-      y = H + 30;
-    } else {
-      x = -30;
-      y = rand(40, H - 80);
-    }
+    // 飞字统一由上方的梗鬼实体嘴里吐出（或头部位置），扩散向玩家
+    const x = W / 2;
+    const y = 110;
     const text = MEME_WORDS[Math.floor(Math.random() * MEME_WORDS.length)];
     const sp = (this.isBoss ? 1.35 : 1) * difficulty.currentMul().bulletSpeed;
-    const ang = Math.atan2(H / 2 - y, W / 2 - x) + rand(-0.4, 0.4);
-    const speed = rand(0.9, 1.6) * sp;
+    const ang = Math.atan2(H / 2 - y, W / 2 - x) + rand(-0.8, 0.8);
+    const speed = rand(0.9, 1.8) * sp;
     this.words.push({
       text,
       x,
