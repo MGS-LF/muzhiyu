@@ -365,7 +365,7 @@ export function mountStartMenu(game, { fromIntro } = {}) {
   root.innerHTML = `
     <section class="start-menu__panel" aria-label="开始页面">
       <div class="start-menu__view is-active" data-view="main">
-        <div class="start-menu__kicker">公元 2147 · 上海废墟</div>
+        <div class="start-menu__kicker">公元 2147 · 失语废墟</div>
         <h1 class="start-menu__title">墓之语</h1>
         <div class="start-menu__subtitle">在遗忘的文字里醒来</div>
         <div class="start-menu__intro-layout">
