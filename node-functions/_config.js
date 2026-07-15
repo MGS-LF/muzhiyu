@@ -13,7 +13,7 @@ export const CFG = {
   llm: {
     apiKey: envStr('DEEPSEEK_API_KEY', ''),
     baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-chat',
+    model: 'deepseek-v4-flash',
   },
   tts: {
     apiKey: envStr('MIMO_API_KEY', ''),

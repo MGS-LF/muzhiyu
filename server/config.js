@@ -45,7 +45,7 @@ function loadConfig() {
   if (process.env.DEEPSEEK_API_KEY) cfg.llm.apiKey = process.env.DEEPSEEK_API_KEY;
   if (process.env.MIMO_API_KEY) cfg.tts.apiKey = process.env.MIMO_API_KEY;
   cfg.llm.baseUrl = cfg.llm.baseUrl || 'https://api.deepseek.com';
-  cfg.llm.model = cfg.llm.model || 'deepseek-chat';
+  cfg.llm.model = cfg.llm.model || 'deepseek-v4-flash';
   cfg.tts.baseUrl = cfg.tts.baseUrl || 'https://api.xiaomimimo.com/v1';
   cfg.tts.model = cfg.tts.model || 'mimo-v2.5-tts';
   cfg.tts.defaultVoice = cfg.tts.defaultVoice || 'Chloe';
