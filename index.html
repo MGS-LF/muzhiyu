@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>墓之语</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/style.css">
 <script type="importmap">
 {
   "imports": {
@@ -12,66 +13,6 @@
   }
 }
 </script>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 100%; height: 100%;
-    min-height: 100dvh;
-    background: #000;
-    overflow: hidden;
-    font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
-  }
-  body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  #wrap {
-    position: relative;
-    width: min(100vw, calc(100dvh * 30 / 19));
-    height: min(100dvh, calc(100vw * 19 / 30));
-    aspect-ratio: 30 / 19;
-    border: 1px solid #2a2a2a;
-  }
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background: #0a0a0a;
-    cursor: crosshair;
-  }
-  #hint {
-    position: absolute;
-    bottom: 4px; left: 8px;
-    color: #888;
-    font-size: 11px;
-    pointer-events: none;
-    letter-spacing: 1px;
-  }
-
-  #bootLoader {
-    position: fixed; inset: 0; z-index: 3000;
-    display: flex; align-items: center; justify-content: center;
-    background: #050403;
-    transition: opacity 400ms ease;
-  }
-  #bootLoader .boot-inner { text-align: center; }
-  #bootLoader .boot-kicker { color: rgba(210,165,92,0.6); font-size: 12px; letter-spacing: 0.34em; }
-  #bootLoader .boot-title { margin: 14px 0 26px; color: rgba(246,226,185,0.94); font-size: 40px; letter-spacing: 0.34em; text-shadow: 0 0 22px rgba(212,168,90,0.3); }
-  #bootLoader .boot-progress { width: 220px; height: 2px; margin: 0 auto; background: rgba(238,218,178,0.16); overflow: hidden; }
-  #bootProgressFill { width: 0; height: 100%; background: rgba(210,165,92,0.9); transition: width 280ms ease; }
-  #bootLoader .boot-status { margin-top: 14px; color: rgba(238,218,178,0.5); font-size: 12px; letter-spacing: 0.22em; }
-
-  @media (max-width: 720px) {
-    #hint { font-size: 9px; letter-spacing: 0.5px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    #bootLoader { transition: none; }
-    #bootProgressFill { transition: none; }
-  }
-
-</style>
 </head>
 <body>
 <div id="wrap" role="application" aria-label="墓之语 游戏画面">

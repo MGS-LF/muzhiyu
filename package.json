@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "concurrently \"node server/index.js\" \"vite\"",
-    "build": "vite build",
+    "build": "vite build && xcopy /E /I /Y assets dist\\assets",
+    "precache-tts": "node scripts/generate-tts-cache.mjs",
+    "build:local": "vite build",
     "preview": "vite preview",
     "lint": "eslint src server scripts",
     "format": "prettier --write \"src/**/*.js\" \"server.js\" \"scripts/**/*.mjs\"",

@@ -116,6 +116,8 @@ export function ttsKey({ text, voice, style, model }) {
 // ---------- 速率限制（内存计数，按 key 维度，时间窗口）----------
 const rateBuckets = new Map();
 export function rateLimit(key, max, windowMs = 60000) {
+  // 本地生成 TTS 缓存时可通过环境变量跳过限速
+  if (process.env.SKIP_RATE_LIMIT === '1') return true;
   const now = Date.now();
   let bucket = rateBuckets.get(key);
   if (!bucket || now > bucket.resetAt) {
