@@ -2,6 +2,7 @@
 import { DIALOGS } from '../data/dialogs.js';
 import * as fx from '../fx.js';
 import { generateDreamNarrationPack } from '../ai/director.js';
+import { ONBOARDING_HINT_LIFE } from '../ui/overlay.js';
 
 export const DREAM_SCENE_ID = 'dream_tutorial';
 
@@ -62,6 +63,11 @@ function defeatedCount(game) {
 }
 
 export const methods = {
+  /** 教学中的提示寿命更长，避免玩家没看清 */
+  _dreamHint(text, level = 'info') {
+    this.showHint(text, level, ONBOARDING_HINT_LIFE);
+  },
+
   beginDreamOnboarding({ skipStory = false } = {}) {
     if (this.flags.onboarding_all_done || this.flags.onboarding_skipped) {
       this._enterRealGameAfterOnboarding();
@@ -149,7 +155,7 @@ export const methods = {
     this.flags.onboarding_step = 'done';
     this._cleanupDreamProgress();
     this._enterRealGameAfterOnboarding();
-    this.showHint('已跳过梦境。左上角目标会指引你。', 'warn');
+    this._dreamHint('已跳过梦境。左上角目标会指引你。', 'warn');
   },
 
   completeDreamOnboarding() {
@@ -166,7 +172,7 @@ export const methods = {
     this._cleanupDreamProgress();
     this._enterRealGameAfterOnboarding();
     this.startDialog(wakeLines, '', () => {
-      this.showHint('先换衣服，再离开冷冻中心。慈悲与残忍会跟着你。', 'success');
+      this._dreamHint('先换衣服，再离开冷冻中心。慈悲与残忍会跟着你。', 'success');
     });
   },
 
@@ -472,33 +478,33 @@ export const methods = {
       if (id === 1 && (step === 'wall1' || step === 'intro')) {
         this.flags.onboarding_wall1 = true;
         this._dreamSetStep('collect');
-        this.showHint('去广播旁的残缺留言，再把碎字捡回来。', 'info');
+        this._dreamHint('去广播旁的残缺留言，再把碎字捡回来。', 'info');
         return;
       }
       if (id === 2 && step === 'collect') {
         this.flags.onboarding_wall2 = true;
         this._dreamRefreshObjective();
-        this.showHint('拾取地上发光的「言」「语」。', 'info');
+        this._dreamHint('拾取地上发光的「言」「语」。', 'info');
         return;
       }
       if (id === 3 && step === 'wall3') {
         this.flags.onboarding_wall3 = true;
         this._dreamSetStep('battle');
-        this.showHint('回声分成三种形态。先靠近弹幕形态。', 'info');
+        this._dreamHint('回声分成三种形态。先靠近弹幕形态。', 'info');
         return;
       }
       if (id === 4 && (step === 'wall4' || step === 'battle')) {
         this.flags.onboarding_wall4 = true;
         this._dreamSetStep('wall4');
         this._dreamRefreshObjective();
-        this.showHint('去触摸那块发光的要石。', 'info');
+        this._dreamHint('去触摸那块发光的要石。', 'info');
         return;
       }
       if (id === 5 && (step === 'wall5' || step === 'wall4')) {
         this.flags.onboarding_wall5 = true;
         this._dreamSetStep('wake_gate');
         fx.flash('#ffd866', 0.35, 400);
-        this.showHint('慈悲与残忍已写在你身上。裂隙开了。', 'success');
+        this._dreamHint('慈悲与残忍已写在你身上。裂隙开了。', 'success');
         return;
       }
       return;
@@ -516,7 +522,7 @@ export const methods = {
         );
         this.startDialog(lines, '要石', () => {
           this._dreamSetStep('wall5');
-          this.showHint('最后一段广播：慈悲与残忍。', 'info');
+          this._dreamHint('最后一段广播：慈悲与残忍。', 'info');
         });
       }
       return;
@@ -528,10 +534,10 @@ export const methods = {
       if (allChars(this)) {
         this.flags.onboarding_pickup_done = true;
         this._dreamSetStep('wall3');
-        this.showHint('字齐了。去把「言」「语」带到留言前。', 'success');
+        this._dreamHint('字齐了。去把「言」「语」带到留言前。', 'success');
         fx.flash('#ffd866', 0.25, 280);
       } else {
-        this.showHint(`获得「${detail.char || ''}」。还差另一枚。`, 'info');
+        this._dreamHint(`获得「${detail.char || ''}」。还差另一枚。`, 'info');
       }
       return;
     }
@@ -539,17 +545,17 @@ export const methods = {
     if (event === 'door_blocked') {
       const door = detail.door;
       if (door === 'a' && (step === 'intro' || step === 'wall1')) {
-        this.showHint('先靠近破损的旧广播，按 E 调查。', 'warn');
+        this._dreamHint('先靠近破损的旧广播，按 E 调查。', 'warn');
       } else if (door === 'b' && step === 'collect') {
-        this.showHint('先调查广播旁残缺的留言，或捡齐「言」「语」。', 'warn');
+        this._dreamHint('先调查广播旁残缺的留言，或捡齐「言」「语」。', 'warn');
       } else if (door === 'c' && step === 'wall3') {
-        this.showHint('先把「言」「语」带到留言前读完。', 'warn');
+        this._dreamHint('先把「言」「语」带到留言前读完。', 'warn');
       } else if (door === 'd' && step === 'battle') {
-        this.showHint('先与至少一重回声交手。', 'warn');
+        this._dreamHint('先与至少一重回声交手。', 'warn');
       } else if (door === 'e') {
-        this.showHint('先调查要石与最后的广播。', 'warn');
+        this._dreamHint('先调查要石与最后的广播。', 'warn');
       } else {
-        this.showHint('还不是时候。', 'warn');
+        this._dreamHint('还不是时候。', 'warn');
       }
       this._dreamRefreshObjective();
       return;
@@ -568,7 +574,8 @@ export const methods = {
           n === 1 ? '言锋形态：墨刃无限，记忆字会强化攻击。' : '骇入形态：击破噪声节点并保持移动。';
         this.showHint(
           result === 'lose' ? `梦境托住了你。继续：${nextName}` : `形态破裂。下一重：${nextName}`,
-          result === 'lose' ? 'warn' : 'success'
+          result === 'lose' ? 'warn' : 'success',
+          ONBOARDING_HINT_LIFE
         );
         return;
       }

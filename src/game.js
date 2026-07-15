@@ -38,7 +38,7 @@ import { methods as interactMethods } from './systems/interact.js';
 import { methods as onboardingMethods } from './systems/onboarding.js';
 import { methods as utteranceMethods } from './systems/utterance.js';
 import { EndlessMode } from './systems/endless.js';
-import { pushToast } from './ui/overlay.js';
+import { pushToast, SCENE_INTRO_LIFE, ONBOARDING_HINT_LIFE } from './ui/overlay.js';
 
 const SUPPORTED_ENDINGS = new Set(['fire', 'silence', 'burnout', 'atonement', 'echo', 'garden']);
 const BRIGHT_ENDINGS = new Set(['fire', 'atonement', 'echo', 'garden']);
@@ -437,7 +437,7 @@ export class Game {
     if (!this.visitedScenes.has(sceneId)) {
       this.visitedScenes.add(sceneId);
       const intro = SCENE_INTROS[sceneId];
-      if (intro) this.showHint(intro);
+      if (intro) this.showHint(intro, 'info', SCENE_INTRO_LIFE);
     }
     // BGM 切换：场景变更时播放对应氛围曲（同曲不重启）
     if (this._audioUnlocked && this._lastBgmScene !== sceneId) {
@@ -1516,7 +1516,7 @@ export class Game {
             : mode === 'slash'
               ? '言锋对决中，烂梗被汉字顶开。'
               : '弹幕战中，完整的句子让它溃散。';
-        this.showHint(modeHint, 'success');
+        this.showHint(modeHint, 'success', ONBOARDING_HINT_LIFE);
         audio.playSfx('victory');
         fx.flash('#ffd866', 0.3, 300);
         this.player.dialogGrace = 1500;
@@ -1567,7 +1567,7 @@ export class Game {
       }
       if (enemy.boss) this.flags[`${enemy.id}_defeated`] = true;
       if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
-        this.showHint('梗鬼安静下来。（宽恕 → 慈悲）', 'success');
+        this.showHint('梗鬼安静下来。（宽恕 → 慈悲）', 'success', ONBOARDING_HINT_LIFE);
         audio.playSfx('spare');
         this.player.dialogGrace = 1500;
         if (typeof this.notifyOnboarding === 'function') {
@@ -1588,7 +1588,7 @@ export class Game {
       fx.flash('#cc4444', 0.5, 400);
       this.player.san = this.player.maxSan;
       if (this.scene?.isDream || this.scene?.id === 'dream_tutorial') {
-        this.showHint('梦里倒下了……门还是开了。', 'warn');
+        this.showHint('梦里倒下了……门还是开了。', 'warn', ONBOARDING_HINT_LIFE);
         // 教学失败也推进，并移除该敌，避免反复卡住
         if (enemy?.id) {
           this.defeatedEnemies.add(enemy.id);
@@ -2177,8 +2177,8 @@ export class Game {
     this.setDialogIndex(d.idx + 1);
   }
 
-  showHint(text, level = 'info') {
-    pushToast(this.hints, text, level);
+  showHint(text, level = 'info', duration) {
+    pushToast(this.hints, text, level, duration);
   }
 
   toast(msg, level = 'info') {

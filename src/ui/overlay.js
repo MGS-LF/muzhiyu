@@ -4,6 +4,8 @@ import { UI, font, RADIUS } from './tokens.js';
 import { roundRect } from '../render/util.js';
 
 const TOAST_LIFE = { info: 2500, success: 2800, warn: 3500, danger: 5000 };
+export const SCENE_INTRO_LIFE = 4500;
+export const ONBOARDING_HINT_LIFE = 6000;
 const MAX_TOASTS = 3;
 
 const LEVEL_META = {
@@ -13,19 +15,20 @@ const LEVEL_META = {
   danger: { tag: '危', color: UI.danger, soft: 'rgba(220, 86, 86, 0.18)' },
 };
 
-export function makeToast(text, level = 'info') {
+export function makeToast(text, level = 'info', duration) {
   const lv = TOAST_LIFE[level] ? level : 'info';
+  const life = typeof duration === 'number' && duration > 0 ? duration : TOAST_LIFE[lv];
   return {
     t: text,
     level: lv,
-    life: TOAST_LIFE[lv],
-    maxLife: TOAST_LIFE[lv],
+    life,
+    maxLife: life,
   };
 }
 
-export function pushToast(hints, text, level = 'info') {
+export function pushToast(hints, text, level = 'info', duration) {
   if (!Array.isArray(hints)) return;
-  hints.push(makeToast(text, level));
+  hints.push(makeToast(text, level, duration));
   while (hints.length > MAX_TOASTS) hints.shift();
   mirrorAriaLive(text, level);
 }

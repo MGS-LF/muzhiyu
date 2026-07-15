@@ -54,7 +54,22 @@ export const methods = {
     const pool = buildPool(collected, target);
 
     if (!pool.length) {
-      this.showHint('还没有可填的字……先去捡发光的汉字碎片');
+      const cloze = parseClozePrompt(target.prompt || target.cloze || '', blanks);
+      this.utteranceState = {
+        mode: 'empty',
+        slots: blanks.map(() => null),
+        pool: [],
+        sel: 0,
+        blankSel: 0,
+        target,
+        blanks,
+        cloze,
+        title: target.poemTitle || target.idiomTitle || '补全',
+        message: '还没有可填的字——先去捡发光的汉字碎片，再按 Esc 关闭',
+        _chipHits: [],
+        _blankHits: [],
+      };
+      audio.playSfx('ui');
       return;
     }
 
@@ -119,6 +134,12 @@ export const methods = {
 
     if (input.wasPressed('escape') || input.wasPressed(UTTERANCE.key)) {
       this.closeUtterance();
+      return;
+    }
+
+    // 空模式：没有候选字，只能按 Esc/F 退出
+    if (u.mode === 'empty') {
+      this.updateParticles(dt);
       return;
     }
 
