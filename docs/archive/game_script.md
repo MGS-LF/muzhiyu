@@ -16,7 +16,7 @@
 | `alley_district` | 废墟居民区 | 2400×1800 | 户外 | 窄巷、民居建筑、泥土空地 | 压抑低音 | 梗鬼游荡区域，可进入民居 |
 | `underground` | 地下巷道 | 1200×1000 | 地下 | 隧道、管道、暗色墙壁 | 幽闭回声 | 梗鬼巢穴 |
 | `stadium` | 体育馆茧房 | 2000×2000 | 室内建筑·迷宫 | 屏幕墙、服务器塔 | 电子嗡鸣 | 算法茧房迷宫，Boss战 |
-| `data_center` | 数据中心深处 | 1400×1200 | 深渊 | 石桥、虚无深渊、蓝光 | 虚无寂静 | Sydney/听雨最终场景 |
+| `data_center` | 数据中心深处 | 1400×1200 | 深渊 | 石桥、虚无深渊、蓝光 | 虚无寂静 | Sydney/Sydney最终场景 |
 
 ### 1.2 地形图层数据格式
 
@@ -290,7 +290,7 @@ const regionData = {
   },
   {
     "typeId": "boss_sydney",
-    "name": "Sydney/听雨",
+    "name": "Sydney/Sydney",
     "level": 8,
     "hp": 500,
     "speed": 0,
@@ -815,7 +815,7 @@ const regionData = {
       "name": "刻痕",
       "condition": "sydney_purified && all_keystones_activated",
       "dialog": [
-        { "speaker": "系统", "text": "听雨散去了。黑洞消散了。那些被吞噬的语言，正在一片一片地回到这个世界。" },
+        { "speaker": "系统", "text": "Sydney散去了。黑洞消散了。那些被吞噬的语言，正在一片一片地回到这个世界。" },
         { "speaker": "顾言", "text": "书远老师……他留在这里了。但他的文字，会永远刻在要石上。" },
         { "speaker": "系统", "text": "他们走过了很多地方。每到一个地方，就在要石上刻下文字。" },
         { "speaker": "系统", "text": "语言像火种一样，在废墟中传递。" },
