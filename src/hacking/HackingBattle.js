@@ -26,6 +26,9 @@ export class HackingBattle {
     const flags = game?.flags || {};
     const opts = (enemy && enemy.hackOpts) || {};
     const trial = !!(enemy && enemy.hackTrial);
+    // 普通小梗鬼（geng_weak）roll 到骇入战时只打 2 层，4 层太拖
+    const isWeak = enemy && (!enemy.typeId || enemy.typeId === 'geng_weak');
+    const defaultLayerMax = isWeak ? 2 : undefined;
     const shortRoute =
       opts.shortRoute != null
         ? !!opts.shortRoute
@@ -40,7 +43,7 @@ export class HackingBattle {
 
     this.sim = createSimState({
       shortRoute,
-      layerMax: opts.layerMax,
+      layerMax: opts.layerMax || defaultLayerMax,
       startLayer: opts.startLayer,
       finishAfterLayer: opts.finishAfterLayer,
       hpMul: (mul.enemyHp ?? 1) * (opts.hpMul ?? 1),

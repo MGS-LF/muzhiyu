@@ -554,12 +554,18 @@ export function drawStreet(ctx, W2S, scene, gameTime, game) {
   ctx.strokeStyle = 'rgba(180,160,80,0.3)';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([20, 16]);
+  // dash 相位对齐世界坐标，避免相机移动时虚线"滑动"
+  // W2S(0,0).x = -camera.x，取反得到 camera.x，对 dash 周期取模
+  const dashCycle = 20 + 16;
+  const camX = -W2S(0, 0).x;
+  ctx.lineDashOffset = ((camX % dashCycle) + dashCycle) % dashCycle;
   const centerY = (walkY + groundY) / 2;
   ctx.beginPath();
   ctx.moveTo(0, centerY);
   ctx.lineTo(W, centerY);
   ctx.stroke();
   ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
 
   // 鏉傝崏锛堝浐瀹氫笘鐣屽潗鏍囷紝浜虹墿绉诲姩鏃朵繚鎸侀潤姝級
   ctx.strokeStyle = '#5a6a30';
