@@ -17,7 +17,12 @@ export async function callLLM(messages, opts = {}) {
   });
   if (!r.ok) throw new Error('llm http ' + r.status);
   const j = await r.json();
-  const text = j?.choices?.[0]?.message?.content ?? '';
+  const msg = j?.choices?.[0]?.message;
+  // 优先取 content；思考模型可能把有效内容放在 reasoning_content 里
+  let text = msg?.content ?? '';
+  if (!text && msg?.reasoning_content) {
+    text = msg.reasoning_content;
+  }
   if (!opts.json) return text;
   return extractJSON(text);
 }

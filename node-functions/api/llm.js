@@ -33,8 +33,9 @@ export async function onRequest(context) {
   };
   if (body.response_format) payload.response_format = body.response_format;
   // v4 推理模型默认开启思考，游戏需要稳定 JSON 输出，关闭思考模式
+  // thinking 必须放在请求体顶层（不是 extra_body 嵌套）
   if (/v4/.test(payload.model)) {
-    payload.extra_body = { thinking: { type: 'disabled' } };
+    payload.thinking = { type: 'disabled' };
   }
 
   const upstreamUrl = CFG.llm.baseUrl.replace(/\/$/, '') + '/chat/completions';
