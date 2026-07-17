@@ -6,11 +6,16 @@ cache/
 _tmp*
 _tts_*
 *.tmp
+tts-*-log.txt
+tts-*-err.txt
 
 # 依赖与构建输出
 node_modules/
 dist/
 coverage/
+
+# EdgeOne Pages 部署临时目录
+.edgeone/
 
 # 编辑器 / IDE
 .vscode/

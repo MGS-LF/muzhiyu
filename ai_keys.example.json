@@ -2,7 +2,7 @@
   "llm": {
     "baseUrl": "https://api.deepseek.com",
     "apiKey": "YOUR_DEEPSEEK_API_KEY_HERE",
-    "model": "deepseek-chat"
+    "model": "deepseek-v4-flash"
   },
   "tts": {
     "baseUrl": "https://api.xiaomimimo.com/v1",
